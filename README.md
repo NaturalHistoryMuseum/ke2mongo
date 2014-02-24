@@ -1,4 +1,4 @@
 ke2mongo
 ========
 
-Import KE EMu data into Mongo DB
+Import KE EMu data into Mongo DB (experimental)
