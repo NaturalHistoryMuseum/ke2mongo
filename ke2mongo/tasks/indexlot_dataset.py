@@ -23,7 +23,7 @@ class IndexLotDatasetTask(CSVTask):
 
     columns = [
         ('_id', '_id', 'int32', True),
-        ('EntIndIndexLotTaxonNameLocalRef', 'taxonomy_irn', 'int32', False),
+        ('EntIndIndexLotTaxonNameLocalRef', '_taxonomy_irn', 'int32', False),
         ('EntIndMaterial', 'material', 'bool', True),
         ('EntIndType', 'is_type', 'bool', True),
         ('EntIndMedia', 'media', 'bool', True),
@@ -48,7 +48,7 @@ class IndexLotDatasetTask(CSVTask):
         taxonomy_df = self.get_taxonomy(m, irns)
 
         # And merge into the catalogue records
-        df = pd.merge(df, taxonomy_df, how='outer', left_on=['taxonomy_irn'], right_on=['taxonomy_irn'])
+        df = pd.merge(df, taxonomy_df, how='outer', left_on=['_taxonomy_irn'], right_on=['_taxonomy_irn'])
         return df
 
     @staticmethod
@@ -85,6 +85,6 @@ class IndexLotDatasetTask(CSVTask):
         df = pd.DataFrame(np.matrix(query).transpose(), columns=df_cols)
 
         # Convert to int (adding index doesn't speed this up)
-        df['taxonomy_irn'] = df['taxonomy_irn'].astype('int32')
+        df['_taxonomy_irn'] = df['_taxonomy_irn'].astype('int32')
 
         return df

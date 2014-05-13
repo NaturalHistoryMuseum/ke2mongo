@@ -35,7 +35,7 @@ class CSVTask(luigi.Task):
         database = config.get('mongo', 'database')
         collection_name = CatalogueMongoTask().collection_name()
 
-        ke_cols, df_cols, types, output = zip(*self.columns)
+        ke_cols, df_cols, types = zip(*self.columns)
 
         count = 0
 
@@ -46,25 +46,17 @@ class CSVTask(luigi.Task):
             for catalogue_block in catalogue_blocks:
 
                 # Loop through and ensure all output values are string, and empty values are ''
-                # catalogue_block = [arr.astype(np.str).filled('') if output[i] else arr for i, arr in enumerate(catalogue_block)]
+                # If this isn't an output field, we will ignore it as empty values will not matter
+                catalogue_block = [arr.astype(np.str).filled('') if self.output_field(df_cols[i]) else arr for i, arr in enumerate(catalogue_block)]
 
                 # Create a pandas data frame with block of records
                 df = pd.DataFrame(np.matrix(catalogue_block).transpose(), columns=df_cols)
 
-                # Loop through all the columns and ensure not output integers are ints
+                # Loop through all the columns and ensure hidden integer fields are cast as int32
                 # For example, taxonomy_irn is used to join with taxonomy df
                 for i, df_col in enumerate(df_cols):
-                    if not output[i] and types[i] == 'int32':
+                    if not self.output_field(df_col) and types[i] == 'int32':
                         df[df_col] = df[df_col].astype('int32')
-
-                # TODO: Is this necessary - will postgres just do it for you? What if it fails?
-                # df.convert_objects(convert_numeric=True)
-                # df['DarDecimalLongitude'] = df['DarDecimalLongitude'].astype('float64')
-
-                print df['DarDecimalLongitude']
-
-                #  TODO: Floats are not coming out
-                # df.convert_objects(convert_numeric=True)
 
                 self.process(m, df)
 
@@ -72,7 +64,7 @@ class CSVTask(luigi.Task):
                 output_columns = self.output_columns()
 
                 # Write CSV file
-                df.to_csv(self.output().path, chunksize=1000, mode='a', cols=output_columns.keys(), index=False, header=False)
+                df.to_csv(self.output().path, chunksize=1000, mode='a', cols=output_columns.keys(), index=False, header=False, )
 
                 count += len(df)
 
@@ -81,9 +73,17 @@ class CSVTask(luigi.Task):
         t2 = time.time()
         log.info('Time: %.2f secs', t2 - t1)
 
+    def output_field(self, field):
+        """
+        Fields starting with _ are hidden and shouldn't be included in output
+        @param field:
+        @return: bool
+        """
+        return not field.startswith('_')
+
     def output_columns(self):
         # Dictionary of columns to output in the format field_name : type
-        return OrderedDict((col[1], col[2]) for i, col in enumerate(self.columns) if col[3])
+        return OrderedDict((col[1], col[2]) for i, col in enumerate(self.columns) if self.output_field(col[1]))
 
     def process(self, m, df):
         """

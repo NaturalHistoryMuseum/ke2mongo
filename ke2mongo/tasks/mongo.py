@@ -107,7 +107,6 @@ class MongoTask(luigi.Task):
                 self.batch = []
 
         else:
-
             self.collection.insert(data)
 
     def output(self):
