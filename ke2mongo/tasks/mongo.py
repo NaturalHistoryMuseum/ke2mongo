@@ -9,11 +9,13 @@ import sys
 import os
 import luigi
 from ke2mongo.tasks.ke import KEFileTask
+from ke2mongo.log import log
 from keparser import KEParser
 from keparser.parser import FLATTEN_ALL
 from ke2mongo import config
 from pymongo import MongoClient
 import abc
+import time
 
 
 class MongoTarget(luigi.Target):
@@ -34,7 +36,6 @@ class MongoTarget(luigi.Target):
         """
         Has this already been processed?
         """
-        return False
         exists = self.marker_collection.find({'update_id': self.update_id}).count()
         return bool(exists)
 
@@ -62,11 +63,16 @@ class MongoTask(luigi.Task):
     def requires(self):
         return KEFileTask(module=self.module, date=self.date)
 
+    def collection_name(self):
+        return self.module
+
     def run(self):
 
-        ke_data = KEParser(self.input().open('r'), schema_file=self.keemu_schema_file, input_file_path=self.input().path)
+        t1 = time.time()
 
-        self.collection = self.output().get_collection(self.module)
+        ke_data = KEParser(self.input().open('r'), schema_file=self.keemu_schema_file, input_file_path=self.input().path, flatten_mode=FLATTEN_ALL)
+
+        self.collection = self.output().get_collection(self.collection_name())
 
         for data in ke_data:
 
@@ -83,6 +89,9 @@ class MongoTask(luigi.Task):
 
         # Mark as complete
         self.output().touch()
+
+        t2 = time.time()
+        log.info('Time: %.2f secs', t2 - t1)
 
     def process(self, data):
 
@@ -107,7 +116,3 @@ class MongoTask(luigi.Task):
     def update_id(self):
         """This update id will be a unique identifier for this insert on this collection."""
         return self.task_id
-
-class CatalogueTask(MongoTask):
-
-    module = 'ecatalogue'

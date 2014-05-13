@@ -5,14 +5,8 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
-import sys
 import os
+from ConfigParser import ConfigParser
 
-
-def main():
-    pass
-
-
-if __name__ == '__main__':
-    main()
-
+config = ConfigParser()
+config.read(os.path.join(os.path.dirname(__file__), 'client.cfg'))
