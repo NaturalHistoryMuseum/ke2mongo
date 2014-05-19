@@ -41,6 +41,20 @@ class CatalogueMongoTask(MongoTask):
         'Transient Lot'
     ]
 
+    # Parent record types
+    # These will be excluded fr
+    parent_types = [
+        'Bird Group Parent',
+        'Mammal Group Parent',
+    ]
+
+    part_types = [
+        'Bird Group Part',
+        'Egg',
+        'Nest',
+        'Mammal Group Part'
+    ]
+
     def process(self, data):
 
         # Only import if it's one of the record types we want
@@ -50,9 +64,60 @@ class CatalogueMongoTask(MongoTask):
         else:
             super(CatalogueMongoTask, self).process(data)
 
+    def add_child_refs(self):
+        """
+        For parent / part records KE EMu has a reference to the parent on the Part - in field RegRegistrationParentRef
+        However, for our Mongo aggregation pipeline, we need to have refs to the parts on the parent
+        This function adds refs, in field PartRef (list)
+        @return: none
+        """
+
+        # Set child ref to None for all parent type records
+        # This ensures after updates records are kept up to date
+        # We re-update all ChildRef fields below
+        self.collection.update({'ColRecordType': {"$in": self.parent_types}}, {"$unset": {"PartRef": None}}, multi=True)
+
+        # # Add an index for child ref
+        self.collection.ensure_index('ChildRef')
+
+        result = self.collection.aggregate([
+            {"$match": {"ColRecordType": {"$in": self.parent_types + self.part_types}}},
+            {"$group": {"_id": {"$ifNull": ["$RegRegistrationParentRef", "$_id" ]}, "ids": {"$addToSet": "$_id"}}},
+            {"$match": {"ids.1": {"$exists": True}}}  # We only want records with more than one in the group
+        ])
+
+        bulk = self.collection.initialize_unordered_bulk_op()
+
+        for record in result['result']:
+            try:
+                record['ids'].remove(record['_id'])
+                # Add updating record to the bulk process
+                bulk.find({'_id': record['_id']}).update({'$set': {'PartRef': record['ids']}})
+            except ValueError:
+                # Parent record does not exist
+                # KE EMU obviously doesn't enforce referential integrity
+                # We do not want to do anything with these records
+                continue
+
+        result = bulk.execute()
+
+        log.info('Added PartRef to %s parent records', result['nModified'])
+
     def on_success(self):
         """
         On completion, add indexes
         @return: None
         """
+
+        self.collection = self.get_collection()
+
         self.collection.ensure_index('ColRecordType')
+
+        self.add_child_refs()
+
+
+
+        # TODO: This isn't being marked as complete?
+
+    # def collection_name(self):
+    #     return 'ecatalogue_utf8'

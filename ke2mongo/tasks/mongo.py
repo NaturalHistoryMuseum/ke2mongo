@@ -66,13 +66,20 @@ class MongoTask(luigi.Task):
     def collection_name(self):
         return self.module
 
+    def get_collection(self):
+        """
+        Get a reference to the mongo collection object
+        @return:
+        """
+        return self.output().get_collection(self.collection_name())
+
     def run(self):
 
         t1 = time.time()
 
         ke_data = KEParser(self.input().open('r'), schema_file=self.keemu_schema_file, input_file_path=self.input().path, flatten_mode=FLATTEN_ALL)
 
-        self.collection = self.output().get_collection(self.collection_name())
+        self.collection = self.get_collection()
 
         for data in ke_data:
 
@@ -97,7 +104,8 @@ class MongoTask(luigi.Task):
 
         # Use the IRN as _id & remove original
         data['_id'] = data['irn']
-        del data['irn']
+        # Keep the IRN but cast as string, so we can use it in $concat
+        data['irn'] = str(data['irn'])
 
         if self.batch_size:
             self.batch.append(data)

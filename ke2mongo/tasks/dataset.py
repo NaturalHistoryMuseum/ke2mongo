@@ -18,12 +18,18 @@ from monary.monary import get_monary_numpy_type
 import numpy as np
 import psycopg2
 import pylons
+from ke2mongo.tasks.catalogue_mongo import CatalogueMongoTask
+
+
 # TODO: This just copies data via postgres copy function - it's quick but need to do periodic updates etc., via API
 
 class DatasetTask(luigi.Task):
     """
     Class for importing KE data into CKAN dataset
     """
+
+    mongo = CatalogueMongoTask()
+
     @abc.abstractproperty
     def name(self):
         """
@@ -72,12 +78,20 @@ class DatasetTask(luigi.Task):
         """
         return None
 
+    @property
+    def collection_name(self):
+        """
+        Mongo collection name
+        @return: str
+        """
+        return self.mongo.collection_name()
+
     def outfile(self):
         return os.path.join('/tmp', '%s.csv' % self.__class__.__name__.replace('DatasetTask', '').lower())
 
     def requires(self):
         # Create a CSV export of this field data to be used in postgres copy command
-        return CSVTask(columns=self.columns, query=self.query, outfile=self.outfile())
+        return CSVTask(columns=self.columns, query=self.query, collection_name=self.collection_name, outfile=self.outfile())
 
     def api_call(self, action, data_dict):
         """
