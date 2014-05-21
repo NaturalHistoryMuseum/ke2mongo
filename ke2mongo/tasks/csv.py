@@ -17,6 +17,8 @@ from ke2mongo.lib.timeit import timeit
 from ke2mongo import config
 from collections import OrderedDict
 from pymongo import MongoClient
+from operator import itemgetter
+
 
 class CSVTask(luigi.Task):
     """
@@ -26,19 +28,15 @@ class CSVTask(luigi.Task):
     database = luigi.Parameter()
     # Name of the collection
     collection_name = luigi.Parameter()
-    # List of columns
-    columns = luigi.Parameter(significant=False)
     # Query dictionary
     query = luigi.Parameter(significant=False)
+    # List of columns
+    columns = luigi.Parameter(significant=False)
     # Name of file to write CSV
     outfile = luigi.IntParameter(significant=False)
-    # Callback for processing files
-    process_callback = luigi.IntParameter(significant=False)
 
     @timeit
     def run(self):
-
-        ke_cols, df_cols, inheritable, types = zip(*self.columns)
 
         # Number of records to retrieve (~200 breaks)
         block_size = 100
@@ -47,6 +45,10 @@ class CSVTask(luigi.Task):
 
         mongo = MongoClient()
         db = mongo[self.database]
+
+        # Ensure self.query is a tuple (luigi list params are converted to tuples)
+        if not isinstance(self.query, tuple):
+            self.query = [self.query]
 
         for query in self.query:
 
@@ -70,7 +72,9 @@ class CSVTask(luigi.Task):
                 # Run the aggregation query
                 log.info("Building aggregated collection: %s", collection_name)
 
-                db[self.collection_name].aggregate(query, allowDiskUse=True)
+                result = db[self.collection_name].aggregate(query, allowDiskUse=True)
+
+                assert result['success'] is True
 
                 query = {}
 
@@ -79,32 +83,39 @@ class CSVTask(luigi.Task):
 
             with Monary() as m:
 
-                catalogue_blocks = m.block_query(self.database, collection_name, query, ke_cols, types, block_size=block_size)
+                query_fields, df_cols, field_types = zip(*self.columns)
+
+                catalogue_blocks = m.block_query(self.database, collection_name, query, query_fields, field_types, block_size=block_size)
 
                 for catalogue_block in catalogue_blocks:
 
-                    # Loop through and ensure all output values are string, and empty values are ''
-                    # If this isn't an output field, we will ignore it as empty values will not matter
+                    # Columns are indexed by key in the catalogue
                     catalogue_block = [arr.astype(np.str).filled('') if self.output_field(df_cols[i]) else arr for i, arr in enumerate(catalogue_block)]
 
                     # Create a pandas data frame with block of records
+                    # Columns use the name from the output columns - but must be in the same order as query_fields
+                    # Which is why we're using tuples for the columns
                     df = pd.DataFrame(np.matrix(catalogue_block).transpose(), columns=df_cols)
 
                     # Loop through all the columns and ensure hidden integer fields are cast as int32
                     # For example, taxonomy_irn is used to join with taxonomy df
                     for i, df_col in enumerate(df_cols):
-                        if not self.output_field(df_col) and types[i] == 'int32':
+                        if not self.output_field(df_col) and field_types[i] == 'int32':
                             df[df_col] = df[df_col].astype('int32')
 
-                    self.process_callback(m, df)
+                    df = self.process_dataframe(m, df)
 
                     row_count, col_count = df.shape
 
                     # Create list of columns to output
-                    output_columns = self.output_columns()
+                    # As the df columns are indexed by column name, these don't have to align with the frame
+                    csv_columns = self.csv_columns(self.columns)
+
+                    # print csv_columns
+
                     # Write CSV file
                     try:
-                        df.to_csv(self.output().path, chunksize=csv_chunksize, mode='a', columns=output_columns.keys(), index=False, header=False, encoding='utf-8')
+                        df.to_csv(self.output().path, chunksize=csv_chunksize, mode='a', columns=csv_columns.keys(), index=False, header=False, encoding='utf-8')
                     except UnicodeDecodeError:
 
                         # Batch writing to CSV failed - rather than ditch the whole batch, loop through and write each individually, logging an error for failures
@@ -117,16 +128,20 @@ class CSVTask(luigi.Task):
                             df_row = df[i:i+1]
                             try:
                                 # Try to write the row
-                                df_row.to_csv(self.output().path, mode='a', columns=output_columns.keys(), index=False, header=False, encoding='utf-8')
+                                df_row.to_csv(self.output().path, mode='a', columns=csv_columns.keys(), index=False, header=False, encoding='utf-8')
                             except UnicodeDecodeError:
-                                # On failure, log an error
+                                # On failure, log an error with the _id of that row
                                 log.critical('UTF8 Encoding error for record irn=%s', df_row.iloc[-1]['_id'])
 
                     count += row_count
 
                     log.info("\t %s records", count)
 
-    def output_field(self, field):
+    def process_dataframe(self, m, df):
+        return df  # default impl
+
+    @staticmethod
+    def output_field(field):
         """
         Fields starting with _ are hidden and shouldn't be included in output (excluding _id)
         @param field:
@@ -134,9 +149,17 @@ class CSVTask(luigi.Task):
         """
         return field == '_id' or not field.startswith('_')
 
-    def output_columns(self):
-        # Dictionary of columns to output in the format field_name : type
-        return OrderedDict((col[1], col[3]) for i, col in enumerate(self.columns) if self.output_field(col[1]))
+    def csv_columns(self, columns):
+        """
+        Columns to output to CSV
+        @param columns: self.columns - passed by ref so can be overwritten
+        @return: Dictionary field_name : type
+        """
+        return OrderedDict((col[1], col[2]) for col in columns if self.output_field(col[1]))
 
     def output(self):
+        """
+        Luigi method: output target
+        @return: luigi file ref
+        """
         return luigi.LocalTarget(self.outfile)

@@ -19,6 +19,7 @@ import numpy as np
 from ke2mongo.log import log
 import psycopg2
 from ke2mongo.lib.timeit import timeit
+from collections import OrderedDict
 
 # TODO: This just copies data via postgres copy function - it's quick but need to do periodic updates etc., via API
 
@@ -85,15 +86,13 @@ class DatasetTask(luigi.Task):
         """
         return None
 
-    def process_dataframe(m, df):
-        return df  # default impl
-
+    @property
     def outfile(self):
         return os.path.join('/tmp', '%s.csv' % self.__class__.__name__.replace('DatasetTask', '').lower())
 
     def requires(self):
         # Create a CSV export of this field data to be used in postgres copy command
-        return CSVTask(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.columns, outfile=self.outfile(), process_callback=self.process_dataframe)
+        return CSVTask(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.columns, outfile=self.outfile)
 
     def api_call(self, action, data_dict):
         """
@@ -104,7 +103,7 @@ class DatasetTask(luigi.Task):
         """
         url = '{site_url}/api/3/action/{action}'.format(
             site_url=config.get('ckan', 'site_url'),
-            action= action
+            action=action
         )
 
         # Use the json module to dump a dictionary to a string for posting.
@@ -153,7 +152,7 @@ class DatasetTask(luigi.Task):
         if not resource_id:
 
             # Dictionary of fields and field type
-            fields = [{'id': name, 'type': self.numpy_to_ckan_type(type)} for name, type in self.requires().output_columns().items() if name not in ['_id']]
+            fields = [{'id': name, 'type': self.numpy_to_ckan_type(type)} for name, type in self.requires().csv_columns().items() if name not in ['_id']]
 
             # Parameters to create the datastore
             datastore_params = {
@@ -214,12 +213,15 @@ class DatasetTask(luigi.Task):
 
         conn.cursor().execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV".format(
             table=resource_id,
-            cols='","'.join(self.requires().output_columns().keys()),
+            cols='","'.join(self.requires().csv_columns().keys()),
             file=self.input().path
             )
         )
 
         conn.commit()
+
+
+
 
 
 
