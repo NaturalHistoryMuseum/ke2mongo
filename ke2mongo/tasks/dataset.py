@@ -7,19 +7,17 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 import sys
 import os
-import luigi
 import urllib2
 import urllib
 import json
 from ke2mongo import config
 from ke2mongo.tasks.csv import CSVTask
+import luigi
 import abc
 from monary.monary import get_monary_numpy_type
 import numpy as np
+from ke2mongo.log import log
 import psycopg2
-import pylons
-from ke2mongo.tasks.catalogue_mongo import CatalogueMongoTask
-
 
 # TODO: This just copies data via postgres copy function - it's quick but need to do periodic updates etc., via API
 
@@ -28,7 +26,7 @@ class DatasetTask(luigi.Task):
     Class for importing KE data into CKAN dataset
     """
 
-    mongo = CatalogueMongoTask()
+    database = config.get('mongo', 'database')
 
     @abc.abstractproperty
     def name(self):
@@ -78,20 +76,23 @@ class DatasetTask(luigi.Task):
         """
         return None
 
-    @property
+    @abc.abstractproperty
     def collection_name(self):
         """
         Mongo collection name
         @return: str
         """
-        return self.mongo.collection_name()
+        return None
+
+    def process_dataframe(m, df):
+        return df  # default impl
 
     def outfile(self):
         return os.path.join('/tmp', '%s.csv' % self.__class__.__name__.replace('DatasetTask', '').lower())
 
     def requires(self):
         # Create a CSV export of this field data to be used in postgres copy command
-        return CSVTask(columns=self.columns, query=self.query, collection_name=self.collection_name, outfile=self.outfile())
+        return CSVTask(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.columns, outfile=self.outfile(), process_callback=self.process_dataframe)
 
     def api_call(self, action, data_dict):
         """
@@ -197,15 +198,17 @@ class DatasetTask(luigi.Task):
         return ckan_type
 
     def run(self):
+        """
+        Mongo has been written to CSV file - so upload to datastore
+        @return:
+        """
 
+        datastore_config = dict(config.items('datastore'))
+
+        conn = psycopg2.connect(**datastore_config)
         resource_id = self.get_resource_id()
-        conn = psycopg2.connect(database="datastore_default", user="postgres", password="asdf", host="localhost")
-        # conn.cursor().copy_expert("COPY \"{table}\" FROM '{file}' DELIMITER ',' CSV;".format(table=resource_id, file=self.input().path), sys.stdin)
 
-        print resource_id
-
-        # ERROR handling
-        # https://wiki.postgresql.org/wiki/Error_logging_in_COPY
+        log.info("Copying CSV export to resource %s", resource_id)
 
         conn.cursor().execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV".format(
             table=resource_id,

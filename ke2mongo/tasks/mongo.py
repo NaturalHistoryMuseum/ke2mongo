@@ -13,10 +13,9 @@ from ke2mongo.log import log
 from keparser import KEParser
 from keparser.parser import FLATTEN_ALL
 from ke2mongo import config
+from ke2mongo.lib.timeit import timeit
 from pymongo import MongoClient
 import abc
-import time
-
 
 class MongoTarget(luigi.Target):
 
@@ -73,9 +72,8 @@ class MongoTask(luigi.Task):
         """
         return self.output().get_collection(self.collection_name())
 
+    @timeit
     def run(self):
-
-        t1 = time.time()
 
         ke_data = KEParser(self.input().open('r'), schema_file=self.keemu_schema_file, input_file_path=self.input().path, flatten_mode=FLATTEN_ALL)
 
@@ -96,9 +94,6 @@ class MongoTask(luigi.Task):
 
         # Mark as complete
         self.output().touch()
-
-        t2 = time.time()
-        log.info('Time: %.2f secs', t2 - t1)
 
     def process(self, data):
 

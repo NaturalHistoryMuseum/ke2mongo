@@ -5,10 +5,14 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
-from ke2mongo.tasks.dataset import DatasetTask
 from random import randint
+import numpy as np
+import pandas as pd
 import sys
-from collections import OrderedDict
+from ke2mongo.tasks.dataset import DatasetTask
+from ke2mongo.log import log
+from ke2mongo.tasks import PARENT_TYPES, PART_TYPES
+
 
 class SpecimenDatasetTask(DatasetTask):
     """
@@ -31,181 +35,240 @@ class SpecimenDatasetTask(DatasetTask):
     }
 
     # Define the collection name - for other datasets this just uses the specimen collection
-    # But we use a reference to the collection build by the aggregation query
-    collection_name = 'agg_dwc'
+    # But we use a reference to the collection built by the aggregation query
+    collection_name = 'ecatalogue'
+
+    # Prefix for denoting fields to use as DynamicProperties
+    dynamic_property_prefix = '_dynamicProperties.'
 
     columns = [
-        ('_id', '_id', 'int32'),
+        ('_id', '_id', False, 'int32'),
 
         # Identifier
-        ('DarGlobalUniqueIdentifier', 'globalUniqueIdentifier', 'string:100'),
+        ('DarGlobalUniqueIdentifier', 'globalUniqueIdentifier', False, 'string:100'),
 
         # Record level
-        ('AdmDateModified', 'dateLastModified', 'string:100'),
+        ('AdmDateModified', 'dateLastModified', False, 'string:100'),
         # This isn't actually in DwC - but I'm going to use dcterms:created
-        ('AdmDateInserted', 'created', 'string:100'),
-        ('DarInstitutionCode', 'institutionCode', 'string:100'),
-        ('DarCollectionCode', 'collectionCode', 'string:100'),
-        ('DarBasisOfRecord', 'basisOfRecord', 'string:100'),
+        ('AdmDateInserted', 'created', False, 'string:100',),
+        ('DarInstitutionCode', 'institutionCode', True, 'string:100'),
+        ('DarCollectionCode', 'collectionCode', True, 'string:100'),
+        ('DarBasisOfRecord', 'basisOfRecord', True, 'string:100'),
 
         # Taxonomy
-        ('DarScientificName', 'scientificName', 'string:100'),
-        ('DarScientificNameAuthor', 'scientificNameAuthor', 'string:100'),
-        ('DarScientificNameAuthorYear', 'scientificNameAuthorYear', 'string:100'),
-        ('DarKingdom', 'kingdom', 'string:100'),
-        ('DarPhylum', 'phylum', 'string:100'),
-        ('DarClass', 'class', 'string:100'),
-        ('DarOrder', 'order', 'string:100'),
-        ('DarFamily', 'family', 'string:100'),
-        ('DarGenus', 'genus', 'string:100'),
-        ('DarSubgenus', 'subgenus', 'string:100'),
-        ('DarSpecies', 'species', 'string:100'),
-        ('DarSubspecies', 'subspecies', 'string:100'),
-        ('DarHigherTaxon', 'higherTaxon', 'string:100'),
-        ('DarInfraspecificRank', 'infraspecificRank', 'string:100'),
+        ('DarScientificName', 'scientificName', True, 'string:100'),
+        ('DarScientificNameAuthor', 'scientificNameAuthor', True, 'string:100'),
+        ('DarScientificNameAuthorYear', 'scientificNameAuthorYear', True, 'string:100'),
+        ('DarKingdom', 'kingdom', True, 'string:100'),
+        ('DarPhylum', 'phylum', True, 'string:100'),
+        ('DarClass', 'class', True, 'string:100'),
+        ('DarOrder', 'order', True, 'string:100'),
+        ('DarFamily', 'family', True, 'string:100'),
+        ('DarGenus', 'genus', True, 'string:100'),
+        ('DarSubgenus', 'subgenus', True, 'string:100'),
+        ('DarSpecies', 'species', True, 'string:100'),
+        ('DarSubspecies', 'subspecies', True, 'string:100'),
+        ('DarHigherTaxon', 'higherTaxon', True, 'string:100'),
+        ('DarInfraspecificRank', 'infraspecificRank', True, 'string:100'),
 
         # Location
-        ('DarDecimalLongitude', 'decimalLongitude', 'float32', True),
-        ('DarDecimalLatitude', 'decimalLatitude', 'float32'),
-        ('DarGeodeticDatum', 'geodeticDatum', 'string:100'),
-        ('DarGeorefMethod', 'georefMethod', 'string:100'),
+        ('DarDecimalLongitude', 'decimalLongitude', True, 'float32'),
+        ('DarDecimalLatitude', 'decimalLatitude', True, 'float32'),
+        ('DarGeodeticDatum', 'geodeticDatum', True, 'string:100'),
+        ('DarGeorefMethod', 'georefMethod', True, 'string:100'),
 
-        ('DarMinimumElevationInMeters', 'minimumElevationInMeters', 'string:100'),
-        ('DarMaximumElevationInMeters', 'maximumElevationInMeters', 'string:100'),
-        ('DarMinimumDepthInMeters', 'minimumDepthInMeters', 'string:100'),
-        ('DarMaximumDepthInMeters', 'maximumDepthInMeters', 'string:100'),
+        ('DarMinimumElevationInMeters', 'minimumElevationInMeters', True, 'string:100'),
+        ('DarMaximumElevationInMeters', 'maximumElevationInMeters', True, 'string:100'),
+        ('DarMinimumDepthInMeters', 'minimumDepthInMeters', True, 'string:100'),
+        ('DarMaximumDepthInMeters', 'maximumDepthInMeters', True, 'string:100'),
 
-        ('DarIsland', 'island', 'string:100'),
-        ('DarIslandGroup', 'islandGroup', 'string:100'),
-        ('DarContinentOcean', 'continentOcean', 'string:100'),
-        ('DarWaterBody', 'waterBody', 'string:100'),
+        ('DarIsland', 'island', True, 'string:100'),
+        ('DarIslandGroup', 'islandGroup', True, 'string:100'),
+        ('DarContinentOcean', 'continentOcean', True, 'string:100'),
+        ('DarWaterBody', 'waterBody', True, 'string:100'),
 
-        ('DarLocality', 'locality', 'string:100'),
-        ('DarStateProvince', 'stateProvince', 'string:100'),
-        ('DarCountry', 'country', 'string:100'),
-        ('DarContinent', 'continent', 'string:100'),
-        ('DarHigherGeography', 'DarHigherGeography', 'string:100'),
+        ('DarLocality', 'locality', True, 'string:100'),
+        ('DarStateProvince', 'stateProvince', True, 'string:100'),
+        ('DarCountry', 'country', True, 'string:100'),
+        ('DarContinent', 'continent', True, 'string:100'),
+        ('DarHigherGeography', 'DarHigherGeography', True, 'string:100'),
 
         # Occurrence
-        ('DarCatalogNumber', 'catalogNumber', 'string:100'),
-        ('DarOtherCatalogNumbers', 'otherCatalogNumbers', 'string:100'),
-        ('DarCatalogNumberText', 'catalogNumberText', 'string:100'),
-        ('DarCollector', 'collector', 'string:100'),
-        ('DarCollectorNumber', 'collectorNumber', 'string:100'),
-        ('DarIndividualCount', 'DarIndividualCount', 'string:100'),
-        ('DarLifeStage', 'lifeStage', 'string:100'),
-        ('DarAgeClass', 'ageClass', 'string:100'),  # According to docs, ageClass has been superseded by lifeStage. We have both
-        ('DarSex', 'sex', 'string:100'),
-        ('DarPreparations', 'preparations', 'string:100'),
-        ('DarPreparationType', 'preparationType', 'string:100'),
-        ('DarObservedWeight', 'observedWeight', 'string:100'), # This has moved to dynamicProperties
+        ('DarCatalogNumber', 'catalogNumber', True, 'string:100'),
+        ('DarOtherCatalogNumbers', 'otherCatalogNumbers', True, 'string:100'),
+        ('DarCatalogNumberText', 'catalogNumberText', True, 'string:100'),
+        ('DarCollector', 'collector', True, 'string:100'),
+        ('DarCollectorNumber', 'collectorNumber', True, 'string:100'),
+        ('DarIndividualCount', 'DarIndividualCount', True, 'string:100'),
+        ('DarLifeStage', 'lifeStage', True, 'string:100'),
+        ('DarAgeClass', 'ageClass', True, 'string:100'),  # According to docs, ageClass has been superseded by lifeStage. We have both
+        ('DarSex', 'sex', True, 'string:100'),
+        ('DarPreparations', 'preparations', True, 'string:100'),
+        ('DarPreparationType', 'preparationType', True, 'string:100'),
+        ('DarObservedWeight', 'observedWeight', True, 'string:100'), # This has moved to dynamicProperties
 
         # Identification
-        ('DarIdentifiedBy', 'identifiedBy', 'string:100'),
-        ('DarDayIdentified', 'dayIdentified', 'string:100'),
-        ('DarMonthIdentified', 'monthIdentified', 'string:100'),
-        ('DarYearIdentified', 'yearIdentified', 'string:100'),
-        ('DarIdentificationQualifier', 'identificationQualifier', 'string:100'),
-        ('DarTypeStatus', 'typeStatus', 'string:100'),
+        ('DarIdentifiedBy', 'identifiedBy', True, 'string:100'),
+        ('DarDayIdentified', 'dayIdentified', True, 'string:100'),
+        ('DarMonthIdentified', 'monthIdentified', True, 'string:100'),
+        ('DarYearIdentified', 'yearIdentified', True, 'string:100'),
+        ('DarIdentificationQualifier', 'identificationQualifier', True, 'string:100'),
+        ('DarTypeStatus', 'typeStatus', True, 'string:100'),
 
         # Collection event
-        ('DarFieldNumber', 'fieldNumber', 'string:100'),
-        ('DarStartTimeOfDay', 'startTimeOfDay', 'string:100'),
-        ('DarStartDayCollected', 'startDayCollected', 'string:100'),
-        ('DarStartMonthCollected', 'startMonthCollected', 'string:100'),
-        ('DarStartYearCollected', 'startYearCollected', 'string:100'),
-        ('DarTimeOfDay', 'timeOfDay', 'string:100'),
-        ('DarDayCollected', 'dayCollected', 'string:100'),
-        ('DarMonthCollected', 'monthCollected', 'string:100'),
-        ('DarYearCollected', 'yearCollected', 'string:100'),
-        ('DarEndTimeOfDay', 'endTimeOfDay', 'string:100'),
-        ('DarEndDayCollected', 'endDayCollected', 'string:100'),
-        ('DarEndMonthCollected', 'endMonthCollected', 'string:100'),
-        ('DarEndYearCollected', 'endYearCollected', 'string:100'),
+        ('DarFieldNumber', 'fieldNumber', True, 'string:100'),
+        ('DarStartTimeOfDay', 'startTimeOfDay', True, 'string:100'),
+        ('DarStartDayCollected', 'startDayCollected', True, 'string:100'),
+        ('DarStartMonthCollected', 'startMonthCollected', True, 'string:100'),
+        ('DarStartYearCollected', 'startYearCollected', True, 'string:100'),
+        ('DarTimeOfDay', 'timeOfDay', True, 'string:100'),
+        ('DarDayCollected', 'dayCollected', True, 'string:100'),
+        ('DarMonthCollected', 'monthCollected', True, 'string:100'),
+        ('DarYearCollected', 'yearCollected', True, 'string:100'),
+        ('DarEndTimeOfDay', 'endTimeOfDay', True, 'string:100'),
+        ('DarEndDayCollected', 'endDayCollected', True, 'string:100'),
+        ('DarEndMonthCollected', 'endMonthCollected', True, 'string:100'),
+        ('DarEndYearCollected', 'endYearCollected', True, 'string:100'),
 
         # Resource relationship
-        # TODO: Need to do this one properly
-        ('DarRelatedCatalogItem', 'relatedCatalogItem', 'string:100'),
+        # TODO: Need to do this one properly? Parts?
+        ('DarRelatedCatalogItem', 'relatedCatalogItem', True, 'string:100'),
 
-        # Extra fields we need to map
-        # TODO: Know, we want this in dynamic properties
-        # ('ColRecordType', '_colRecordType', 'string:100'),
-        # ('ColSubDepartment', '_colSubDepartment', 'string:100'),
-        # ('RegCode', 'RegCode', 'string:100')
+        # Extra fields we need to map - TODO: location irn?
+
+        ('dynamicProperties', 'dynamicProperties', False, 'string:300'),
 
         # Removed: We do not want notes, could contain anything
-        # ('DarNotes', 'DarNotes', 'string:100'),
-        # ('DarLatLongComments', 'latLongComments', 'string:100'),
+        # ('DarNotes', 'DarNotes', True, 'string:100'),
+        # ('DarLatLongComments', 'latLongComments', True, 'string:100'),
     ]
 
+    # Dynamic properties - these will map into one dynamicProperties field
+    dynamic_property_columns = [
+        ('ColRecordType', 'colRecordType', False),
+        ('ColSubDepartment', 'colSubDepartment', True),
+        ('PrtType', 'prtType', False),
+        ('RegCode', 'regCode', False),
+        ('CatKindOfObject', 'kindOfObject', False),
+        ('CatKindOfCollection', 'kindOfCollection', False),
+        ('CatPreservative', 'catPreservative', False),
+        ('ColKind', 'collectionKind', False),
+    ]
 
-    @property
-    def query(self):
-
-        # TODO: This is very slow. Try pandas approach.
-        # TODO: Order by ColRecordType - Less calls to mongo.
-
-        # Prior to returning the query, build the aggregation object
-        collection = self.mongo.get_collection()
-
+    def part_parent_aggregator(self):
+        """
+        Part / Parents using an aggregator which needs to be initiated before running
+        @return: status dict
+        """
         query = list()
 
-        # Exclude Index Lots and Artefacts
-        query.append({'$match': {"ColRecordType": {"$nin": ["Index Lot", "Artefact"]}}})
+        # Exclude all types except Parent and Part types
+        query.append({'$match': {"ColRecordType": {"$in": PARENT_TYPES + PART_TYPES}}})
 
         # Select all fields
-        project = {col[0]:1 for col in self.columns}
+        project = {col[0]: 1 for col in self.columns + self.dynamic_property_columns}
         # Add the PartRef field so we can unwind it
         project['part_id'] = {"$ifNull": ["$PartRef", [None]]}
         project['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$RegRegistrationNumber"]}
         # Manually add this field, as this process will break if it doesn't exist
         project['ColRecordType'] = 1
+        project['PartRef'] = 1
         # We cannot rely on the DarGlobalUniqueIdentifier field, as parts do not have it, so build manually
-        project['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK", "$irn"]}
+        project['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK:ecatalogue:", "$irn"]}
 
-        # TODO: dynamicProperties
-        # project['dynamicProperties'] = {"$concat": [{"$last": "$ColRecordType"}, ";"]}
+        # TODO: Associated part IDs
 
         query.append({'$project': project})
 
         # Unwind based on part ID
         query.append({'$unwind': "$part_id"})
 
-        # And these fields use the parent
-        group = {col[0]:{"$first": "$%s" % col[0]} for col in self.columns}
-        group['_id'] = {"$ifNull": ["$part_id", "$_id"]}
-        # These fields should always use the Part data.
-        # If they aren't populated, then use the
-        group['DarGlobalUniqueIdentifier'] = {"$last": "$DarGlobalUniqueIdentifier"}
+        # Add all fields to the group
+        #  If col[3] is True (inheritable) use {$first: "$col"} to get the parent record value
+        # Otherwise use {$last: "$col"} to use the part record value for that field
+        # Due to the way unwind works, part records are always after the parent record
+        group = {col[0]: {"%s" % '$first' if col[2] else '$last': "$%s" % col[0]} for col in self.columns + self.dynamic_property_columns}
 
-        group['DarCatalogNumber'] = {"$last": "$DarCatalogNumber"}
-        group['AdmDateInserted'] = {"$last": "$AdmDateInserted"}
-        group['AdmDateModified'] = {"$last": "$AdmDateModified"}
-        group['DarDateLastModified'] = {"$last": "$DarDateLastModified"}
+        # Add the group key
+        group['_id'] = {"$ifNull": ["$part_id", "$_id"]}
+
+        # Add part refs
+        group['PartRef'] = {"$first": "$PartRef"}
 
         query.append({'$group': group})
 
-        query.append({'$match': {"ColRecordType": {"$nin": self.mongo.parent_types}}})
+        query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES}}})
+
+        query.append({'$project': self.get_columns_projection()})
 
         # Output to DwC collection
-        query.append({'$out': self.collection_name})
+        query.append({'$out': 'agg_%s_parts' % self.collection_name})
 
-        collection.aggregate(query, allowDiskUse=True)
+        return query
 
-        # We're querying against the collection we've just made, so no query parameters are necessary
-        return {}
+    def specimen_aggregator(self):
+        """
+        Aggregator for non part specimen records
+        @return: aggregation list query
+        """
+
+        query = list()
+        query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES}}})
+        # query.append({'$match': {"ColRecordType": {"$in": ['specimen']}}})
+        query.append({'$project': self.get_columns_projection()})
+        query.append({'$out': 'agg_%s_specimens' % self.collection_name})
+
+        return query
 
 
+    def get_columns_projection(self):
+        """
+        Get a list of column projections, to use in an aggregated query
+        @return: list
+        """
 
-    # "_id" :  {"$in": [1751672, 1751675, 1751681, 1751684, 1751687, 1751690, 1751693, 1751696, 1751699, 1751702]}
+        #  All non-dynamic property columns
+        project = {col[0]: 1 for col in self.columns}
+
+        # Create an array of dynamicProperties to use in an aggregation projection
+        # In the format {dynamicProperties : {$concat: [{$cond: {if: "$ColRecordType", then: {$concat: ["ColRecordType=","$ColRecordType", ";"]}, else: ''}}
+        dynamic_properties = [{"$cond": {"if": "${}".format(col[0]), "then": {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}, "else": ''}} for col in self.dynamic_property_columns]
+        project['dynamicProperties'] = {"$concat": dynamic_properties}
+
+        return project
 
 
+    @property
+    def query(self):
+        """
+        Return list of query objects - either an aggregation query or query dict
+        @return: list of queries
+        """
+        return [
+            self.specimen_aggregator(),
+            self.part_parent_aggregator()
+        ]
 
-    # query = {"ColRecordType": {"$nin": ["Index Lot", "Artefact"]}, "_id" :  {"$in": [467777,475975,478089,4080610,1920482,2494268,271212,1953121,1751693,1953125,1953129,1953130,1112389,1181206,661581,1291338,443462,3255480,3255496,3255497,3255498,3255499,3255500,3255506,3255507,3255509,3255512,3255513,3255514,3255515,3255516,3255523,3255529,3255530,3255531,3255532,3255533,3255535,3255536,3255542,3255544,3255545,3255546,3255553,3255554,3255555,3255556,3255557,3255561,439233,3255558,3255559,3255562,3255563,3255564,3255565,3255566,3255567,3255570,3255571,3255573,3255574,3255575,3255576,3255577,3255578,3255579,3255580,3255581,3255582,3255587,3255592,3255600,3255601,3255602,3255603,3255604,3255605,3255607,3255608,3255609,3255611]}}
 
-    # query = {"ColRecordType": {"$nin": ["Index Lot", "Artefact"]}}
+    def process_dataframe(self, m, df):
+
+        pass
+
+        # parent_irns = pd.unique(df._parentRef.values.ravel()).tolist()
+
+        # self.get_parents(m, parent_irns)
 
     # def requires(self):
     #
     #     sys.exit()
+
+    # def get_parents(self, m, irns):
+    #
+    #     ke_cols, df_cols, types = zip(*self.columns)
+    #
+    #     q = {'_id': {'$in': irns}, "ColRecordType": {"$in": ['Bird Group Parent', 'Mammal Group Parent']}}
+    #
+    #     query = m.query(self.database, self.collection_name, q, ke_cols, types)
+    #     df = pd.DataFrame(np.matrix(query).transpose(), columns=df_cols)
+
 

@@ -9,6 +9,7 @@ python run.py CatalogueMongoTask --local-scheduler --date 2014-01-23
 """
 
 from ke2mongo.tasks.mongo import MongoTask
+from ke2mongo.tasks import PARENT_TYPES, PART_TYPES
 from ke2mongo.log import log
 
 class CatalogueMongoTask(MongoTask):
@@ -23,6 +24,7 @@ class CatalogueMongoTask(MongoTask):
         'Collection Level Description',
         'DNA Card',  # 1 record, but keep an eye on this
         'Field Notebook',
+        'Field Notebook (Double Page)',
         'Image',
         'Image (electronic)',
         'Image (non-digital)',
@@ -43,17 +45,7 @@ class CatalogueMongoTask(MongoTask):
 
     # Parent record types
     # These will be excluded fr
-    parent_types = [
-        'Bird Group Parent',
-        'Mammal Group Parent',
-    ]
 
-    part_types = [
-        'Bird Group Part',
-        'Egg',
-        'Nest',
-        'Mammal Group Part'
-    ]
 
     def process(self, data):
 
@@ -75,13 +67,13 @@ class CatalogueMongoTask(MongoTask):
         # Set child ref to None for all parent type records
         # This ensures after updates records are kept up to date
         # We re-update all ChildRef fields below
-        self.collection.update({'ColRecordType': {"$in": self.parent_types}}, {"$unset": {"PartRef": None}}, multi=True)
+        self.collection.update({'ColRecordType': {"$in": PARENT_TYPES}}, {"$unset": {"PartRef": None}}, multi=True)
 
         # # Add an index for child ref
         self.collection.ensure_index('ChildRef')
 
         result = self.collection.aggregate([
-            {"$match": {"ColRecordType": {"$in": self.parent_types + self.part_types}}},
+            {"$match": {"ColRecordType": {"$in": PARENT_TYPES + PART_TYPES}}},
             {"$group": {"_id": {"$ifNull": ["$RegRegistrationParentRef", "$_id" ]}, "ids": {"$addToSet": "$_id"}}},
             {"$match": {"ids.1": {"$exists": True}}}  # We only want records with more than one in the group
         ])
@@ -113,6 +105,7 @@ class CatalogueMongoTask(MongoTask):
 
         self.collection.ensure_index('ColRecordType')
 
+        # Move to specimen_dataset
         self.add_child_refs()
 
 
