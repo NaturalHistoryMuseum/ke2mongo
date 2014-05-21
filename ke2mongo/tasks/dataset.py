@@ -18,6 +18,7 @@ from monary.monary import get_monary_numpy_type
 import numpy as np
 from ke2mongo.log import log
 import psycopg2
+from ke2mongo.lib.timeit import timeit
 
 # TODO: This just copies data via postgres copy function - it's quick but need to do periodic updates etc., via API
 
@@ -197,6 +198,7 @@ class DatasetTask(luigi.Task):
 
         return ckan_type
 
+    @timeit
     def run(self):
         """
         Mongo has been written to CSV file - so upload to datastore

@@ -11,7 +11,7 @@ import pandas as pd
 import sys
 from ke2mongo.tasks.dataset import DatasetTask
 from ke2mongo.log import log
-from ke2mongo.tasks import PARENT_TYPES, PART_TYPES
+from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE
 
 
 class SpecimenDatasetTask(DatasetTask):
@@ -131,10 +131,11 @@ class SpecimenDatasetTask(DatasetTask):
         ('DarEndYearCollected', 'endYearCollected', True, 'string:100'),
 
         # Resource relationship
-        # TODO: Need to do this one properly? Parts?
         ('DarRelatedCatalogItem', 'relatedCatalogItem', True, 'string:100'),
 
         # Extra fields we need to map - TODO: location irn?
+
+        ('ColRecordType', 'colRecordType', False, 'string:100'),
 
         ('dynamicProperties', 'dynamicProperties', False, 'string:300'),
 
@@ -153,6 +154,7 @@ class SpecimenDatasetTask(DatasetTask):
         ('CatKindOfCollection', 'kindOfCollection', False),
         ('CatPreservative', 'catPreservative', False),
         ('ColKind', 'collectionKind', False),
+        ('EntPriCollectionName', 'collectionName', False),
     ]
 
     def part_parent_aggregator(self):
@@ -213,7 +215,7 @@ class SpecimenDatasetTask(DatasetTask):
         """
 
         query = list()
-        query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES}}})
+        query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}})
         # query.append({'$match': {"ColRecordType": {"$in": ['specimen']}}})
         query.append({'$project': self.get_columns_projection()})
         query.append({'$out': 'agg_%s_specimens' % self.collection_name})
@@ -248,27 +250,3 @@ class SpecimenDatasetTask(DatasetTask):
             self.specimen_aggregator(),
             self.part_parent_aggregator()
         ]
-
-
-    def process_dataframe(self, m, df):
-
-        pass
-
-        # parent_irns = pd.unique(df._parentRef.values.ravel()).tolist()
-
-        # self.get_parents(m, parent_irns)
-
-    # def requires(self):
-    #
-    #     sys.exit()
-
-    # def get_parents(self, m, irns):
-    #
-    #     ke_cols, df_cols, types = zip(*self.columns)
-    #
-    #     q = {'_id': {'$in': irns}, "ColRecordType": {"$in": ['Bird Group Parent', 'Mammal Group Parent']}}
-    #
-    #     query = m.query(self.database, self.collection_name, q, ke_cols, types)
-    #     df = pd.DataFrame(np.matrix(query).transpose(), columns=df_cols)
-
-

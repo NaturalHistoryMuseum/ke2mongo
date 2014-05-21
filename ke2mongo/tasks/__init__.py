@@ -17,3 +17,7 @@ PART_TYPES = [
     'Nest',
     'Mammal Group Part'
 ]
+
+INDEX_LOT_TYPE = 'Index Lot'
+
+ARTEFACT_TYPE = 'Artefact'
