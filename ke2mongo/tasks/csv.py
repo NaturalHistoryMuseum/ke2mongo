@@ -17,7 +17,6 @@ from ke2mongo.lib.timeit import timeit
 from ke2mongo import config
 from collections import OrderedDict
 from pymongo import MongoClient
-from operator import itemgetter
 
 
 class CSVTask(luigi.Task):
@@ -74,7 +73,8 @@ class CSVTask(luigi.Task):
 
                 result = db[self.collection_name].aggregate(query, allowDiskUse=True)
 
-                assert result['success'] is True
+                # Ensure the aggregation process succeeded
+                assert result['ok'] == 1.0
 
                 query = {}
 

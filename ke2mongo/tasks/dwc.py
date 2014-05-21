@@ -11,7 +11,7 @@ import sys
 from ke2mongo.tasks.collection import CollectionDatasetTask
 from ke2mongo.log import log
 from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE
-
+from operator import itemgetter
 
 class DarwinCoreDatasetTask(CollectionDatasetTask):
     """
@@ -137,7 +137,14 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
         ('EntPriCollectionName', 'collectionName', False),
     ]
 
-    # TODO: Get column quuqeyr returns with inherited removed
+    def get_columns(self, keys=[0, 1, 2]):
+        """
+        Return list of columns
+        You can pass in the keys of the tuples you want to return - 0,1,2 are the default for the CSV parser
+        @param keys:
+        @return:
+        """
+        return [itemgetter(*keys)(c) for c in self.columns]
 
     def part_parent_aggregator(self):
         """
@@ -151,7 +158,7 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
 
         # Columns has field type, but we do not use that here, and need to ensure it has the
         # Same dimensions as dynamic_property_columns
-        columns = [(c[0], c[1], c[3]) for c in self.columns]
+        columns = self.get_columns([0, 1, 3])
         columns + self.dynamic_property_columns
 
         # Select all fields
@@ -200,10 +207,9 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
         Aggregator for non part specimen records
         @return: aggregation list query
         """
-
         query = list()
-        query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}})
-        # query.append({'$match': {"ColRecordType": {"$in": ['specimen']}}})
+        # query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}})
+        query.append({'$match': {"ColRecordType": {"$in": ['specimen']}}})
         query.append({'$project': self.get_columns_projection()})
         query.append({'$out': 'agg_%s_specimens' % self.collection_name})
 
@@ -233,6 +239,6 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
         @return: list of queries
         """
         return [
-            self.specimen_aggregator(),
+            # self.specimen_aggregator(),
             self.part_parent_aggregator()
         ]

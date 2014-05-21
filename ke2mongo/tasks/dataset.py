@@ -90,9 +90,16 @@ class DatasetTask(luigi.Task):
     def outfile(self):
         return os.path.join('/tmp', '%s.csv' % self.__class__.__name__.replace('DatasetTask', '').lower())
 
+    def get_columns(self):
+        """
+        # Allow overriding columns
+        @return: columns
+        """
+        return self.columns
+
     def requires(self):
         # Create a CSV export of this field data to be used in postgres copy command
-        return CSVTask(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.columns, outfile=self.outfile)
+        return CSVTask(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.get_columns(), outfile=self.outfile)
 
     def api_call(self, action, data_dict):
         """
