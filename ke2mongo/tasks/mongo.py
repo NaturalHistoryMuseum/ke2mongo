@@ -44,15 +44,21 @@ class MongoTarget(luigi.Target):
         """
         self.marker_collection.insert({'update_id': self.update_id})
 
+class InvalidRecordException(Exception):
+    """
+    Raise an exception for records we want to skip
+    See MongoCatalogueTask.process()
+    """
+    pass
+
 
 class MongoTask(luigi.Task):
 
-    date = luigi.DateParameter(default=None)
+    date = luigi.IntParameter()
 
     database = config.get('mongo', 'database')
     keemu_schema_file = config.get('keemu', 'schema')
-    batch_size = 1000
-    batch = []
+    batch_size = 10
     collection = None
 
     @abc.abstractproperty
@@ -79,38 +85,115 @@ class MongoTask(luigi.Task):
 
         self.collection = self.get_collection()
 
-        for data in ke_data:
+        # If we have any records in the collection, use bulk_update
+        # Using mongo bulk upsert
+        # Otherwise use batch insert (20% faster than using bulk insert())
+        if self.collection.find_one():
+            self.bulk_update(ke_data)
+        else:
+            self.batch_insert(ke_data)
 
-            status = ke_data.get_status()
+        # sys.exit()
+        #
+        # c = 0
+        #
+        # bulk_op = self.collection.initialize_unordered_bulk_op()
+        #
+        # ids = []
+        #
+        # for data in ke_data:
+        #
+        #     # status = ke_data.get_status()
+        #     #
+        #     # if status:
+        #     #     print(status)
+        #
+        #     # Use the IRN as _id & remove original
+        #     data['_id'] = data['irn']
+        #     # print data['_id']
+        #     # Keep the IRN but cast as string, so we can use it in $concat
+        #     data['irn'] = str(data['irn'])
+        #
+        #     if data['irn'] in ids:
+        #         print data
+        #
+        #     ids.append(data['irn'])
+        #
+        #     # bulk_op.find({'_id': data['_id']}).upsert().replace_one(data)
+        #     bulk_op.insert(data)
+        #
+        #
+        #     # self.process(data)
+        #
+        #     c+=1
+        #     # print c
+        #
+        #     if c > 20000:
+        #
+        #         break
+        #
+        # print 'execute'
+        # try:
+        #     bulk_op.execute()
+        # except Exception, e:
+        #     print e
+        #     raise
 
-            if status:
-                print(status)
 
-            self.process(data)
 
-        # Add any remaining records in the batch
-        if self.batch:
-            self.collection.insert(self.batch)
 
         # Mark as complete
         self.output().touch()
 
-    def process(self, data):
+    def bulk_update(self, ke_data):
+
+        bulk = self.collection.initialize_unordered_bulk_op()
+
+        for data in ke_data:
+            try:
+                data = self.process_record(data)
+            except InvalidRecordException:
+                continue
+            else:
+                bulk.find({'_id': data['_id']}).upsert().replace_one(data)
+
+        bulk.execute()
+
+    def batch_insert(self, ke_data):
+
+        batch = []
+        for data in ke_data:
+
+            try:
+                data = self.process_record(data)
+            except InvalidRecordException:
+                # If the data processing raises an invalid record exception, continue to next record
+                continue
+            else:
+
+                if self.batch_size:
+                    batch.append(data)
+
+                    # If the batch length equals the batch size, commit and clear the batch
+                    if len(batch) % self.batch_size == 0:
+                        self.collection.insert(batch)
+                        batch = []
+
+                else:
+                    self.collection.insert(data)
+
+        # Add any records remaining in the batch
+        if batch:
+            self.collection.insert(self.batch)
+
+    def process_record(self, data):
 
         # Use the IRN as _id & remove original
         data['_id'] = data['irn']
         # Keep the IRN but cast as string, so we can use it in $concat
         data['irn'] = str(data['irn'])
 
-        if self.batch_size:
-            self.batch.append(data)
-
-            if len(self.batch) % self.batch_size == 0:
-                self.collection.insert(self.batch)
-                self.batch = []
-
-        else:
-            self.collection.insert(data)
+        return data
 
     def output(self):
         return MongoTarget(database='keemu', update_id=self.update_id())

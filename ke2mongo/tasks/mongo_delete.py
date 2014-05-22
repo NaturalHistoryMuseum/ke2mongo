@@ -7,6 +7,9 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 from ke2mongo.tasks.mongo import MongoTask
 
+# TODO: Delete
+# TODO: Running all. What's the process - get
+
 class MongoDeleteTask(MongoTask):
     """
     Import KE Taxonomy Export file into MongoDB
@@ -16,4 +19,5 @@ class MongoDeleteTask(MongoTask):
 
     def process(self, data):
 
+        # http://luigi.readthedocs.org/en/latest/luigi_patterns.html
         pass

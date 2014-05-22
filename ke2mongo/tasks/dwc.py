@@ -208,8 +208,8 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
         @return: aggregation list query
         """
         query = list()
-        # query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}})
-        query.append({'$match': {"ColRecordType": {"$in": ['specimen']}}})
+        query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}})
+        # query.append({'$match': {"ColRecordType": {"$in": ['specimen']}}})
         query.append({'$project': self.get_columns_projection()})
         query.append({'$out': 'agg_%s_specimens' % self.collection_name})
 
@@ -239,6 +239,6 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
         @return: list of queries
         """
         return [
-            # self.specimen_aggregator(),
+            self.specimen_aggregator(),
             self.part_parent_aggregator()
         ]

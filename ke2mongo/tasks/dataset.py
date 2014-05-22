@@ -98,8 +98,10 @@ class DatasetTask(luigi.Task):
         return self.columns
 
     def requires(self):
+
         # Create a CSV export of this field data to be used in postgres copy command
-        return CSVTask(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.get_columns(), outfile=self.outfile)
+        self.csv = CSVTask(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.get_columns(), outfile=self.outfile)
+        return self.csv
 
     def api_call(self, action, data_dict):
         """
@@ -189,13 +191,13 @@ class DatasetTask(luigi.Task):
         """
         type_num, type_arg, numpy_type = get_monary_numpy_type(pandas_type)
 
-        # TODO: BOOL
-
         try:
             if issubclass(numpy_type, np.signedinteger):
                 ckan_type = 'integer'
             elif issubclass(numpy_type, np.floating):
                 ckan_type = 'float'
+            elif numpy_type is bool:
+                ckan_type = 'bool'
             else:
                 ckan_type = 'text'
         except TypeError:
@@ -220,7 +222,7 @@ class DatasetTask(luigi.Task):
 
         conn.cursor().execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV".format(
             table=resource_id,
-            cols='","'.join(self.requires().csv_columns().keys()),
+            cols='","'.join(self.csv.csv_columns().keys()),
             file=self.input().path
             )
         )

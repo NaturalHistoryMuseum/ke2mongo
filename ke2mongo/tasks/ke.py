@@ -14,11 +14,10 @@ from ke2mongo import config
 class KEFileTask(luigi.ExternalTask):
 
     # After main run:
-    # TODO: Data param & schedule
     # TODO: Email errors
 
     module = luigi.Parameter()
-    date = luigi.DateParameter(default=None)
+    date = luigi.IntParameter(default=None)
     file_name = luigi.Parameter(default='export')
     export_dir = luigi.Parameter(default=config.get('keemu', 'export_dir'))
 
@@ -35,7 +34,7 @@ class KEFileTask(luigi.ExternalTask):
 
         file_name = [self.module, self.file_name]
         if self.date:
-            file_name.append(self.date.strftime('%Y%m%d'))
+            file_name.append(str(self.date))
 
         path = os.path.join(self.export_dir, '.'.join(file_name))
 

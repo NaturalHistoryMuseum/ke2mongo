@@ -109,7 +109,7 @@ class CSVTask(luigi.Task):
 
                     # Create list of columns to output
                     # As the df columns are indexed by column name, these don't have to align with the frame
-                    csv_columns = self.csv_columns(self.columns)
+                    csv_columns = self.csv_columns()
 
                     # print csv_columns
 
@@ -149,11 +149,19 @@ class CSVTask(luigi.Task):
         """
         return field == '_id' or not field.startswith('_')
 
-    def csv_columns(self, columns):
+    def csv_columns(self):
         """
-        Columns to output to CSV
-        @param columns: self.columns - passed by ref so can be overwritten
+        Columns to output to CSV - overrideable
         @return: Dictionary field_name : type
+        """
+        return self._map_csv_columns(self.columns)
+
+
+    def _map_csv_columns(self, columns):
+        """
+        Map CSV columns to a dictionary
+        @param columns: list
+        @return: dict
         """
         return OrderedDict((col[1], col[2]) for col in columns if self.output_field(col[1]))
 

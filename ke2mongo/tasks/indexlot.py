@@ -16,6 +16,7 @@ import pandas as pd
 from ke2mongo.log import log
 from ke2mongo.tasks.collection import CollectionDatasetTask
 from ke2mongo.tasks.csv import CSVTask
+from ke2mongo.tasks import INDEX_LOT_TYPE
 
 class IndexLotDatasetTask(CollectionDatasetTask):
     """
@@ -38,12 +39,13 @@ class IndexLotDatasetTask(CollectionDatasetTask):
         ('EntIndTypes', 'material_types', 'string:100'),
     ]
 
-    query = {"ColRecordType": "Index Lot"}
+    query = {"ColRecordType": INDEX_LOT_TYPE}
 
     def requires(self):
-        # Create a CSV export of this field data to be used in postgres copy command
-        return IndexLotCSV(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.columns, outfile=self.outfile)
 
+        # Create a CSV export of this field data to be used in postgres copy command
+        self.csv = IndexLotCSV(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.columns, outfile=self.outfile)
+        return self.csv
 
 
 class IndexLotCSV(CSVTask):
@@ -68,10 +70,12 @@ class IndexLotCSV(CSVTask):
         ('ClaRank', 'rank', 'string:10'),
     )
 
-    def csv_columns(self, columns):
-
-        # Add the taxonomy columns to the CSV columns
-        return super(IndexLotCSV, self).csv_columns(columns + self.taxonomy_columns)
+    def csv_columns(self):
+        """
+        Columns to output to CSV - overrideable
+        @return: Dictionary field_name : type
+        """
+        return self._map_csv_columns(self.columns + self.taxonomy_columns)
 
     def process_dataframe(self, m, df):
         """

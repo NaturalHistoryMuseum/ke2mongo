@@ -8,9 +8,10 @@ python run.py CatalogueMongoTask --local-scheduler --date 2014-01-23
 
 """
 
-from ke2mongo.tasks.mongo import MongoTask
+from ke2mongo.tasks.mongo import MongoTask, InvalidRecordException
 from ke2mongo.tasks import PARENT_TYPES, PART_TYPES
 from ke2mongo.log import log
+from pymongo.errors import BulkWriteError
 
 class MongoCatalogueTask(MongoTask):
 
@@ -43,18 +44,29 @@ class MongoCatalogueTask(MongoTask):
         'Transient Lot'
     ]
 
-    # Parent record types
-    # These will be excluded fr
-
-
-    def process(self, data):
+    def process_record(self, data):
 
         # Only import if it's one of the record types we want
         record_type = data.get('ColRecordType', 'Missing')
+
         if record_type in self.excluded_types:
             log.debug('Skipping record %s: No model class for %s', data['irn'], record_type)
+            raise InvalidRecordException
         else:
-            super(CatalogueMongoTask, self).process(data)
+            return super(MongoCatalogueTask, self).process_record(data)
+
+    def on_success(self):
+        """
+        On completion, add indexes
+        @return: None
+        """
+
+        self.collection = self.get_collection()
+
+        self.collection.ensure_index('ColRecordType')
+
+        # Move to specimen_dataset
+        self.add_child_refs()
 
     def add_child_refs(self):
         """
@@ -80,35 +92,25 @@ class MongoCatalogueTask(MongoTask):
 
         bulk = self.collection.initialize_unordered_bulk_op()
 
+        # Flag denoting if bulk has records and should be executed
+        bulk_has_records = False
+
         for record in result['result']:
             try:
                 record['ids'].remove(record['_id'])
-                # Add updating record to the bulk process
-                bulk.find({'_id': record['_id']}).update({'$set': {'PartRef': record['ids']}})
             except ValueError:
                 # Parent record does not exist
                 # KE EMU obviously doesn't enforce referential integrity
                 # We do not want to do anything with these records
                 continue
+            else:
+                # Add updating record to the bulk process
+                bulk.find({'_id': record['_id']}).update({'$set': {'PartRef': record['ids']}})
+                bulk_has_records = True
 
-        result = bulk.execute()
-
-        log.info('Added PartRef to %s parent records', result['nModified'])
-
-    def on_success(self):
-        """
-        On completion, add indexes
-        @return: None
-        """
-
-        self.collection = self.get_collection()
-
-        self.collection.ensure_index('ColRecordType')
-
-        # Move to specimen_dataset
-        self.add_child_refs()
-
-
+        if bulk_has_records:
+            result = bulk.execute()
+            log.info('Added PartRef to %s parent records', result['nModified'])
 
         # TODO: This isn't being marked as complete?
 
