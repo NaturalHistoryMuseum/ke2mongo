@@ -29,6 +29,7 @@ class DatasetTask(luigi.Task):
     """
 
     database = config.get('mongo', 'database')
+    csv = None  # Reference to CSV requirement
 
     @abc.abstractproperty
     def name(self):
@@ -218,6 +219,8 @@ class DatasetTask(luigi.Task):
         conn = psycopg2.connect(**datastore_config)
         resource_id = self.get_resource_id()
 
+        # TODO: If exists, delete first
+
         log.info("Copying CSV export to resource %s", resource_id)
 
         conn.cursor().execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV".format(
@@ -226,6 +229,8 @@ class DatasetTask(luigi.Task):
             file=self.input().path
             )
         )
+
+        # TODO: Text
 
         conn.commit()
 
