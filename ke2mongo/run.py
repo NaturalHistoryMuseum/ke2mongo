@@ -9,10 +9,13 @@ python run.py MongoTask --local-scheduler
 """
 
 import luigi
-from ke2mongo.tasks.catalogue_mongo import CatalogueMongoTask
-from ke2mongo.tasks.taxonomy_mongo import TaxonomyMongoTask
+from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
+from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
+from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 from ke2mongo.tasks.dwc import DarwinCoreDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
+from ke2mongo.tasks.artefact import ArtefactDatasetTask
+from ke2mongo.tasks.main import MainTask
 
 if __name__ == "__main__":
     luigi.run()
