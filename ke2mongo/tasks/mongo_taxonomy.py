@@ -7,7 +7,7 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 from ke2mongo.tasks.mongo import MongoTask
 
-class TaxonomyMongoTask(MongoTask):
+class MongoTaxonomyTask(MongoTask):
     """
     Import KE Taxonomy Export file into MongoDB
     """
@@ -23,4 +23,4 @@ class TaxonomyMongoTask(MongoTask):
         except KeyError:
             pass
 
-        super(TaxonomyMongoTask, self).process(data)
+        super(MongoTaxonomyTask, self).process(data)

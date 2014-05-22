@@ -12,7 +12,7 @@ from ke2mongo.tasks.mongo import MongoTask
 from ke2mongo.tasks import PARENT_TYPES, PART_TYPES
 from ke2mongo.log import log
 
-class CatalogueMongoTask(MongoTask):
+class MongoCatalogueTask(MongoTask):
 
     module = 'ecatalogue'
 
