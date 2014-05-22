@@ -112,7 +112,5 @@ class MongoCatalogueTask(MongoTask):
             result = bulk.execute()
             log.info('Added PartRef to %s parent records', result['nModified'])
 
-        # TODO: This isn't being marked as complete?
-
     # def collection_name(self):
     #     return 'ecatalogue_utf8'

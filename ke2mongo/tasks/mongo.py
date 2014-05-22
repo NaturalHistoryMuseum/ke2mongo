@@ -44,6 +44,7 @@ class MongoTarget(luigi.Target):
         """
         self.marker_collection.insert({'update_id': self.update_id})
 
+
 class InvalidRecordException(Exception):
     """
     Raise an exception for records we want to skip
@@ -85,62 +86,12 @@ class MongoTask(luigi.Task):
 
         self.collection = self.get_collection()
 
-        # If we have any records in the collection, use bulk_update
-        # Using mongo bulk upsert
+        # If we have any records in the collection, use bulk_update with mongo bulk upsert
         # Otherwise use batch insert (20% faster than using bulk insert())
         if self.collection.find_one():
             self.bulk_update(ke_data)
         else:
             self.batch_insert(ke_data)
-
-        # sys.exit()
-        #
-        # c = 0
-        #
-        # bulk_op = self.collection.initialize_unordered_bulk_op()
-        #
-        # ids = []
-        #
-        # for data in ke_data:
-        #
-        #     # status = ke_data.get_status()
-        #     #
-        #     # if status:
-        #     #     print(status)
-        #
-        #     # Use the IRN as _id & remove original
-        #     data['_id'] = data['irn']
-        #     # print data['_id']
-        #     # Keep the IRN but cast as string, so we can use it in $concat
-        #     data['irn'] = str(data['irn'])
-        #
-        #     if data['irn'] in ids:
-        #         print data
-        #
-        #     ids.append(data['irn'])
-        #
-        #     # bulk_op.find({'_id': data['_id']}).upsert().replace_one(data)
-        #     bulk_op.insert(data)
-        #
-        #
-        #     # self.process(data)
-        #
-        #     c+=1
-        #     # print c
-        #
-        #     if c > 20000:
-        #
-        #         break
-        #
-        # print 'execute'
-        # try:
-        #     bulk_op.execute()
-        # except Exception, e:
-        #     print e
-        #     raise
-
-
-
 
         # Mark as complete
         self.output().touch()
@@ -192,7 +143,6 @@ class MongoTask(luigi.Task):
         data['_id'] = data['irn']
         # Keep the IRN but cast as string, so we can use it in $concat
         data['irn'] = str(data['irn'])
-
         return data
 
     def output(self):
