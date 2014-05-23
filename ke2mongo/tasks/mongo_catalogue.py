@@ -67,9 +67,8 @@ class MongoCatalogueTask(MongoTask):
 
         log.info("Updating child references")
 
-        # TEMP - Put back
         # Move to specimen_dataset
-        # self.add_child_refs()
+        self.add_child_refs()
 
     def add_child_refs(self):
         """
@@ -108,7 +107,7 @@ class MongoCatalogueTask(MongoTask):
                 continue
             else:
                 # Add updating record to the bulk process
-                bulk.find({'_id': record['_id']}).update({'$set': {'PartRef': record['ids']}})
+                bulk.find({'_id': record['_id']}).update({'$set': {'PartRef': record['ids'], 'PartRefStr': '; '.join(map(str, record['ids']))}})
                 bulk_has_records = True
 
         if bulk_has_records:

@@ -135,6 +135,8 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
         ('CatPreservative', 'catPreservative', False),
         ('ColKind', 'collectionKind', False),
         ('EntPriCollectionName', 'collectionName', False),
+        # TODO: Test this
+        ('PartRefStr', 'partRefs', True),
     ]
 
     def get_columns(self, keys=[0, 1, 2]):
