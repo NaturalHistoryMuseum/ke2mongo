@@ -59,6 +59,7 @@ class MongoTask(luigi.Task):
 
     database = config.get('mongo', 'database')
     keemu_schema_file = config.get('keemu', 'schema')
+    archive_dir = config.get('keemu', 'archive_dir')
     batch_size = 10
     collection = None
 
@@ -94,48 +95,58 @@ class MongoTask(luigi.Task):
             self.batch_insert(ke_data)
 
         # Mark as complete
-        self.output().touch()
+        # self.output().touch()
+        # Move the file to the archive directory
+        self.input().move(os.path.join(self.archive_dir, self.input().file_name))
 
     def bulk_update(self, ke_data):
 
         bulk = self.collection.initialize_unordered_bulk_op()
 
-        for data in ke_data:
-            try:
-                data = self.process_record(data)
-            except InvalidRecordException:
-                continue
-            else:
-                bulk.find({'_id': data['_id']}).upsert().replace_one(data)
+        for record in self.iterate_data(ke_data):
+            bulk.find({'_id': record['_id']}).upsert().replace_one(record)
 
         bulk.execute()
 
     def batch_insert(self, ke_data):
 
         batch = []
-        for data in ke_data:
 
-            try:
-                data = self.process_record(data)
-            except InvalidRecordException:
-                # If the data processing raises an invalid record exception, continue to next record
-                continue
+        for record in self.iterate_data(ke_data):
+
+            if self.batch_size:
+                batch.append(record)
+
+                # If the batch length equals the batch size, commit and clear the batch
+                if len(batch) % self.batch_size == 0:
+                    self.collection.insert(batch)
+                    batch = []
+
             else:
-
-                if self.batch_size:
-                    batch.append(data)
-
-                    # If the batch length equals the batch size, commit and clear the batch
-                    if len(batch) % self.batch_size == 0:
-                        self.collection.insert(batch)
-                        batch = []
-
-                else:
-                    self.collection.insert(data)
+                self.collection.insert(record)
 
         # Add any records remaining in the batch
         if batch:
             self.collection.insert(self.batch)
+
+    def iterate_data(self, ke_data):
+        """
+        Iterate through the data
+        @return:
+        """
+        for record in ke_data:
+
+            status = ke_data.get_status()
+
+            if status:
+                log.info(status)
+
+            try:
+                record = self.process_record(record)
+            except InvalidRecordException:
+                continue
+            else:
+                yield record
 
     def process_record(self, data):
 

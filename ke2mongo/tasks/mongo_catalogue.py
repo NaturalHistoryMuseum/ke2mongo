@@ -65,8 +65,11 @@ class MongoCatalogueTask(MongoTask):
 
         self.collection.ensure_index('ColRecordType')
 
+        log.info("Updating child references")
+
+        # TEMP - Put back
         # Move to specimen_dataset
-        self.add_child_refs()
+        # self.add_child_refs()
 
     def add_child_refs(self):
         """
