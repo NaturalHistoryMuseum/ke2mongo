@@ -38,9 +38,7 @@ class KEFileTarget(luigi.LocalTarget):
         """
         Override LocalTarget init to set path and format based on module and settings
         """
-
         path, self.file_name, self.format = self.get_file(module, date, file_extension)
-
         super(KEFileTarget, self).__init__(path, self.format)
 
     def get_file(self, module, date, file_extension):
@@ -59,9 +57,9 @@ class KEFileTarget(luigi.LocalTarget):
 
         for candidate_file, format in candidate_files:
             path = os.path.join(self.export_dir, candidate_file)
-            if os.path.isfile(path):
+            if os.path.exists(path):
                 return path, candidate_file, format
 
         # If the file doesn't exist we want to raise an Exception
         # If a file doesn't exist it hasn't been included in the export and needs to be investigated
-        raise IOError('Export files %s/%s.gz do not exist in directory %s.' % (file_name, file_name, self.export_dir))
+        raise IOError('Export files %s/%s.gz do not exist in directory %s' % (file_name, file_name, self.export_dir))

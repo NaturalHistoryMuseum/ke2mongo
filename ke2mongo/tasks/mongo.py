@@ -94,10 +94,16 @@ class MongoTask(luigi.Task):
         else:
             self.batch_insert(ke_data)
 
-        # Mark as complete
-        # self.output().touch()
         # Move the file to the archive directory
+
+        print os.path.join(self.archive_dir, self.input().file_name)
+
+        print self.input()
+
         self.input().move(os.path.join(self.archive_dir, self.input().file_name))
+
+        # Mark as complete
+        self.output().touch()
 
     def bulk_update(self, ke_data):
 
