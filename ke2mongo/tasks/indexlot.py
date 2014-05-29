@@ -5,26 +5,13 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
-import sys
-import os
-import luigi
-import random
-import time
-from monary import Monary
 import numpy as np
 import pandas as pd
-from ke2mongo.log import log
-from ke2mongo.tasks.collection import CollectionDatasetTask
+from ke2mongo.tasks.specimen import SpecimenDatasetTask
 from ke2mongo.tasks.csv import CSVTask
 from ke2mongo.tasks import INDEX_LOT_TYPE
 
-class IndexLotDatasetTask(CollectionDatasetTask):
-    """
-    Class for exporting exporting IndexLots data to CSV
-    """
-    name = 'Indexlots'
-    description = 'Entomology Indexlot records'
-    format = 'csv'
+class IndexLotCSVTask(CSVTask):
 
     columns = [
         ('_id', '_id', 'int32'),
@@ -41,18 +28,8 @@ class IndexLotDatasetTask(CollectionDatasetTask):
 
     query = {"ColRecordType": INDEX_LOT_TYPE}
 
-    def requires(self):
-
-        # Create a CSV export of this field data to be used in postgres copy command
-        self.csv = IndexLotCSV(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.columns, outfile=self.outfile, date=self.date)
-        return self.csv
-
-
-class IndexLotCSV(CSVTask):
-    """
-    Extend CSV for IndexLot task, adding taxonomy data to the frame
-    """
-    taxonomy_columns = (
+    # Additional columns to merge in from the taxonomy collection
+    taxonomy_columns = [
         ('_id', '_taxonomy_irn', 'int32'),
         ('ClaScientificNameBuilt', 'scientific_name', 'string:100'),
         ('ClaKingdom', 'kingdom', 'string:60'),
@@ -68,9 +45,9 @@ class IndexLotCSV(CSVTask):
         ('ClaSpecies', 'species', 'string:100'),
         ('ClaSubspecies', 'subspecies', 'string:100'),
         ('ClaRank', 'rank', 'string:10'),
-    )
+    ]
 
-    def csv_columns(self):
+    def csv_output_columns(self):
         """
         Columns to output to CSV - overrideable
         @return: Dictionary field_name : type
@@ -114,4 +91,15 @@ class IndexLotCSV(CSVTask):
         df['_taxonomy_irn'] = df['_taxonomy_irn'].astype('int32')
 
         return df
+
+
+class IndexLotDatasetTask(SpecimenDatasetTask):
+    """
+    Class for exporting exporting IndexLots data to CSV
+    """
+    name = 'Indexlots'
+    description = 'Entomology Indexlot records'
+    format = 'csv'
+
+    csv_class = IndexLotCSVTask
 

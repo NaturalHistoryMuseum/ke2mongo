@@ -21,30 +21,19 @@ from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 import abc
-from ke2mongo.tasks import ARTEFACT_TYPE
+from ke2mongo.lib.file import get_export_file_dates
 
 class CSVTask(luigi.Task):
     """
     Class for exporting exporting KE Mongo data to CSV
     This requires all mongo files have been imported into  Mongo DB
     """
-    # Name of the database
-    # database = luigi.Parameter()
-    # # Name of the collection
-    # collection_name = luigi.Parameter()
-    # Query dictionary
-    # query = luigi.Parameter(significant=False)
-    # # List of columns
-    # columns = luigi.Parameter(significant=False)
-    # # Dataset name
-    # dataset_name = luigi.Parameter(significant=False)
-    # export_dir = config.get('keemu', 'export_dir')
-
-
     # Date to process
     date = luigi.IntParameter()
 
     mongo_db = config.get('mongo', 'database')
+
+    collection_name = 'ecatalogue'
 
     @abc.abstractproperty
     def columns(self):
@@ -62,76 +51,23 @@ class CSVTask(luigi.Task):
         """
         return None
 
-    @abc.abstractproperty
-    def collection_name(self):
-        """
-        Mongo collection name
-        @return: str
-        """
-        return None
+    def __init__(self, *args, **kwargs):
 
-    # def __init__(self, *args, **kwargs):
-    #
-    #     # If a date parameter has been passed in, we'll just use that
-    #     # Otherwise, loop through the files and get all dates
-    #     super(CSVTask, self).__init__(*args, **kwargs)
-    #
-    #     export_file_dates = self.get_export_dates()
-    #
-    #     # Have we received a date parameter from the user/scheduler?
-    #     if self.date:
-    #         # If we have, make sure we have this one (and only this one) from our traversal of the export files
-    #         # Otherwise our updates could get out of sync
-    #         if len(export_file_dates) > 1:
-    #             raise IOError('There are multiple (%s) export files requiring processing. Please check and re-run without the data parameter' % len(export_file_dates))
-    #
-    #         self.dates = [self.date]
-    #
-    #     else:
-    #
-    #         # No data parameter, so we're going to loop through all outstanding dates
-    #         self.dates = export_file_dates
+        # If a date parameter has been passed in, we'll just use that
+        # Otherwise, loop through the files and get all dates
+        super(CSVTask, self).__init__(*args, **kwargs)
+
+        export_file_dates = get_export_file_dates()
+        # If we have more than one file export date, it could be problem if one of the mongo import files
+        # So raise an exception, and ask the user to run manually
+        if len(export_file_dates) > 1:
+            raise IOError('There are multiple (%s) export files requiring processing. Please check and re-run without the data parameter' % len(export_file_dates))
 
     def requires(self):
-        pass
 
-        # Loop through all the dates, calling all mongo tasks.
+        # Call all mongo tasks to import latest mongo data dumps
         # If a file is missing, the process will terminate with an Exception
-        # for date in self.dates:
-        #     yield MongoDeleteTask(date)
-
-
-        #     yield MongoDeleteTask(date)
-        #     yield MongoTaxonomyTask(date)
-        #     yield MongoCatalogueTask(date)
-
-
-
-    # def get_export_dates(self):
-    #     """
-    #     Gets all the dates of outstanding files
-    #     @return: list of dates
-    #     """
-    #     files = [f for f in os.listdir(self.export_dir) if os.path.isfile(os.path.join(self.export_dir,f))]
-    #
-    #     # Use a set so we don't have duplicate dates
-    #     dates = set()
-    #
-    #     for f in files:
-    #
-    #         try:
-    #             # Extract the date from the file name
-    #             _, _, date, _ = f.split('.')
-    #         except ValueError:
-    #             # file not in the correct format - hidden directory etc.,
-    #             pass
-    #         else:
-    #             dates.add(int(date))
-    #
-    #     # Make sure they are in the right order
-    #     dates = sorted(dates)
-    #
-    #     return dates
+        yield MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoCatalogueTask(self.date)
 
     @timeit
     def run(self):
@@ -145,7 +81,7 @@ class CSVTask(luigi.Task):
         db = mongo[self.mongo_db]
 
         # Ensure self.query is a tuple (luigi list params are converted to tuples)
-        if not isinstance(self.query, tuple):
+        if not isinstance(self.query, list):
             self.query = [self.query]
 
         for query in self.query:
@@ -171,8 +107,8 @@ class CSVTask(luigi.Task):
                 log.info("Building aggregated collection: %s", collection_name)
 
                 result = db[self.collection_name].aggregate(query, allowDiskUse=True)
-
-                # Ensure the aggregation process succeeded
+                #
+                # # Ensure the aggregation process succeeded
                 assert result['ok'] == 1.0
 
                 query = {}
@@ -182,7 +118,9 @@ class CSVTask(luigi.Task):
 
             with Monary() as m:
 
-                query_fields, df_cols, field_types = zip(*self.columns)
+                log.info("Exporting mongo db to CSV")
+
+                query_fields, df_cols, field_types = zip(*self.get_columns())
 
                 catalogue_blocks = m.block_query(self.mongo_db, collection_name, query, query_fields, field_types, block_size=block_size)
 
@@ -208,7 +146,7 @@ class CSVTask(luigi.Task):
 
                     # Create list of columns to output
                     # As the df columns are indexed by column name, these don't have to align with the frame
-                    csv_columns = self.csv_columns()
+                    csv_columns = self.csv_output_columns()
 
                     # print csv_columns
 
@@ -236,6 +174,13 @@ class CSVTask(luigi.Task):
 
                     log.info("\t %s records", count)
 
+    def get_columns(self):
+        """
+        # Allow overriding columns
+        @return: columns
+        """
+        return self.columns
+
     def process_dataframe(self, m, df):
         return df  # default impl
 
@@ -248,7 +193,7 @@ class CSVTask(luigi.Task):
         """
         return field == '_id' or not field.startswith('_')
 
-    def csv_columns(self):
+    def csv_output_columns(self):
         """
         Columns to output to CSV - overrideable
         @return: Dictionary field_name : type
@@ -269,18 +214,3 @@ class CSVTask(luigi.Task):
         @return: luigi file ref
         """
         return luigi.LocalTarget("/tmp/%s_%s.csv" % (self.__class__.__name__.lower(), self.date))
-
-
-class CSVArtefactTask(CSVTask):
-
-    columns = [
-        ('_id', '_id', 'int32'),
-        ('ArtName', 'name', 'string:100'),
-        ('ArtKind', 'kind', 'string:100'),
-        ('PalArtDescription', 'description', 'string:100'),
-        ('MulMultiMediaRef', 'multimedia', 'string:100')
-    ]
-
-    query = {"ColRecordType": ARTEFACT_TYPE}
-
-    collection_name = 'ecatalogue'

@@ -14,7 +14,7 @@ from ke2mongo import config
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_delete import MongoDeleteTask
-from ke2mongo.tasks.dwc import DarwinCoreDatasetTask
+# from ke2mongo.tasks.dwc import DarwinCoreDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
 
@@ -46,43 +46,43 @@ class MainTask(luigi.Task):
     """
 
     date = luigi.IntParameter(default=None)
-    export_dir = config.get('keemu', 'export_dir')
-    dates = []
-
-    def get_export_dates(self):
-        """
-        Gets all the dates of outstanding files
-        @return: list of dates
-        """
-
-        files = [f for f in os.listdir(self.export_dir) if os.path.isfile(os.path.join(self.export_dir,f))]
-
-        # Use a set so we don't have duplicate dates
-        dates = set()
-
-        for f in files:
-
-            try:
-                # Extract the date from the file name
-                _, _, date, _ = f.split('.')
-            except ValueError:
-                # file not in the correct format - hidden directory etc.,
-                pass
-            else:
-                dates.add(int(date))
-
-        return dates
-
-    def __init__(self, *args, **kwargs):
-
-        # If a date parameter has been passed in, we'll just use that
-        # Otherwise, loop through the files and get all dates
-        super(MainTask, self).__init__(*args, **kwargs)
-
-        if self.date:
-            self.dates = [self.date]
-        else:
-            self.dates = self.get_export_dates()
+    # export_dir = config.get('keemu', 'export_dir')
+    # dates = []
+    #
+    # def get_export_dates(self):
+    #     """
+    #     Gets all the dates of outstanding files
+    #     @return: list of dates
+    #     """
+    #
+    #     files = [f for f in os.listdir(self.export_dir) if os.path.isfile(os.path.join(self.export_dir,f))]
+    #
+    #     # Use a set so we don't have duplicate dates
+    #     dates = set()
+    #
+    #     for f in files:
+    #
+    #         try:
+    #             # Extract the date from the file name
+    #             _, _, date, _ = f.split('.')
+    #         except ValueError:
+    #             # file not in the correct format - hidden directory etc.,
+    #             pass
+    #         else:
+    #             dates.add(int(date))
+    #
+    #     return dates
+    #
+    # def __init__(self, *args, **kwargs):
+    #
+    #     # If a date parameter has been passed in, we'll just use that
+    #     # Otherwise, loop through the files and get all dates
+    #     super(MainTask, self).__init__(*args, **kwargs)
+    #
+    #     if self.date:
+    #         self.dates = [self.date]
+    #     else:
+    #         self.dates = self.get_export_dates()
 
     def requires(self):
 
@@ -101,4 +101,4 @@ class MainTask(luigi.Task):
 
         # yield ArtefactDatasetTask(), DarwinCoreDatasetTask(), IndexLotDatasetTask()
 
-        yield ArtefactDatasetTask(**self.param_kwargs)
+        yield IndexLotDatasetTask(**self.param_kwargs)

@@ -14,29 +14,11 @@ from monary import Monary
 import numpy as np
 import pandas as pd
 from ke2mongo.log import log
-from ke2mongo.tasks.collection import CollectionDatasetTask
+from ke2mongo.tasks.dataset import DatasetTask
 from ke2mongo.tasks.csv import CSVTask
 from ke2mongo.tasks import ARTEFACT_TYPE
 
-class ArtefactDatasetTask(CollectionDatasetTask):
-    """
-    Class for exporting exporting IndexLots data to CSV
-    """
-    name = 'Artefacts'
-    description = 'Museum artefacts'
-    format = 'csv'
-
-    package = {
-        'name': u'nhm-artefacts',
-        'notes': u'Artefacts from The Natural History Museum',
-        'title': "Artefacts",
-        'author': None,
-        'author_email': None,
-        'license_id': u'other-open',
-        'maintainer': None,
-        'maintainer_email': None,
-        'resources': [],
-    }
+class ArtefactCSVTask(CSVTask):
 
     columns = [
         ('_id', '_id', 'int32'),
@@ -47,3 +29,26 @@ class ArtefactDatasetTask(CollectionDatasetTask):
     ]
 
     query = {"ColRecordType": ARTEFACT_TYPE}
+
+
+class ArtefactDatasetTask(DatasetTask):
+    """
+    Class for exporting exporting IndexLots data to CSV
+    """
+    name = 'Artefacts'
+    description = 'Museum artefacts'
+    format = 'csv'
+
+    package = {
+        'name': u'nhm-artefacts1',
+        'notes': u'Artefacts from The Natural History Museum',
+        'title': "Artefacts",
+        'author': None,
+        'author_email': None,
+        'license_id': u'other-open',
+        'maintainer': None,
+        'maintainer_email': None,
+        'resources': [],
+    }
+
+    csv_class = ArtefactCSVTask

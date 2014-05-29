@@ -11,7 +11,6 @@ import urllib2
 import urllib
 import json
 from ke2mongo import config
-from ke2mongo.tasks.csv import CSVTask
 import luigi
 import abc
 from monary.monary import get_monary_numpy_type
@@ -20,18 +19,24 @@ from ke2mongo.log import log
 import psycopg2
 from ke2mongo.lib.timeit import timeit
 from collections import OrderedDict
+from ke2mongo.tasks import ARTEFACT_TYPE
+from ke2mongo.tasks.csv import CSVTask
 
 # TODO: This just copies data via postgres copy function - it's quick but need to do periodic updates etc., via API
 
-class DatasetTask(luigi.Task):
+class DatasetTask(luigi.postgres.CopyToTable):
     """
     Class for importing KE data into CKAN dataset
     """
 
-    database = config.get('mongo', 'database')
-
     # The data to process
-    date = luigi.IntParameter(default=None)
+    date = luigi.IntParameter()
+
+    # Copy to table params
+    host = config.get('datastore', 'host')
+    database = config.get('datastore', 'database')
+    user = config.get('datastore', 'user')
+    password = config.get('datastore', 'password')
 
     @abc.abstractproperty
     def name(self):
@@ -65,45 +70,49 @@ class DatasetTask(luigi.Task):
         """
         return None
 
-    # @abc.abstractproperty
-    # def columns(self):
-    #     """
-    #     Columns to use from mongoDB
-    #     @return: list
-    #     """
-    #     return None
-    #
-    # @abc.abstractproperty
-    # def query(self):
-    #     """
-    #     Name for this dataset
-    #     @return: str
-    #     """
-    #     return None
-    #
-    # @abc.abstractproperty
-    # def collection_name(self):
-    #     """
-    #     Mongo collection name
-    #     @return: str
-    #     """
-    #     return None
+    @abc.abstractproperty
+    def csv_class(self):
+        """
+        Class to use for generating CSV
+        @return: str
+        """
+        return None
 
     @property
-    def outfile(self):
-        return os.path.join('/tmp', '%s.csv' % self.__class__.__name__.replace('DatasetTask', '').lower())
+    def table(self):
+        """
+        Use table called _tmp_[resource_id]
+        This will then replace the main resource table
+        @return:
+        """
 
-    def get_columns(self):
+        # TODO: We need the resource ID later on
+        return '_tmp_%s' % self.resource_id
+
+    @property
+    def columns(self):
         """
-        # Allow overriding columns
-        @return: columns
+        List of columns to use, based on the ones used to produce the CSV
+        @return:
         """
-        return self.columns
+        return self.csv.csv_output_columns().keys()
+
+    def __init__(self, *args, **kwargs):
+        """
+        Override init to retrieve the resource id
+        @param args:
+        @param kwargs:
+        @return:
+        """
+
+        super(DatasetTask, self).__init__(*args, **kwargs)
+
+        self.resource_id = self.get_resource_id()
+
 
     def requires(self):
-
         # Create a CSV export of this field data to be used in postgres copy command
-        self.csv = CSVTask(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.get_columns(), outfile=self.outfile, date=self.date)
+        self.csv = self.csv_class(date=self.date)
         return self.csv
 
     def api_call(self, action, data_dict):
@@ -164,7 +173,7 @@ class DatasetTask(luigi.Task):
         if not resource_id:
 
             # Dictionary of fields and field type
-            fields = [{'id': name, 'type': self.numpy_to_ckan_type(type)} for name, type in self.requires().csv_columns().items() if name not in ['_id']]
+            fields = [{'id': name, 'type': self.numpy_to_ckan_type(type)} for name, type in self.requires().csv_output_columns().items() if name not in ['_id']]
 
             # Parameters to create the datastore
             datastore_params = {
@@ -215,31 +224,64 @@ class DatasetTask(luigi.Task):
         Mongo has been written to CSV file - so upload to datastore
         @return:
         """
+        connection = self.output().connect()
 
-        datastore_config = dict(config.items('datastore'))
+        # Drop and recreate table
+        self.create_table(connection)
 
-        conn = psycopg2.connect(**datastore_config)
-        resource_id = self.get_resource_id()
-
-        # TODO: If exists, delete first
-
-        log.info("Copying CSV export to resource %s", resource_id)
-
-        conn.cursor().execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV".format(
-            table=resource_id,
-            cols='","'.join(self.csv.csv_columns().keys()),
-            file=self.input().path
-            )
-        )
+        # And then copy the data to the new table
+        cursor = connection.cursor()
+        self.init_copy(connection)
+        self.copy(cursor, self.input().path)
 
         # TODO: Update text
+        self.table_replace_resource(connection)
+        self.output().touch(connection)
 
-        conn.commit()
+        # commit and clean up
+        connection.commit()
+        connection.close()
+
+    def create_table(self, connection):
+        """
+        Override CopyToTable.create_table
+        We already have the resource table in the datastore
+        So we want to clone this table structure to use for the tmp import table
+        @param connection:
+        @return:
+        """
+
+        log.info("Creating temp table %s", self.table)
+
+        cursor = connection.cursor()
+        # Drop the table if it exists
+        cursor.execute('DROP TABLE IF EXISTS "{table}"'.format(table=self.table))
+
+        # And then recreate
+        cursor.execute('CREATE TABLE "{table}" AS TABLE "{resource_id}" WITH NO DATA'.format(table=self.table, resource_id=self.resource_id))
+
+    def table_replace_resource(self, connection):
+        """
+        Replace the existing resource table with the new one
+        @param connection:
+        @return:
+        """
+        log.info("Replacing resource table %s", self.resource_id)
+
+        cursor = connection.cursor()
+
+        # Drop the resource table
+        cursor.execute('DROP TABLE IF EXISTS "{resource_id}"'.format(resource_id=self.resource_id))
+
+        # And rename temporary
+        cursor.execute('ALTER table "{table}" RENAME TO "{resource_id}"'.format(table=self.table, resource_id=self.resource_id))
 
 
+    def copy(self, cursor, file):
 
-
-
-
-
-
+        cursor.execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV".format(
+            table=self.table,
+            cols='","'.join(self.columns),
+            file=file
+            )
+        )

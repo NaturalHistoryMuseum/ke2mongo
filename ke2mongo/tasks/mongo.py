@@ -11,6 +11,8 @@ Prior to
 import sys
 import os
 import luigi
+import datetime
+import abc
 from ke2mongo.tasks.ke import KEFileTask
 from ke2mongo.log import log
 from keparser import KEParser
@@ -18,7 +20,6 @@ from keparser.parser import FLATTEN_ALL
 from ke2mongo import config
 from ke2mongo.lib.timeit import timeit
 from pymongo import MongoClient
-import abc
 
 class MongoTarget(luigi.Target):
 
@@ -29,30 +30,24 @@ class MongoTarget(luigi.Target):
         self.client = MongoClient()
         self.db = self.client[database]
         # Use the postgres table name for the collection
-        # self.marker_collection = self.get_collection(luigi.configuration.get_config().get('postgres', 'marker-table', 'table_updates'))
+        self.marker_collection = self.get_collection(luigi.configuration.get_config().get('postgres', 'marker-table', 'table_updates'))
 
     def get_collection(self, collection):
         return self.db[collection]
 
     def exists(self):
+        """
+        Has this already been processed?
+        """
+        exists = self.marker_collection.find({'update_id': self.update_id}).count()
+        return bool(exists)
 
-        # Has been processed if the file exists in the archive location
-        return os.path.exists(os.path.join(self.archive_dir, self.input().file_name))
+    def touch(self):
+        """
+        Mark this update as complete.
+        """
+        self.marker_collection.insert({'update_id': self.update_id, 'inserted': datetime.datetime.now()})
 
-        return False
-    #     """
-    #     Has this already been processed?
-    #     """
-    #     exists = self.marker_collection.find({'update_id': self.update_id}).count()
-    #     return bool(exists)
-    #
-    # def touch(self):
-    #     """
-    #     Mark this update as complete.
-    #     """
-    #     # self.marker_collection.insert({'update_id': self.update_id})
-    #
-    #     pass
 
 class InvalidRecordException(Exception):
     """
@@ -77,18 +72,19 @@ class MongoTask(luigi.Task):
     def module(self):
         return None
 
+    @property
+    def collection_name(self):
+        return self.module  # By default, the collection name will be the same as the module
+
     def requires(self):
         return KEFileTask(module=self.module, date=self.date, file_extension=self.file_extension)
-
-    def collection_name(self):
-        return self.module
 
     def get_collection(self):
         """
         Get a reference to the mongo collection object
         @return:
         """
-        return self.collection_name()
+        return self.output().get_collection(self.collection_name)
 
     @timeit
     def run(self):
@@ -107,9 +103,12 @@ class MongoTask(luigi.Task):
         self.mark_complete()
 
     def mark_complete(self):
-
         # Move the file to the archive directory
         self.input().move(os.path.join(self.archive_dir, self.input().file_name))
+
+        # And mark the object as complete
+        self.output().touch()
+
 
     def bulk_update(self, ke_data):
 
@@ -169,14 +168,9 @@ class MongoTask(luigi.Task):
         data['irn'] = str(data['irn'])
         return data
 
-    def exists(self):
+    def output(self):
+        return MongoTarget(database='keemu', update_id=self.update_id())
 
-        print 'DONE'
-        return True
-
-    # def output(self):
-    #     return MongoTarget(database='keemu', update_id=self.update_id())
-    #
-    # def update_id(self):
-    #     """This update id will be a unique identifier for this insert on this collection."""
-    #     return self.task_id
+    def update_id(self):
+        """This update id will be a unique identifier for this insert on this collection."""
+        return self.task_id

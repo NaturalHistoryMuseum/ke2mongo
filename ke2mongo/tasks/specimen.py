@@ -8,18 +8,19 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 import numpy as np
 import pandas as pd
 import sys
-from ke2mongo.tasks.collection import CollectionDatasetTask
 from ke2mongo.log import log
+from ke2mongo.tasks.dataset import DatasetTask
+from ke2mongo.tasks.csv import CSVTask
 from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE
 from operator import itemgetter
 
-class DarwinCoreDatasetTask(CollectionDatasetTask):
-    """
-    Class for creating specimens DwC dataset
-    """
-    name = 'Specimens'
-    description = 'Specimen records'
-    format = 'dwc'  # Darwin Core format
+# TEMP
+import random, string
+
+def randomword(length):
+   return ''.join(random.choice(string.lowercase) for i in range(length))
+
+class SpecimenCSVTask(CSVTask):
 
     columns = [
         ('_id', '_id', 'int32', False),
@@ -148,7 +149,7 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
         """
         return [itemgetter(*keys)(c) for c in self.columns]
 
-    def part_parent_aggregator(self):
+    def part_parent_aggregator_query(self):
         """
         Part / Parents using an aggregator which needs to be initiated before running
         @return: status dict
@@ -197,14 +198,14 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
 
         query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES}}})
 
-        query.append({'$project': self.get_columns_projection()})
+        query.append({'$project': self._get_columns_projection()})
 
         # Output to DwC collection
         query.append({'$out': 'agg_%s_parts' % self.collection_name})
 
         return query
 
-    def specimen_aggregator(self):
+    def specimen_aggregator_query(self):
         """
         Aggregator for non part specimen records
         @return: aggregation list query
@@ -212,12 +213,12 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
         query = list()
         query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}})
         # query.append({'$match': {"ColRecordType": {"$in": ['specimen']}}})
-        query.append({'$project': self.get_columns_projection()})
+        query.append({'$project': self._get_columns_projection()})
         query.append({'$out': 'agg_%s_specimens' % self.collection_name})
 
         return query
 
-    def get_columns_projection(self):
+    def _get_columns_projection(self):
         """
         Get a list of column projections, to use in an aggregated query
         @return: list
@@ -233,7 +234,6 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
 
         return project
 
-
     @property
     def query(self):
         """
@@ -241,6 +241,28 @@ class DarwinCoreDatasetTask(CollectionDatasetTask):
         @return: list of queries
         """
         return [
-            self.specimen_aggregator(),
-            self.part_parent_aggregator()
+            self.specimen_aggregator_query(),
+            self.part_parent_aggregator_query()
         ]
+
+class SpecimenDatasetTask(DatasetTask):
+    """
+    Class for creating specimens DwC dataset
+    """
+    name = 'Specimens'
+    description = 'Specimen records'
+    format = 'dwc'  # Darwin Core format
+
+    package = {
+        'name': u'nhm3-collection_%s' % randomword(13),
+        'notes': u'The Natural History Museum\'s collection',
+        'title': "Collection",
+        'author': None,
+        'author_email': None,
+        'license_id': u'other-open',
+        'maintainer': None,
+        'maintainer_email': None,
+        'resources': [],
+    }
+
+    csv_class = SpecimenCSVTask
