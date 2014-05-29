@@ -5,7 +5,6 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
-
 PARENT_TYPES = [
     'Bird Group Parent',
     'Mammal Group Parent',

@@ -19,7 +19,8 @@ def randomword(length):
 
 class CollectionDatasetTask(DatasetTask):
     """
-    Class extending
+    Base collections dataset class
+    Extended by indexlots and collections
     """
     package = {
         'name': u'nhm-collection_%s' % randomword(10),
@@ -36,9 +37,3 @@ class CollectionDatasetTask(DatasetTask):
     # Define the collection name - for other datasets this just uses the specimen collection
     # But we use a reference to the collection built by the aggregation query
     collection_name = 'ecatalogue'
-
-    def requires(self):
-        """
-        All catalogue tasks are dependent on the mongo imports
-        @return:
-        """

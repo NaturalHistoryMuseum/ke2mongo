@@ -11,7 +11,7 @@ import urllib2
 import urllib
 import json
 from ke2mongo import config
-from ke2mongo.tasks.csv import CSVTask
+from ke2mongo.tasks.csv import CSVTask, CSVArtefactTask
 import luigi
 import abc
 from monary.monary import get_monary_numpy_type
@@ -20,91 +20,54 @@ from ke2mongo.log import log
 import psycopg2
 from ke2mongo.lib.timeit import timeit
 from collections import OrderedDict
+from ke2mongo.tasks import ARTEFACT_TYPE
 
 # TODO: This just copies data via postgres copy function - it's quick but need to do periodic updates etc., via API
 
-class DatasetTask(luigi.Task):
+class CatalogueTask(luigi.postgres.CopyToTable):
     """
     Class for importing KE data into CKAN dataset
     """
 
-    database = config.get('mongo', 'database')
-
     # The data to process
     date = luigi.IntParameter(default=None)
 
-    @abc.abstractproperty
-    def name(self):
-        """
-        Name for this dataset
-        @return: str
-        """
-        return None
+    # Copy to table params
+    host = config.get('datastore', 'host')
+    database = config.get('datastore', 'database')
+    user = config.get('datastore', 'user')
+    password = config.get('datastore', 'password')
 
-    @abc.abstractproperty
-    def description(self):
-        """
-        Description for this dataset
-        @return: str
-        """
-        return None
+    # Dataset params
+    name = 'Artefacts'
+    description = 'Museum artefacts'
+    format = 'csv'
 
-    @abc.abstractproperty
-    def format(self):
-        """
-        Format eg: DWC / CSV
-        @return: str
-        """
-        return None
-
-    @abc.abstractproperty
-    def package(self):
-        """
-        Params for creating the package
-        @return: str
-        """
-        return None
-
-    # @abc.abstractproperty
-    # def columns(self):
-    #     """
-    #     Columns to use from mongoDB
-    #     @return: list
-    #     """
-    #     return None
-    #
-    # @abc.abstractproperty
-    # def query(self):
-    #     """
-    #     Name for this dataset
-    #     @return: str
-    #     """
-    #     return None
-    #
-    # @abc.abstractproperty
-    # def collection_name(self):
-    #     """
-    #     Mongo collection name
-    #     @return: str
-    #     """
-    #     return None
+    package = {
+        'name': u'nhm-collection_%s' % 12345678,
+        'notes': u'The Natural History Museum\'s collection',
+        'title': "Collection",
+        'author': None,
+        'author_email': None,
+        'license_id': u'other-open',
+        'maintainer': None,
+        'maintainer_email': None,
+        'resources': [],
+    }
 
     @property
-    def outfile(self):
-        return os.path.join('/tmp', '%s.csv' % self.__class__.__name__.replace('DatasetTask', '').lower())
-
-    def get_columns(self):
-        """
-        # Allow overriding columns
-        @return: columns
-        """
-        return self.columns
+    def table(self):
+        return self.get_resource_id()
 
     def requires(self):
 
         # Create a CSV export of this field data to be used in postgres copy command
-        self.csv = CSVTask(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.get_columns(), outfile=self.outfile, date=self.date)
+        self.csv = CSVArtefactTask(date=self.date)
         return self.csv
+
+    @property
+    def columns(self):
+        return self.csv.csv_columns().keys()
 
     def api_call(self, action, data_dict):
         """
@@ -216,25 +179,48 @@ class DatasetTask(luigi.Task):
         @return:
         """
 
-        datastore_config = dict(config.items('datastore'))
+        connection = self.output().connect()
 
-        conn = psycopg2.connect(**datastore_config)
-        resource_id = self.get_resource_id()
+        cursor = connection.cursor()
+        self.init_copy(connection)
+        self.copy(cursor, self.input().path)
 
-        # TODO: If exists, delete first
+        self.output().touch(connection)
 
-        log.info("Copying CSV export to resource %s", resource_id)
+        # commit and clean up
+        connection.commit()
+        connection.close()
+        # self.input().close()
 
-        conn.cursor().execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV".format(
-            table=resource_id,
-            cols='","'.join(self.csv.csv_columns().keys()),
-            file=self.input().path
+    def copy(self, cursor, file):
+
+        cursor.execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV".format(
+            table=self.table,
+            cols='","'.join(self.columns),
+            file=file
             )
         )
 
-        # TODO: Update text
-
-        conn.commit()
+        print 'RUN'
+        # datastore_config = dict(config.items('datastore'))
+        #
+        # conn = psycopg2.connect(**datastore_config)
+        # resource_id = self.get_resource_id()
+        #
+        # # TODO: If exists, delete first
+        #
+        # log.info("Copying CSV export to resource %s", resource_id)
+        #
+        # conn.cursor().execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV".format(
+        #     table=resource_id,
+        #     cols='","'.join(self.csv.csv_columns().keys()),
+        #     file=self.input().path
+        #     )
+        # )
+        #
+        # # TODO: Update text
+        #
+        # conn.commit()
 
 
 

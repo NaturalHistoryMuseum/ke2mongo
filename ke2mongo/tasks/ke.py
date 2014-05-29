@@ -22,11 +22,11 @@ class KEFileTask(luigi.ExternalTask):
     # TODO: Email errors
 
     module = luigi.Parameter()
+    file_extension = luigi.Parameter()
     date = luigi.IntParameter(default=None)
 
     def output(self):
-        return KEFileTarget(self.module, self.date)
-
+        return KEFileTarget(self.module, self.date, self.file_extension)
 
 class KEFileTarget(luigi.LocalTarget):
 
@@ -34,7 +34,7 @@ class KEFileTarget(luigi.LocalTarget):
     file_name = None
     is_tmp = False
 
-    def __init__(self, module, date, file_extension='export'):
+    def __init__(self, module, date, file_extension):
         """
         Override LocalTarget init to set path and format based on module and settings
         """
@@ -62,4 +62,4 @@ class KEFileTarget(luigi.LocalTarget):
 
         # If the file doesn't exist we want to raise an Exception
         # If a file doesn't exist it hasn't been included in the export and needs to be investigated
-        raise IOError('Export files %s/%s.gz do not exist in directory %s' % (file_name, file_name, self.export_dir))
+        raise IOError('Export files could not be found: Tried: %s %s.gz' % (os.path.join(self.export_dir, file_name), os.path.join(self.export_dir, file_name)))

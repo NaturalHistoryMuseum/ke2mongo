@@ -3,6 +3,9 @@
 """
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
+
+Prior to
+
 """
 
 import sys
@@ -26,24 +29,30 @@ class MongoTarget(luigi.Target):
         self.client = MongoClient()
         self.db = self.client[database]
         # Use the postgres table name for the collection
-        self.marker_collection = self.get_collection(luigi.configuration.get_config().get('postgres', 'marker-table', 'table_updates'))
+        # self.marker_collection = self.get_collection(luigi.configuration.get_config().get('postgres', 'marker-table', 'table_updates'))
 
     def get_collection(self, collection):
         return self.db[collection]
 
     def exists(self):
-        """
-        Has this already been processed?
-        """
-        exists = self.marker_collection.find({'update_id': self.update_id}).count()
-        return bool(exists)
 
-    def touch(self):
-        """
-        Mark this update as complete.
-        """
-        self.marker_collection.insert({'update_id': self.update_id})
+        # Has been processed if the file exists in the archive location
+        return os.path.exists(os.path.join(self.archive_dir, self.input().file_name))
 
+        return False
+    #     """
+    #     Has this already been processed?
+    #     """
+    #     exists = self.marker_collection.find({'update_id': self.update_id}).count()
+    #     return bool(exists)
+    #
+    # def touch(self):
+    #     """
+    #     Mark this update as complete.
+    #     """
+    #     # self.marker_collection.insert({'update_id': self.update_id})
+    #
+    #     pass
 
 class InvalidRecordException(Exception):
     """
@@ -62,13 +71,14 @@ class MongoTask(luigi.Task):
     archive_dir = config.get('keemu', 'archive_dir')
     batch_size = 10
     collection = None
+    file_extension = 'export'
 
     @abc.abstractproperty
     def module(self):
         return None
 
     def requires(self):
-        return KEFileTask(module=self.module, date=self.date)
+        return KEFileTask(module=self.module, date=self.date, file_extension=self.file_extension)
 
     def collection_name(self):
         return self.module
@@ -78,7 +88,7 @@ class MongoTask(luigi.Task):
         Get a reference to the mongo collection object
         @return:
         """
-        return self.output().get_collection(self.collection_name())
+        return self.collection_name()
 
     @timeit
     def run(self):
@@ -94,16 +104,12 @@ class MongoTask(luigi.Task):
         else:
             self.batch_insert(ke_data)
 
+        self.mark_complete()
+
+    def mark_complete(self):
+
         # Move the file to the archive directory
-
-        print os.path.join(self.archive_dir, self.input().file_name)
-
-        print self.input()
-
         self.input().move(os.path.join(self.archive_dir, self.input().file_name))
-
-        # Mark as complete
-        self.output().touch()
 
     def bulk_update(self, ke_data):
 
@@ -113,6 +119,7 @@ class MongoTask(luigi.Task):
             bulk.find({'_id': record['_id']}).upsert().replace_one(record)
 
         bulk.execute()
+
 
     def batch_insert(self, ke_data):
 
@@ -162,9 +169,14 @@ class MongoTask(luigi.Task):
         data['irn'] = str(data['irn'])
         return data
 
-    def output(self):
-        return MongoTarget(database='keemu', update_id=self.update_id())
+    def exists(self):
 
-    def update_id(self):
-        """This update id will be a unique identifier for this insert on this collection."""
-        return self.task_id
+        print 'DONE'
+        return True
+
+    # def output(self):
+    #     return MongoTarget(database='keemu', update_id=self.update_id())
+    #
+    # def update_id(self):
+    #     """This update id will be a unique identifier for this insert on this collection."""
+    #     return self.task_id

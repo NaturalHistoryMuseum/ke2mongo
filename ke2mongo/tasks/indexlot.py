@@ -44,7 +44,7 @@ class IndexLotDatasetTask(CollectionDatasetTask):
     def requires(self):
 
         # Create a CSV export of this field data to be used in postgres copy command
-        self.csv = IndexLotCSV(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.columns, outfile=self.outfile)
+        self.csv = IndexLotCSV(database=self.database, collection_name=self.collection_name, query=self.query, columns=self.columns, outfile=self.outfile, date=self.date)
         return self.csv
 
 

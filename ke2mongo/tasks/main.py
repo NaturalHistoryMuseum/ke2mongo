@@ -18,6 +18,25 @@ from ke2mongo.tasks.dwc import DarwinCoreDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
 
+class MongoBatchTask(luigi.Task):
+
+    date = luigi.IntParameter()
+
+    def requires(self):
+        return MongoTaxonomyTask(self.date)
+
+
+# class TaskIter(object):
+#     def __init__(self, dates):
+#         self.dates = dates
+#
+#     def __iter__(self):
+#         return self
+#
+#     def next(self):
+
+
+
 class MainTask(luigi.Task):
     """
     Main controller task
@@ -30,7 +49,7 @@ class MainTask(luigi.Task):
     export_dir = config.get('keemu', 'export_dir')
     dates = []
 
-    def get_dates(self):
+    def get_export_dates(self):
         """
         Gets all the dates of outstanding files
         @return: list of dates
@@ -63,14 +82,23 @@ class MainTask(luigi.Task):
         if self.date:
             self.dates = [self.date]
         else:
-            self.dates = self.get_dates()
+            self.dates = self.get_export_dates()
 
     def requires(self):
 
-        # Loop through all dates and process the mongo tasks
-        for date in self.dates:
-            # yield MongoDeleteTask(date), MongoCatalogueTask(date), MongoTaxonomyTask(date)
-            yield MongoCatalogueTask(date)
+        # # # Loop through all dates and process the mongo tasks
+        # for date in self.dates:
+        #     yield MongoBatchTask(date)
 
-        # After ALL mongo tasks have been processed, build the datasets
+
+        #
+        #     yield MongoTaxonomyTask(date)
+        #
+        #
+        #
+        # if self.requires().has_run:
+        #     print 'OK'
+
         # yield ArtefactDatasetTask(), DarwinCoreDatasetTask(), IndexLotDatasetTask()
+
+        yield ArtefactDatasetTask(**self.param_kwargs)
