@@ -12,7 +12,7 @@ import luigi
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_delete import MongoDeleteTask
-from ke2mongo.tasks.dwc import DarwinCoreDatasetTask
+from ke2mongo.tasks.specimen import SpecimenDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
 from ke2mongo.tasks.main import MainTask
