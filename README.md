@@ -1,9 +1,42 @@
 ke2mongo
 ========
 
+task hierarchy
+--------------
+
+1. Data is imported from KE EMu exports into mongo with: MongoCatalogueTask, MongoTaxonomyTask
+2. MongoDeleteTask parses the eaudit export and removes any deleted files
+3. Data is exported from mongo into CSV via CSVTasks (SpecimenCSVTask, ...)
+4. Dataset tasks (SpecimenDatasetTask, ...) copy the CSV file into the CKAN datastore
+
+
+
+bulk mongo update
+-----------------
+
+These tasks will be run weekly, processing the weekly KE EMu exports.
+If the process fails / KE EMu delivers files on the wrong date, the process will fail
+As this checks if there are export files for multiple dates.
+
+In this situation, after checking and if there is no problem with the files etc.,
+The outstanding files, along with the most recent, can be processed by running the command:
+
+python bulk.py
+
 TODO:
+----
 
-Currently uses CSV COPY to import to datastore.
+Does not add missing Lat/Lon & location data.
+The main reason for doing this is Min data not having any location stuff. But check after the new DwC mappings are in place.
 
-Does not add missing Lat/Lon & location data.  The main reason for doing this is Min data not having any location stuff. But check after the new DwC mappings are in place.
+
+
+
+
+
+
+
+
+
+
 
