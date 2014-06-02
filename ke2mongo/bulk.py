@@ -19,7 +19,7 @@ from ke2mongo.log import log
 from luigi import scheduler, worker
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
-from ke2mongo.tasks.main import MongoDeleteTask
+from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 from ke2mongo.tasks.main import MainTask
 from ke2mongo.lib.file import get_export_file_dates
 from luigi.interface import setup_interface_logging
@@ -45,7 +45,7 @@ class MongoBulkTask(luigi.Task):
 class MongoBulkCatalogueTask(MongoCatalogueTask):
     """
     After importing, MongoCatalogueTask adds indexes and updates child refs.
-    We do not want these to run during Bulkple imports, as it slows it down
+    We do not want these to run during bulk imports, as it slows it down
     So override the on_success to prevent this
     """
     def on_success(self):
@@ -94,12 +94,13 @@ def main():
         log.info('Processing date %s', export_date)
         w.add(MongoBulkTask(date=export_date))
 
-    log.info('Bulk processing complete - running MainTask for final date %s', last_date)
+    w.run()
 
     # And then, process the last date
+    log.info('Bulk processing complete - running MainTask for final date %s', last_date)
     w.add(MainTask(date=last_date))
-
     w.run()
+
     w.stop()
 
 if __name__ == "__main__":
