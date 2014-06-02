@@ -10,7 +10,6 @@ task hierarchy
 4. Dataset tasks (SpecimenDatasetTask, ...) copy the CSV file into the CKAN datastore
 
 
-
 bulk mongo update
 -----------------
 
@@ -22,6 +21,21 @@ In this situation, after checking and if there is no problem with the files etc.
 The outstanding files, along with the most recent, can be processed by running the command:
 
 python bulk.py
+
+
+ke export files
+---------------
+
+Prior to 23/01/2014 the exports included all public KE EMu records.
+
+From 23/01/2014 the exports only include records updated since the last export ran.
+
+The exports of the 23/01/12 do still contain ALL records, as the last export date was essentially null.
+(The eaudit dump is a dump of all deleted records ever, so is not required)
+
+
+So to import all records, all exports from 23/01/12 should be imported.
+
 
 TODO:
 ----
