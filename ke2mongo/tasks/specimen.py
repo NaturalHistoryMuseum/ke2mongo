@@ -5,20 +5,10 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
-import numpy as np
-import pandas as pd
-import sys
-from ke2mongo.log import log
 from ke2mongo.tasks.dataset import DatasetTask
 from ke2mongo.tasks.csv import CSVTask
 from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE
 from operator import itemgetter
-
-# TEMP
-import random, string
-
-def randomword(length):
-   return ''.join(random.choice(string.lowercase) for i in range(length))
 
 class SpecimenCSVTask(CSVTask):
 
@@ -254,7 +244,7 @@ class SpecimenDatasetTask(DatasetTask):
     format = 'dwc'  # Darwin Core format
 
     package = {
-        'name': u'nhm3-collection_%s' % randomword(13),
+        'name': u'nhm-collection',
         'notes': u'The Natural History Museum\'s collection',
         'title': "Collection",
         'author': None,
