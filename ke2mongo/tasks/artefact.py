@@ -40,7 +40,7 @@ class ArtefactDatasetTask(DatasetTask):
     format = 'csv'
 
     package = {
-        'name': u'nhm-artefacts1',
+        'name': u'nhm-artefacts7',
         'notes': u'Artefacts from The Natural History Museum',
         'title': "Artefacts",
         'author': None,
@@ -51,4 +51,10 @@ class ArtefactDatasetTask(DatasetTask):
         'resources': [],
     }
 
+    full_text_blacklist = [
+        'multimedia'
+    ]
+
     csv_class = ArtefactCSVTask
+
+

@@ -78,6 +78,13 @@ class DatasetTask(luigi.postgres.CopyToTable):
         """
         return None
 
+    def full_text_blacklist(self):
+        """
+        List of fields to exclude from the the _full_text index field
+        @return: str
+        """
+        return []  # Default
+
     @property
     def table(self):
         """
@@ -104,7 +111,6 @@ class DatasetTask(luigi.postgres.CopyToTable):
         """
 
         super(DatasetTask, self).__init__(*args, **kwargs)
-
         self.resource_id = self.get_resource_id()
 
 
@@ -171,7 +177,7 @@ class DatasetTask(luigi.postgres.CopyToTable):
         if not resource_id:
 
             # Dictionary of fields and field type
-            fields = [{'id': name, 'type': self.numpy_to_ckan_type(type)} for name, type in self.requires().csv_output_columns().items() if name not in ['_id']]
+            fields = self.get_table_fields()
 
             # Parameters to create the datastore
             datastore_params = {
@@ -190,6 +196,14 @@ class DatasetTask(luigi.postgres.CopyToTable):
             resource_id = datastore['resource_id']
 
         return resource_id
+
+    def get_table_fields(self):
+        """
+        Get a list of all fields, in the format {'type': '[field type]', 'id': '[field name]'}
+        @return: list
+        """
+        return [{'id': name, 'type': self.numpy_to_ckan_type(type)} for name, type in self.requires().csv_output_columns().items() if name not in ['_id']]
+
 
     @staticmethod
     def numpy_to_ckan_type(pandas_type):
@@ -222,6 +236,11 @@ class DatasetTask(luigi.postgres.CopyToTable):
         Mongo has been written to CSV file - so upload to datastore
         @return:
         """
+
+        # Get text fields
+        fields = self.get_table_fields()
+        full_text_fields = '","'.join([f['id'] for f in fields if f['type'] == 'text' and f['id'] not in self.full_text_blacklist])
+
         connection = self.output().connect()
 
         # Drop and recreate table
@@ -232,7 +251,11 @@ class DatasetTask(luigi.postgres.CopyToTable):
         self.init_copy(connection)
         self.copy(cursor, self.input().path)
 
-        # TODO: Update text
+        log.info("Updating full text index for %s", self.resource_id)
+
+        # Add _full_text index to the table
+        cursor.execute(u'UPDATE "{table}" set _full_text = to_tsvector(ARRAY_TO_STRING(ARRAY["{full_text_fields}"], \' \'))'.format(table=self.table, full_text_fields=full_text_fields))
+
         self.table_replace_resource(connection)
         self.output().touch(connection)
 
