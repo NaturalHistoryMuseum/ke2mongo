@@ -33,7 +33,7 @@ def get_export_file_dates():
         else:
             dates.add(int(date))
 
-    # Make sure they are in the right order
-    dates = sorted(dates)
+    # Make sure they are in the right order and convert to list
+    dates = sorted(list(dates))
 
     return dates
