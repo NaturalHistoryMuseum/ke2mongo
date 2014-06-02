@@ -61,7 +61,7 @@ class CSVTask(luigi.Task):
         # If we have more than one file export date, it could be problem if one of the mongo import files
         # So raise an exception, and ask the user to run manually
         if len(export_file_dates) > 1:
-            raise IOError('There are multiple (%s) export files requiring processing. Please check and re-run without the data parameter' % len(export_file_dates))
+            raise IOError('There are multiple (%s) export files requiring processing. Please investigate and run bulk.py' % len(export_file_dates))
 
     def requires(self):
 
