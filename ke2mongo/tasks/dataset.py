@@ -85,8 +85,6 @@ class DatasetTask(luigi.postgres.CopyToTable):
         This will then replace the main resource table
         @return:
         """
-
-        # TODO: We need the resource ID later on
         return '_tmp_%s' % self.resource_id
 
     @property
