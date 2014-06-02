@@ -109,7 +109,6 @@ class MongoTask(luigi.Task):
         # And mark the object as complete
         self.output().touch()
 
-
     def bulk_update(self, ke_data):
 
         bulk = self.collection.initialize_unordered_bulk_op()
@@ -118,7 +117,6 @@ class MongoTask(luigi.Task):
             bulk.find({'_id': record['_id']}).upsert().replace_one(record)
 
         bulk.execute()
-
 
     def batch_insert(self, ke_data):
 
@@ -139,7 +137,7 @@ class MongoTask(luigi.Task):
 
         # Add any records remaining in the batch
         if batch:
-            self.collection.insert(self.batch)
+            self.collection.insert(batch)
 
     def iterate_data(self, ke_data):
         """
