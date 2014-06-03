@@ -9,10 +9,15 @@ from ke2mongo.tasks.dataset import DatasetTask
 from ke2mongo.tasks.csv import CSVTask
 from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE
 from operator import itemgetter
+from collections import OrderedDict
 
 class SpecimenCSVTask(CSVTask):
 
     columns = [
+
+        # Specimen column tuples have an extra value, denoting if the field is inheritable by part records
+        # ([KE EMu field], [new field], [field type], Inheritable False|False)
+
         ('_id', '_id', 'int32', False),
 
         # Identifier
@@ -101,13 +106,34 @@ class SpecimenCSVTask(CSVTask):
         ('DarEndMonthCollected', 'endMonthCollected', 'string:100', True),
         ('DarEndYearCollected', 'endYearCollected', 'string:100', True),
 
+        # TODO: Test this and rerun with new downloads
+        # TODO: New download has failed.
+        # Geo
+        ('DarEarliestEon', 'earliestEon', 'string:100', True),  # Eon
+        ('DarLatestEon', 'latestEon', 'string:100', True),
+        ('DarEarliestEra', 'earliestEra', 'string:100', True),  # Era
+        ('DarLatestEra', 'latestEra', 'string:100', True),
+        ('DarEarliestPeriod', 'earliestPeriod', 'string:100', True),  # Period
+        ('DarLatestPeriod', 'latestPeriod', 'string:100', True),
+        ('DarEarliestEpoch', 'DarEarliestEpoch', 'string:100', True),  # Epoch
+        ('DarLatestEpoch', 'latestEpoch', 'string:100', True),
+        ('DarEarliestAge', 'earliestAge', 'string:100', True),  # Age
+        ('DarLatestAge', 'latestAge', 'string:100', True),
+        ('DarLowestBiostrat', 'lowestBiostratigraphy', 'string:100', True),  # Biostratigraphy
+        ('DarHighestBiostrat', 'highestBiostratigraphy', 'string:100', True),
+        ('DarGroup', 'group', 'string:100', True),
+        ('DarFormation', 'formation', 'string:100', True),
+        ('DarMember', 'member', 'string:100', True),
+        ('DarBed', 'bed', 'string:100', True),
+
         # Resource relationship
         ('DarRelatedCatalogItem', 'relatedCatalogItem', 'string:100', True),
 
-        # Extra fields we need to map - TODO: location irn?
         ('ColRecordType', 'colRecordType', 'string:100', False),
 
         ('dynamicProperties', 'dynamicProperties', 'string:400', False),
+
+        # ('PartRefStr', 'partRefs', 'string:100', True),
 
         # Removed: We do not want notes, could contain anything
         # ('DarNotes', 'DarNotes', 'string:100', True),
@@ -126,7 +152,6 @@ class SpecimenCSVTask(CSVTask):
         ('CatPreservative', 'catPreservative', False),
         ('ColKind', 'collectionKind', False),
         ('EntPriCollectionName', 'collectionName', False),
-        # TODO: Test this
         ('PartRefStr', 'partRefs', True),
     ]
 
@@ -152,24 +177,23 @@ class SpecimenCSVTask(CSVTask):
         # Columns has field type, but we do not use that here, and need to ensure it has the
         # Same dimensions as dynamic_property_columns
         columns = self.get_columns([0, 1, 3])
-        columns + self.dynamic_property_columns
+
+        columns += self.dynamic_property_columns
 
         # Select all fields
         project = {col[0]: 1 for col in columns}
         # Add the PartRef field so we can unwind it
         project['part_id'] = {"$ifNull": ["$PartRef", [None]]}
         project['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$RegRegistrationNumber"]}
-        # Manually add this field, as this process will break if it doesn't exist
+        # Explicitly add ColRecordType & PartRef - this process will break they do not exist
         project['ColRecordType'] = 1
         project['PartRef'] = 1
         # We cannot rely on the DarGlobalUniqueIdentifier field, as parts do not have it, so build manually
         project['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK:ecatalogue:", "$irn"]}
 
-        # TODO: Associated part IDs
-
         query.append({'$project': project})
 
-        # Unwind based on part ID
+        # # Unwind based on part ID
         query.append({'$unwind': "$part_id"})
 
         # Add all fields to the group
@@ -219,7 +243,7 @@ class SpecimenCSVTask(CSVTask):
 
         # Create an array of dynamicProperties to use in an aggregation projection
         # In the format {dynamicProperties : {$concat: [{$cond: {if: "$ColRecordType", then: {$concat: ["ColRecordType=","$ColRecordType", ";"]}, else: ''}}
-        dynamic_properties = [{"$cond": {"if": "${}".format(col[0]), "then": {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}, "else": ''}} for col in self.dynamic_property_columns]
+        dynamic_properties = [{"$cond": OrderedDict([("if", "${}".format(col[0])), ("then", {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}), ("else", '')])} for col in self.dynamic_property_columns]
         project['dynamicProperties'] = {"$concat": dynamic_properties}
 
         return project
@@ -231,7 +255,7 @@ class SpecimenCSVTask(CSVTask):
         @return: list of queries
         """
         return [
-            self.specimen_aggregator_query(),
+            # self.specimen_aggregator_query(),
             self.part_parent_aggregator_query()
         ]
 
@@ -244,7 +268,7 @@ class SpecimenDatasetTask(DatasetTask):
     format = 'dwc'  # Darwin Core format
 
     package = {
-        'name': u'nhm-collection',
+        'name': u'nhm-collection2',
         'notes': u'The Natural History Museum\'s collection',
         'title': "Collection",
         'author': None,
