@@ -52,6 +52,8 @@ class MongoBulkCatalogueTask(MongoCatalogueTask):
         # Do not pass go, do not collect 200
         pass
 
+    # Update ID
+
 
 class BulkException(Exception):
     """
@@ -84,8 +86,7 @@ def main():
     setup_interface_logging()
 
     # We do not want to bulk process the most recent
-
-    last_date = export_dates.pop()
+    export_dates.pop()
 
     sch = scheduler.CentralPlannerScheduler()
     w = BulkWorker(scheduler=sch)
@@ -97,9 +98,9 @@ def main():
     w.run()
 
     # And then, process the last date
-    log.info('Bulk processing complete - running MainTask for final date %s', last_date)
-    w.add(MainTask(date=last_date))
-    w.run()
+    # log.info('Bulk processing complete - running MainTask for final date %s', last_date)
+    # w.add(MainTask(date=last_date))
+    # w.run()
 
     w.stop()
 
