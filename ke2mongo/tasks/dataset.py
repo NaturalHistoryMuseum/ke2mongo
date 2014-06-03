@@ -22,8 +22,6 @@ from collections import OrderedDict
 from ke2mongo.tasks import ARTEFACT_TYPE
 from ke2mongo.tasks.csv import CSVTask
 
-# TODO: This just copies data via postgres copy function - it's quick but need to do periodic updates etc., via API
-
 class DatasetTask(luigi.postgres.CopyToTable):
     """
     Class for importing KE data into CKAN dataset
@@ -37,6 +35,9 @@ class DatasetTask(luigi.postgres.CopyToTable):
     database = config.get('datastore', 'database')
     user = config.get('datastore', 'user')
     password = config.get('datastore', 'password')
+
+    # Default impl
+    full_text_blacklist = []
 
     @abc.abstractproperty
     def name(self):
@@ -77,13 +78,6 @@ class DatasetTask(luigi.postgres.CopyToTable):
         @return: str
         """
         return None
-
-    def full_text_blacklist(self):
-        """
-        List of fields to exclude from the the _full_text index field
-        @return: str
-        """
-        return []  # Default
 
     @property
     def table(self):
@@ -239,6 +233,7 @@ class DatasetTask(luigi.postgres.CopyToTable):
 
         # Get text fields
         fields = self.get_table_fields()
+
         full_text_fields = '","'.join([f['id'] for f in fields if f['type'] == 'text' and f['id'] not in self.full_text_blacklist])
 
         connection = self.output().connect()
