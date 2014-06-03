@@ -108,6 +108,7 @@ class SpecimenCSVTask(CSVTask):
 
         # TODO: Test this and rerun with new downloads
         # TODO: New download has failed.
+
         # Geo
         ('DarEarliestEon', 'earliestEon', 'string:100', True),  # Eon
         ('DarLatestEon', 'latestEon', 'string:100', True),
@@ -132,8 +133,6 @@ class SpecimenCSVTask(CSVTask):
         ('ColRecordType', 'colRecordType', 'string:100', False),
 
         ('dynamicProperties', 'dynamicProperties', 'string:400', False),
-
-        # ('PartRefStr', 'partRefs', 'string:100', True),
 
         # Removed: We do not want notes, could contain anything
         # ('DarNotes', 'DarNotes', 'string:100', True),
@@ -255,7 +254,7 @@ class SpecimenCSVTask(CSVTask):
         @return: list of queries
         """
         return [
-            # self.specimen_aggregator_query(),
+            self.specimen_aggregator_query(),
             self.part_parent_aggregator_query()
         ]
 
