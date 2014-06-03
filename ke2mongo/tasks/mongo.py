@@ -20,6 +20,7 @@ from keparser.parser import FLATTEN_ALL
 from ke2mongo import config
 from ke2mongo.lib.timeit import timeit
 from pymongo import MongoClient
+from pymongo.errors import InvalidOperation
 
 class MongoTarget(luigi.Target):
 
@@ -52,7 +53,7 @@ class MongoTarget(luigi.Target):
 class InvalidRecordException(Exception):
     """
     Raise an exception for records we want to skip
-    See MongoCatalogueTask.process()
+    See MongoCatalogueTask.process_record()
     """
     pass
 
@@ -64,7 +65,8 @@ class MongoTask(luigi.Task):
     database = config.get('mongo', 'database')
     keemu_schema_file = config.get('keemu', 'schema')
     archive_dir = config.get('keemu', 'archive_dir')
-    batch_size = 10
+    batch_size = 1000
+    bulk_op_size = 100000
     collection = None
     file_extension = 'export'
 
@@ -89,16 +91,18 @@ class MongoTask(luigi.Task):
     @timeit
     def run(self):
 
-        ke_data = KEParser(self.input().open('r'), schema_file=self.keemu_schema_file, input_file_path=self.input().path, flatten_mode=FLATTEN_ALL)
+        with self.input().open('r') as input:
 
-        self.collection = self.get_collection()
+            ke_data = KEParser(input, schema_file=self.keemu_schema_file, input_file_path=self.input().path, flatten_mode=FLATTEN_ALL)
 
-        # If we have any records in the collection, use bulk_update with mongo bulk upsert
-        # Otherwise use batch insert (20% faster than using bulk insert())
-        if self.collection.find_one():
-            self.bulk_update(ke_data)
-        else:
-            self.batch_insert(ke_data)
+            self.collection = self.get_collection()
+
+            # If we have any records in the collection, use bulk_update with mongo bulk upsert
+            # Otherwise use batch insert (20% faster than using bulk insert())
+            if self.collection.find_one():
+                self.bulk_update(ke_data)
+            else:
+                self.batch_insert(ke_data)
 
         self.mark_complete()
 
@@ -113,10 +117,27 @@ class MongoTask(luigi.Task):
 
         bulk = self.collection.initialize_unordered_bulk_op()
 
-        for record in self.iterate_data(ke_data):
-            bulk.find({'_id': record['_id']}).upsert().replace_one(record)
+        count = 0
 
-        bulk.execute()
+        for record in self.iterate_data(ke_data):
+            # Find and replace doc - inserting if it doesn't exist
+            bulk.find({'_id': record['_id']}).upsert().replace_one(record)
+            count += 1
+
+            # Bulk ops can have out of memory errors (I'm getting for ~400,000+ bulk ops)
+            # So execute the bulk op in stages, when bulk_op_size is reached
+            if count % self.bulk_op_size == 0:
+                log.info('Executing bulk op')
+                bulk.execute()
+                bulk = self.collection.initialize_unordered_bulk_op()
+
+        try:
+            bulk.execute()
+        except InvalidOperation:
+            # If we do not have any records to execute, ignore error
+            # They have been executed in ln132
+            pass
+
 
     def batch_insert(self, ke_data):
 
@@ -129,6 +150,7 @@ class MongoTask(luigi.Task):
 
                 # If the batch length equals the batch size, commit and clear the batch
                 if len(batch) % self.batch_size == 0:
+                    log.info('Submitting batch')
                     self.collection.insert(batch)
                     batch = []
 
