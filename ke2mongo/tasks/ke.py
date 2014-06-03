@@ -28,6 +28,7 @@ class KEFileTask(luigi.ExternalTask):
     def output(self):
         return KEFileTarget(self.module, self.date, self.file_extension)
 
+
 class KEFileTarget(luigi.LocalTarget):
 
     export_dir = config.get('keemu', 'export_dir')
