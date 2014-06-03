@@ -14,7 +14,7 @@ class MongoTaxonomyTask(MongoTask):
 
     module = 'etaxonomy'
 
-    def process(self, data):
+    def process_record(self, data):
 
         # Currently accepted isn't required so None == Unknown
         try:
@@ -23,4 +23,4 @@ class MongoTaxonomyTask(MongoTask):
         except KeyError:
             pass
 
-        super(MongoTaxonomyTask, self).process(data)
+        return super(MongoTaxonomyTask, self).process_record(data)
