@@ -37,11 +37,11 @@ The exports of the 23/01/12 do still contain ALL records, as the last export dat
 So to import all records, all exports from 23/01/12 should be imported.
 
 
-TODO:
-----
+Further dev
+-----------
 
-Does not add missing Lat/Lon & location data.
-The main reason for doing this is Min data not having any location stuff. But check after the new DwC mappings are in place.
+At the moment this copies data via postgres copy function - it's quick but we could investigate into doing updates via the API
+
 
 
 
