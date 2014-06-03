@@ -91,18 +91,16 @@ class MongoTask(luigi.Task):
     @timeit
     def run(self):
 
-        with self.input().open('r') as input:
+        ke_data = KEParser(self.input().open('r'), schema_file=self.keemu_schema_file, input_file_path=self.input().path, flatten_mode=FLATTEN_ALL)
 
-            ke_data = KEParser(input, schema_file=self.keemu_schema_file, input_file_path=self.input().path, flatten_mode=FLATTEN_ALL)
+        self.collection = self.get_collection()
 
-            self.collection = self.get_collection()
-
-            # If we have any records in the collection, use bulk_update with mongo bulk upsert
-            # Otherwise use batch insert (20% faster than using bulk insert())
-            if self.collection.find_one():
-                self.bulk_update(ke_data)
-            else:
-                self.batch_insert(ke_data)
+        # If we have any records in the collection, use bulk_update with mongo bulk upsert
+        # Otherwise use batch insert (20% faster than using bulk insert())
+        if self.collection.find_one():
+            self.bulk_update(ke_data)
+        else:
+            self.batch_insert(ke_data)
 
         self.mark_complete()
 
