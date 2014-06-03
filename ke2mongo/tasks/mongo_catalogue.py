@@ -83,7 +83,7 @@ class MongoCatalogueTask(MongoTask):
         # We re-update all ChildRef fields below
         self.collection.update({'ColRecordType': {"$in": PARENT_TYPES}}, {"$unset": {"PartRef": None}}, multi=True)
 
-        # # Add an index for child ref
+        # Add an index for child ref
         self.collection.ensure_index('ChildRef')
 
         result = self.collection.aggregate([
