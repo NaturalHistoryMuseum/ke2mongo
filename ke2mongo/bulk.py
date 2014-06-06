@@ -97,11 +97,6 @@ def main():
 
     w.run()
 
-    # And then, process the last date
-    # log.info('Bulk processing complete - running MainTask for final date %s', last_date)
-    # w.add(MainTask(date=last_date))
-    # w.run()
-
     w.stop()
 
 if __name__ == "__main__":
