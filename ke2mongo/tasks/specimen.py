@@ -3,6 +3,9 @@
 """
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
+
+python run.py SpecimenDatasetTask --local-scheduler --date 20140123
+
 """
 
 from ke2mongo.tasks.dataset import DatasetTask
@@ -34,7 +37,7 @@ class SpecimenCSVTask(CSVTask):
         # Taxonomy
         ('DarScientificName', 'scientificName', 'string:100', True),
         ('DarScientificNameAuthor', 'scientificNameAuthor', 'string:100', True),
-        ('DarScientificNameAuthorYear', 'scientificNameAuthorYear', 'string:100', True),
+        ('DarScientificNameAuthorYear', 'namePublishedInYear', 'string:100', True),  # scientificNameAuthorYear doesn't exist in DwC?
         ('DarKingdom', 'kingdom', 'string:100', True),
         ('DarPhylum', 'phylum', 'string:100', True),
         ('DarClass', 'class', 'string:100', True),
@@ -75,7 +78,7 @@ class SpecimenCSVTask(CSVTask):
         ('DarCatalogNumberText', 'catalogNumberText', 'string:100', True),
         ('DarCollector', 'collector', 'string:100', True),
         ('DarCollectorNumber', 'collectorNumber', 'string:100', True),
-        ('DarIndividualCount', 'DarIndividualCount', 'string:100', True),
+        ('DarIndividualCount', 'individualCount', 'string:100', True),
         ('DarLifeStage', 'lifeStage', 'string:100', True),
         ('DarAgeClass', 'ageClass', 'string:100', True),  # According to docs, ageClass has been superseded by lifeStage. We have both
         ('DarSex', 'sex', 'string:100', True),
@@ -110,27 +113,28 @@ class SpecimenCSVTask(CSVTask):
         # TODO: New download has failed.
 
         # Geo
-        ('DarEarliestEon', 'earliestEon', 'string:100', True),  # Eon
-        ('DarLatestEon', 'latestEon', 'string:100', True),
-        ('DarEarliestEra', 'earliestEra', 'string:100', True),  # Era
-        ('DarLatestEra', 'latestEra', 'string:100', True),
-        ('DarEarliestPeriod', 'earliestPeriod', 'string:100', True),  # Period
-        ('DarLatestPeriod', 'latestPeriod', 'string:100', True),
-        ('DarEarliestEpoch', 'DarEarliestEpoch', 'string:100', True),  # Epoch
-        ('DarLatestEpoch', 'latestEpoch', 'string:100', True),
-        ('DarEarliestAge', 'earliestAge', 'string:100', True),  # Age
-        ('DarLatestAge', 'latestAge', 'string:100', True),
-        ('DarLowestBiostrat', 'lowestBiostratigraphy', 'string:100', True),  # Biostratigraphy
-        ('DarHighestBiostrat', 'highestBiostratigraphy', 'string:100', True),
-        ('DarGroup', 'group', 'string:100', True),
-        ('DarFormation', 'formation', 'string:100', True),
-        ('DarMember', 'member', 'string:100', True),
-        ('DarBed', 'bed', 'string:100', True),
+        ('DarEarliestEon', 'EarliestEonOrLowestEonothem', 'string:100', True),  # Eon
+        ('DarLatestEon', 'LatestEonOrHighestEonothem', 'string:100', True),
+        ('DarEarliestEra', 'EarliestEraOrLowestErathem', 'string:100', True),  # Era
+        ('DarLatestEra', 'LatestEraOrHighestErathem', 'string:100', True),
+        ('DarEarliestPeriod', 'EarliestPeriodOrLowestSystem', 'string:100', True),  # Period
+        ('DarLatestPeriod', 'LatestPeriodOrHighestSystem', 'string:100', True),
+        ('DarEarliestEpoch', 'EarliestEpochOrLowestSeries', 'string:100', True),  # Epoch
+        ('DarLatestEpoch', 'LatestEpochOrHighestSeries', 'string:100', True),
+        ('DarEarliestAge', 'EarliestAgeOrLowestStage', 'string:100', True),  # Age
+        ('DarLatestAge', 'LatestAgeOrHighestStage', 'string:100', True),
+        ('DarLowestBiostrat', 'LowestBiostratigraphicZone', 'string:100', True),  # Biostratigraphy
+        ('DarHighestBiostrat', 'HighestBiostratigraphicZone', 'string:100', True),
+        ('DarGroup', 'Group', 'string:100', True),
+        ('DarFormation', 'Formation', 'string:100', True),
+        ('DarMember', 'Member', 'string:100', True),
+        ('DarBed', 'Bed', 'string:100', True),
 
         # Resource relationship
         ('DarRelatedCatalogItem', 'relatedCatalogItem', 'string:100', True),
 
-        ('ColRecordType', 'colRecordType', 'string:100', False),
+        # TODO: I've removed this. Check it's in dynamic props
+        # ('ColRecordType', 'colRecordType', 'string:100', False),
 
         ('dynamicProperties', 'dynamicProperties', 'string:400', False),
 
@@ -267,7 +271,7 @@ class SpecimenDatasetTask(DatasetTask):
     format = 'dwc'  # Darwin Core format
 
     package = {
-        'name': u'nhm-collection2',
+        'name': u'nhm-collection3',
         'notes': u'The Natural History Museum\'s collection',
         'title': "Collection",
         'author': None,
