@@ -24,10 +24,10 @@ class SpecimenCSVTask(CSVTask):
         ('_id', '_id', 'int32', False),
 
         # Identifier
-        ('DarGlobalUniqueIdentifier', 'globalUniqueIdentifier', 'string:100', False),
+        ('DarGlobalUniqueIdentifier', 'occurrenceID', 'string:100', False),
 
         # Record level
-        ('AdmDateModified', 'dateLastModified', 'string:100', False),
+        ('AdmDateModified', 'modified', 'string:100', False),
         # This isn't actually in DwC - but I'm going to use dcterms:created
         ('AdmDateInserted', 'created', 'string:100', False,),
         ('DarInstitutionCode', 'institutionCode', 'string:100', True),
@@ -36,8 +36,9 @@ class SpecimenCSVTask(CSVTask):
 
         # Taxonomy
         ('DarScientificName', 'scientificName', 'string:100', True),
-        ('DarScientificNameAuthor', 'scientificNameAuthor', 'string:100', True),
-        ('DarScientificNameAuthorYear', 'namePublishedInYear', 'string:100', True),  # scientificNameAuthorYear doesn't exist in DwC?
+        # Rather than using the two darwin core fields DarScientificNameAuthorYear and ScientificNameAuthor
+        # It's easier to just use IdeFiledAsAuthors which has them both concatenated
+        ('IdeFiledAsAuthors', 'scientificNameAuthorship', 'string:100', True),
         ('DarKingdom', 'kingdom', 'string:100', True),
         ('DarPhylum', 'phylum', 'string:100', True),
         ('DarClass', 'class', 'string:100', True),
@@ -45,16 +46,16 @@ class SpecimenCSVTask(CSVTask):
         ('DarFamily', 'family', 'string:100', True),
         ('DarGenus', 'genus', 'string:100', True),
         ('DarSubgenus', 'subgenus', 'string:100', True),
-        ('DarSpecies', 'species', 'string:100', True),
-        ('DarSubspecies', 'subspecies', 'string:100', True),
+        ('DarSpecies', 'specificEpithet', 'string:100', True),
+        ('DarSubspecies', 'infraspecificEpithet', 'string:100', True),
         ('DarHigherTaxon', 'higherTaxon', 'string:100', True),
-        ('DarInfraspecificRank', 'infraspecificRank', 'string:100', True),
+        ('DarInfraspecificRank', 'taxonRank', 'string:100', True),
 
         # Location
         ('DarDecimalLongitude', 'decimalLongitude', 'float32', True),
         ('DarDecimalLatitude', 'decimalLatitude', 'float32', True),
         ('DarGeodeticDatum', 'geodeticDatum', 'string:100', True),
-        ('DarGeorefMethod', 'georefMethod', 'string:100', True),
+        ('DarGeorefMethod', 'georeferenceProtocol', 'string:100', True),
 
         ('DarMinimumElevationInMeters', 'minimumElevationInMeters', 'string:100', True),
         ('DarMaximumElevationInMeters', 'maximumElevationInMeters', 'string:100', True),
@@ -70,68 +71,65 @@ class SpecimenCSVTask(CSVTask):
         ('DarStateProvince', 'stateProvince', 'string:100', True),
         ('DarCountry', 'country', 'string:100', True),
         ('DarContinent', 'continent', 'string:100', True),
-        ('DarHigherGeography', 'DarHigherGeography', 'string:100', True),
+        ('DarHigherGeography', 'higherGeography', 'string:100', True),
 
         # Occurrence
         ('DarCatalogNumber', 'catalogNumber', 'string:100', True),
         ('DarOtherCatalogNumbers', 'otherCatalogNumbers', 'string:100', True),
-        ('DarCatalogNumberText', 'catalogNumberText', 'string:100', True),
-        ('DarCollector', 'collector', 'string:100', True),
-        ('DarCollectorNumber', 'collectorNumber', 'string:100', True),
+        ('DarCollector', 'recordedBy', 'string:100', True),
+        ('DarCollectorNumber', 'recordNumber', 'string:100', True),
         ('DarIndividualCount', 'individualCount', 'string:100', True),
         ('DarLifeStage', 'lifeStage', 'string:100', True),
-        ('DarAgeClass', 'ageClass', 'string:100', True),  # According to docs, ageClass has been superseded by lifeStage. We have both
+        #  According to docs, ageClass has been superseded by lifeStage. We have both, but ageClass duplicates
+        # And for the ~200 it has extra data, the data isn't good
+        # ('DarAgeClass', 'ageClass', 'string:100', True),
         ('DarSex', 'sex', 'string:100', True),
         ('DarPreparations', 'preparations', 'string:100', True),
-        ('DarPreparationType', 'preparationType', 'string:100', True),
-        ('DarObservedWeight', 'observedWeight', 'string:100', True), # This has moved to dynamicProperties
 
         # Identification
         ('DarIdentifiedBy', 'identifiedBy', 'string:100', True),
-        ('DarDayIdentified', 'dayIdentified', 'string:100', True),
-        ('DarMonthIdentified', 'monthIdentified', 'string:100', True),
-        ('DarYearIdentified', 'yearIdentified', 'string:100', True),
+        # KE Emu has 3 fields for identification date: DarDayIdentified, DarMonthIdentified and DarYearIdentified
+        # But EntIdeDateIdentified holds them all - which is what we want for dateIdentified
+        ('EntIdeDateIdentified', 'dateIdentified', 'string:100', True),
         ('DarIdentificationQualifier', 'identificationQualifier', 'string:100', True),
         ('DarTypeStatus', 'typeStatus', 'string:100', True),
 
         # Collection event
         ('DarFieldNumber', 'fieldNumber', 'string:100', True),
-        ('DarStartTimeOfDay', 'startTimeOfDay', 'string:100', True),
-        ('DarStartDayCollected', 'startDayCollected', 'string:100', True),
-        ('DarStartMonthCollected', 'startMonthCollected', 'string:100', True),
-        ('DarStartYearCollected', 'startYearCollected', 'string:100', True),
-        ('DarTimeOfDay', 'timeOfDay', 'string:100', True),
-        ('DarDayCollected', 'dayCollected', 'string:100', True),
-        ('DarMonthCollected', 'monthCollected', 'string:100', True),
-        ('DarYearCollected', 'yearCollected', 'string:100', True),
-        ('DarEndTimeOfDay', 'endTimeOfDay', 'string:100', True),
-        ('DarEndDayCollected', 'endDayCollected', 'string:100', True),
-        ('DarEndMonthCollected', 'endMonthCollected', 'string:100', True),
-        ('DarEndYearCollected', 'endYearCollected', 'string:100', True),
+        # Merge into eventTime (DarStartTimeOfDay & DarEndTimeOfDay not used when eventTime is empty)
+        ('DarTimeOfDay', 'eventTime', 'string:100', True),
+        # KE EMu uses 3 fields: DarDayCollected, DarStartDayCollected and DarEndDayCollected
+        # However DarStartDayCollected & DarEndDayCollected is never populated when DarDayCollected isn't
+        # So lets just use DarDayCollected
+        ('DarDayCollected', 'day', 'string:100', True),
+        # As day: DarStartMonthCollected + DarEndMonthCollected => DarMonthCollected
+        ('DarMonthCollected', 'month', 'string:100', True),
+        # Merge into year
+        ('DarYearCollected', 'year', 'string:100', True),
 
         # TODO: Test this and rerun with new downloads
         # TODO: New download has failed.
 
         # Geo
-        ('DarEarliestEon', 'EarliestEonOrLowestEonothem', 'string:100', True),  # Eon
-        ('DarLatestEon', 'LatestEonOrHighestEonothem', 'string:100', True),
-        ('DarEarliestEra', 'EarliestEraOrLowestErathem', 'string:100', True),  # Era
-        ('DarLatestEra', 'LatestEraOrHighestErathem', 'string:100', True),
-        ('DarEarliestPeriod', 'EarliestPeriodOrLowestSystem', 'string:100', True),  # Period
-        ('DarLatestPeriod', 'LatestPeriodOrHighestSystem', 'string:100', True),
-        ('DarEarliestEpoch', 'EarliestEpochOrLowestSeries', 'string:100', True),  # Epoch
-        ('DarLatestEpoch', 'LatestEpochOrHighestSeries', 'string:100', True),
-        ('DarEarliestAge', 'EarliestAgeOrLowestStage', 'string:100', True),  # Age
-        ('DarLatestAge', 'LatestAgeOrHighestStage', 'string:100', True),
-        ('DarLowestBiostrat', 'LowestBiostratigraphicZone', 'string:100', True),  # Biostratigraphy
-        ('DarHighestBiostrat', 'HighestBiostratigraphicZone', 'string:100', True),
-        ('DarGroup', 'Group', 'string:100', True),
-        ('DarFormation', 'Formation', 'string:100', True),
-        ('DarMember', 'Member', 'string:100', True),
-        ('DarBed', 'Bed', 'string:100', True),
+        ('DarEarliestEon', 'earliestEonOrLowestEonothem', 'string:100', True),  # Eon
+        ('DarLatestEon', 'latestEonOrHighestEonothem', 'string:100', True),
+        ('DarEarliestEra', 'earliestEraOrLowestErathem', 'string:100', True),  # Era
+        ('DarLatestEra', 'latestEraOrHighestErathem', 'string:100', True),
+        ('DarEarliestPeriod', 'earliestPeriodOrLowestSystem', 'string:100', True),  # Period
+        ('DarLatestPeriod', 'latestPeriodOrHighestSystem', 'string:100', True),
+        ('DarEarliestEpoch', 'earliestEpochOrLowestSeries', 'string:100', True),  # Epoch
+        ('DarLatestEpoch', 'latestEpochOrHighestSeries', 'string:100', True),
+        ('DarEarliestAge', 'earliestAgeOrLowestStage', 'string:100', True),  # Age
+        ('DarLatestAge', 'latestAgeOrHighestStage', 'string:100', True),
+        ('DarLowestBiostrat', 'lowestBiostratigraphicZone', 'string:100', True),  # Biostratigraphy
+        ('DarHighestBiostrat', 'highestBiostratigraphicZone', 'string:100', True),
+        ('DarGroup', 'group', 'string:100', True),
+        ('DarFormation', 'formation', 'string:100', True),
+        ('DarMember', 'member', 'string:100', True),
+        ('DarBed', 'bed', 'string:100', True),
 
         # Resource relationship
-        ('DarRelatedCatalogItem', 'relatedCatalogItem', 'string:100', True),
+        ('DarRelatedCatalogItem', 'relatedResourceID', 'string:100', True),
 
         # TODO: I've removed this. Check it's in dynamic props
         # ('ColRecordType', 'colRecordType', 'string:100', False),
@@ -156,6 +154,8 @@ class SpecimenCSVTask(CSVTask):
         ('ColKind', 'collectionKind', False),
         ('EntPriCollectionName', 'collectionName', False),
         ('PartRefStr', 'partRefs', True),
+        ('DarPreparationType', 'preparationType', True),
+        ('DarObservedWeight', 'observedWeight', True),
     ]
 
     def get_columns(self, keys=[0, 1, 2]):
@@ -271,9 +271,9 @@ class SpecimenDatasetTask(DatasetTask):
     format = 'dwc'  # Darwin Core format
 
     package = {
-        'name': u'nhm-collection3',
+        'name': u'nhm-collection5',
         'notes': u'The Natural History Museum\'s collection',
-        'title': "Collection",
+        'title': "Collection5",
         'author': None,
         'author_email': None,
         'license_id': u'other-open',
