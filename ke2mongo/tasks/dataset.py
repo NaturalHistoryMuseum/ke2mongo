@@ -286,6 +286,8 @@ class DatasetTask(luigi.postgres.CopyToTable):
 
         cursor = connection.cursor()
 
+        # TODO: Copy table owner
+
         # Drop the resource table
         cursor.execute('DROP TABLE IF EXISTS "{resource_id}"'.format(resource_id=self.resource_id))
 
