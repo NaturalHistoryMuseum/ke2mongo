@@ -10,7 +10,7 @@ python run.py SpecimenDatasetTask --local-scheduler --date 20140123
 
 from ke2mongo.tasks.dataset import DatasetTask
 from ke2mongo.tasks.csv import CSVTask
-from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE
+from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE, MULTIMEDIA_URL
 from operator import itemgetter
 from collections import OrderedDict
 
@@ -131,7 +131,10 @@ class SpecimenCSVTask(CSVTask):
 
         # Resource relationship
         ('DarRelatedCatalogItem', 'relatedResourceID', 'string:100', True),
+        # Dynamic properties
         ('dynamicProperties', 'dynamicProperties', 'string:400', False),
+        # Multimedia
+        ('MulMultiMediaRef', 'associatedMedia', 'string:100', True),
 
         # Removed: We do not want notes, could contain anything
         # ('DarNotes', 'DarNotes', 'string:100', True),
@@ -223,6 +226,17 @@ class SpecimenCSVTask(CSVTask):
         @return:
         """
         return [itemgetter(*keys)(c) for c in self.columns]
+
+    def process_dataframe(self, m, df):
+        """
+        Process the dataframe, updating multimedia irns => URIs
+        @param m: monary
+        @param df: dataframe
+        @return: dataframe
+        """
+        # Update the images to use the URL
+        df['associatedMedia'] = df['associatedMedia'].apply(lambda x: '; '.join(MULTIMEDIA_URL % z.lstrip() for z in x.split(';') if z))
+        return df
 
     def part_parent_aggregator_query(self):
         """
@@ -328,9 +342,9 @@ class SpecimenDatasetTask(DatasetTask):
     format = 'dwc'  # Darwin Core format
 
     package = {
-        'name': u'nhm-collection7',
+        'name': u'nhm-collection9',
         'notes': u'The Natural History Museum\'s collection',
-        'title': "Collection7",
+        'title': "Collection9",
         'author': None,
         'author_email': None,
         'license_id': u'other-open',
