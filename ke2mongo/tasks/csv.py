@@ -107,8 +107,8 @@ class CSVTask(luigi.Task):
                 log.info("Building aggregated collection: %s", collection_name)
 
                 result = db[self.collection_name].aggregate(query, allowDiskUse=True)
-                #
-                # # Ensure the aggregation process succeeded
+
+                # Ensure the aggregation process succeeded
                 assert result['ok'] == 1.0
 
                 query = {}
