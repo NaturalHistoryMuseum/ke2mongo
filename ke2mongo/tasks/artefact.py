@@ -16,7 +16,8 @@ import pandas as pd
 from ke2mongo.log import log
 from ke2mongo.tasks.dataset import DatasetTask
 from ke2mongo.tasks.csv import CSVTask
-from ke2mongo.tasks import ARTEFACT_TYPE
+from ke2mongo.tasks import ARTEFACT_TYPE, MULTIMEDIA_URL
+
 
 class ArtefactCSVTask(CSVTask):
 
@@ -30,6 +31,18 @@ class ArtefactCSVTask(CSVTask):
 
     query = {"ColRecordType": ARTEFACT_TYPE}
 
+    def process_dataframe(self, m, df):
+        """
+        Process the dataframe, converting image IRNs to URIs
+        @param m: monary
+        @param df: dataframe
+        @return: dataframe
+        """
+        # And update images to URLs
+        df['multimedia'] = df['multimedia'].apply(lambda x: '; '.join(MULTIMEDIA_URL % z.lstrip() for z in x.split(';') if z))
+
+        return df
+
 
 class ArtefactDatasetTask(DatasetTask):
     """
@@ -40,7 +53,7 @@ class ArtefactDatasetTask(DatasetTask):
     format = 'csv'
 
     package = {
-        'name': u'nhm-artefacts7',
+        'name': u'nhm-artefacts8',
         'notes': u'Artefacts from The Natural History Museum',
         'title': "Artefacts",
         'author': None,
