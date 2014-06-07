@@ -48,10 +48,22 @@ class SpecimenCSVTask(CSVTask):
         ('DarSubgenus', 'subgenus', 'string:100', True),
         ('DarSpecies', 'specificEpithet', 'string:100', True),
         ('DarSubspecies', 'infraspecificEpithet', 'string:100', True),
-        ('DarHigherTaxon', 'higherTaxon', 'string:100', True),
+        ('DarHigherTaxon', 'higherClassification', 'string:100', True),
         ('DarInfraspecificRank', 'taxonRank', 'string:100', True),
 
         # Location
+        ('DarLocality', 'locality', 'string:100', True),
+        ('DarStateProvince', 'stateProvince', 'string:100', True),
+        ('DarCountry', 'country', 'string:100', True),
+        ('DarContinent', 'continent', 'string:100', True),
+        ('DarIsland', 'island', 'string:100', True),
+        ('DarIslandGroup', 'islandGroup', 'string:100', True),
+        # Removed: continentOcean is not in current DwC standard, replaced by waterBody and continent
+        # ('DarContinentOcean', 'continentOcean', 'string:100', True),
+        ('DarWaterBody', 'waterBody', 'string:100', True),
+        ('DarHigherGeography', 'higherGeography', 'string:100', True),
+        ('ColHabitatVerbatim', 'habitat', 'string:100', False),
+
         ('DarDecimalLongitude', 'decimalLongitude', 'float32', True),
         ('DarDecimalLatitude', 'decimalLatitude', 'float32', True),
         ('DarGeodeticDatum', 'geodeticDatum', 'string:100', True),
@@ -61,17 +73,6 @@ class SpecimenCSVTask(CSVTask):
         ('DarMaximumElevationInMeters', 'maximumElevationInMeters', 'string:100', True),
         ('DarMinimumDepthInMeters', 'minimumDepthInMeters', 'string:100', True),
         ('DarMaximumDepthInMeters', 'maximumDepthInMeters', 'string:100', True),
-
-        ('DarIsland', 'island', 'string:100', True),
-        ('DarIslandGroup', 'islandGroup', 'string:100', True),
-        ('DarContinentOcean', 'continentOcean', 'string:100', True),
-        ('DarWaterBody', 'waterBody', 'string:100', True),
-
-        ('DarLocality', 'locality', 'string:100', True),
-        ('DarStateProvince', 'stateProvince', 'string:100', True),
-        ('DarCountry', 'country', 'string:100', True),
-        ('DarContinent', 'continent', 'string:100', True),
-        ('DarHigherGeography', 'higherGeography', 'string:100', True),
 
         # Occurrence
         ('DarCatalogNumber', 'catalogNumber', 'string:100', True),
@@ -130,10 +131,6 @@ class SpecimenCSVTask(CSVTask):
 
         # Resource relationship
         ('DarRelatedCatalogItem', 'relatedResourceID', 'string:100', True),
-
-        # TODO: I've removed this. Check it's in dynamic props
-        # ('ColRecordType', 'colRecordType', 'string:100', False),
-
         ('dynamicProperties', 'dynamicProperties', 'string:400', False),
 
         # Removed: We do not want notes, could contain anything
@@ -144,18 +141,78 @@ class SpecimenCSVTask(CSVTask):
     # Dynamic properties - these will map into one dynamicProperties field
     # They are use in the aggregator, not the monary query so specifying type isn't required
     dynamic_property_columns = [
-        ('ColRecordType', 'colRecordType', False),
-        ('ColSubDepartment', 'colSubDepartment', True),
-        ('PrtType', 'prtType', False),
-        ('RegCode', 'regCode', False),
+        ('ColRecordType', 'recordType', False),
+        ('ColSubDepartment', 'subDepartment', True),
+        ('PrtType', 'partType', False),
+        ('RegCode', 'registrationCode', False),
         ('CatKindOfObject', 'kindOfObject', False),
         ('CatKindOfCollection', 'kindOfCollection', False),
-        ('CatPreservative', 'catPreservative', False),
+        ('CatPreservative', 'preservative', False),
         ('ColKind', 'collectionKind', False),
         ('EntPriCollectionName', 'collectionName', False),
         ('PartRefStr', 'partRefs', True),
+        ('PalAcqAccLotDonorFullName', 'donorName', True),
         ('DarPreparationType', 'preparationType', True),
         ('DarObservedWeight', 'observedWeight', True),
+        # Extra fields from specific KE EMu record types
+        # No need to inherit these properties - not parts etc.,
+        # DNA
+        ('DnaExtractionMethod', 'extractionMethod', False),
+        ('DnaReSuspendedIn', 'resuspendedIn', False),
+        # TEMP: Convert to string
+        ('DnaTotalVolume', 'totalVolume', False),
+        # Parasite card
+        ('CardBarcode', 'barcode', False),
+        # Egg
+        ('EggClutchSize', 'clutchSize', False),
+        ('EggSetMark', 'setMark', False),
+        # Nest
+        ('NesShape', 'nestShape', False),
+        ('NesSite', 'nestSite', False),
+        # Silica gel
+        ('SilPopulationCode', 'populationCode', False),
+        # Botany
+        ('CollExsiccati', 'exsiccati', False),
+        ('ColExsiccatiNumber', 'exsiccatiNumber', False),
+        ('ColSiteDescription', 'siteDescription', False), # This is called "Label locality" in existing NHM online DBs
+        ('ColPlantDescription', 'plantDescription', False),
+        # TEMP: Convert to string
+        ('FeaCultivated', 'cultivated', False),
+        ('FeaPlantForm', 'plantForm', False),
+        # Paleo
+        ('PalDesDescription', 'catalogueDescription', False),
+        ('PalStrChronostratLocal', 'chronostratigraphy', False),
+        ('PalStrLithostratLocal', 'lithostratigraphy', False),
+        # Mineralogy
+        ('MinDateRegistered', 'dateRegistered', False),
+        ('MinIdentificationAsRegistered', 'identificationAsRegistered', False),
+        ('MinPetOccurance', 'occurrence', False),
+        ('MinOreCommodity', 'commodity', False),
+        ('MinOreDepositType', 'depositType', False),
+        ('MinTextureStructure', 'texture', False),
+        ('MinIdentificationVariety', 'identificationVariety', False),
+        ('MinIdentificationOther', 'identificationOther', False),
+        ('MinHostRock', 'hostRock', False),
+        ('MinAgeDataAge', 'age', False),
+        ('MinAgeDataType', 'ageType', False),
+        # Mineralogy location
+        ('MinNhmTectonicProvinceLocal', 'tectonicProvince', False),
+        ('MinNhmStandardMineLocal', 'mine', False),
+        ('MinNhmMiningDistrictLocal', 'miningDistrict', False),
+        ('MinNhmComplexLocal', 'mineralComplex', False),
+        ('MinNhmRegionLocal', 'geologyRegion', False),
+        # Meteorite
+        ('MinMetType', 'meteoriteType', False),
+        ('MinMetGroup', 'meteoriteGroup', False),
+        ('MinMetChondriteAchondrite', 'chondriteAchondrite', False),
+        ('MinMetClass', 'meteoriteClass', False),
+        ('MinMetPetType', 'petType', False),
+        ('MinMetPetSubtype', 'petSubType', False),
+        ('MinMetRecoveryFindFall', 'recovery', False),
+        ('MinMetRecoveryDate', 'recoveryDate', False),
+        ('MinMetRecoveryWeight', 'recoveryWeight', False),
+        ('MinMetWeightAsRegistered', 'registeredWeight', False),
+        ('MinMetWeightAsRegisteredUnit', 'registeredWeightUnit', False),
     ]
 
     def get_columns(self, keys=[0, 1, 2]):
@@ -271,9 +328,9 @@ class SpecimenDatasetTask(DatasetTask):
     format = 'dwc'  # Darwin Core format
 
     package = {
-        'name': u'nhm-collection5',
+        'name': u'nhm-collection7',
         'notes': u'The Natural History Museum\'s collection',
-        'title': "Collection5",
+        'title': "Collection7",
         'author': None,
         'author_email': None,
         'license_id': u'other-open',
