@@ -11,6 +11,8 @@ from ke2mongo.tasks.specimen import SpecimenDatasetTask
 from ke2mongo.tasks.csv import CSVTask
 from ke2mongo.tasks import INDEX_LOT_TYPE
 
+# TODO: This should be dep on taxonomy task running first
+
 class IndexLotCSVTask(CSVTask):
 
     columns = [
