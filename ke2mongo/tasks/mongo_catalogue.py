@@ -52,8 +52,15 @@ class MongoCatalogueTask(MongoTask):
         if record_type in self.excluded_types:
             log.debug('Skipping record %s: No model class for %s', data['irn'], record_type)
             raise InvalidRecordException
-        else:
-            return super(MongoCatalogueTask, self).process_record(data)
+
+        # For now, the mongo aggregator cannot handle int / bool in $concat
+        # So properties that are used in dynamicProperties need to be cast as strings
+        # TODO: Test
+        for i in ['DnaTotalVolume', 'FeaCultivated', 'MinMetRecoveryWeight', 'MinMetWeightAsRegistered']:
+            if i in data:
+                data[i] = str(data[i])
+
+        return super(MongoCatalogueTask, self).process_record(data)
 
     def on_success(self):
         """
