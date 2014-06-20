@@ -294,7 +294,6 @@ class DatasetTask(luigi.postgres.CopyToTable):
         # And rename temporary
         cursor.execute('ALTER table "{table}" RENAME TO "{resource_id}"'.format(table=self.table, resource_id=self.resource_id))
 
-
     def copy(self, cursor, file):
 
         cursor.execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV".format(

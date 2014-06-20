@@ -162,7 +162,6 @@ class SpecimenCSVTask(CSVTask):
         # DNA
         ('DnaExtractionMethod', 'extractionMethod', False),
         ('DnaReSuspendedIn', 'resuspendedIn', False),
-        # TEMP: Convert to string
         ('DnaTotalVolume', 'totalVolume', False),
         # Parasite card
         ('CardBarcode', 'barcode', False),
@@ -179,7 +178,6 @@ class SpecimenCSVTask(CSVTask):
         ('ColExsiccatiNumber', 'exsiccatiNumber', False),
         ('ColSiteDescription', 'siteDescription', False), # This is called "Label locality" in existing NHM online DBs
         ('ColPlantDescription', 'plantDescription', False),
-        # TEMP: Convert to string
         ('FeaCultivated', 'cultivated', False),
         ('FeaPlantForm', 'plantForm', False),
         # Paleo
@@ -258,12 +256,12 @@ class SpecimenCSVTask(CSVTask):
         project = {col[0]: 1 for col in columns}
         # Add the PartRef field so we can unwind it
         project['part_id'] = {"$ifNull": ["$PartRef", [None]]}
-        project['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$RegRegistrationNumber"]}
+
         # Explicitly add ColRecordType & PartRef - this process will break they do not exist
         project['ColRecordType'] = 1
         project['PartRef'] = 1
-        # We cannot rely on the DarGlobalUniqueIdentifier field, as parts do not have it, so build manually
-        project['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK:ecatalogue:", "$irn"]}
+
+        self._alter_columns_projection(project)
 
         query.append({'$project': project})
 
@@ -300,8 +298,9 @@ class SpecimenCSVTask(CSVTask):
         """
         query = list()
         query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}})
-        # query.append({'$match': {"ColRecordType": {"$in": ['specimen']}}})
-        query.append({'$project': self._get_columns_projection()})
+        project = self._get_columns_projection()
+        self._alter_columns_projection(project)
+        query.append({'$project': project})
         query.append({'$out': 'agg_%s_specimens' % self.collection_name})
 
         return query
@@ -321,6 +320,31 @@ class SpecimenCSVTask(CSVTask):
         project['dynamicProperties'] = {"$concat": dynamic_properties}
 
         return project
+
+    @staticmethod
+    def _alter_columns_projection(project):
+        """
+        We cannot rely on some DwC fields, as they are missing / incomplete for some records
+        So we manually add them based on other fields
+        This needs to be applied to both aggregators
+        @return:
+        """
+        # If $DarCatalogNumber does not exist, we'll try use $RegRegistrationNumber
+        project['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$RegRegistrationNumber"]}
+        # We cannot rely on the DarGlobalUniqueIdentifier field, as parts do not have it, so build manually
+        project['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK:ecatalogue:", "$irn"]}
+
+        # As above, need to manually build DarCollectionCode and DarInstitutionCode
+        # These do need to be defined as columns, so the inheritance / new field name is used
+        # But we are over riding the default behaviour (just selecting the column)
+        project['DarInstitutionCode'] = {"$literal": "NHMUK"}
+        # If an entom record collection code = BMNH(E), otherwise use PAL, MIN etc.,
+        project['DarCollectionCode'] = { "$cond": {
+            "if": {"$eq": ["$ColDepartment", "Entomology"]},
+            "then": "BMNH(E)",
+            "else": {"$toUpper": {"$substr": ["$ColDepartment", 0, 3]}}
+            }
+        }
 
     @property
     def query(self):
@@ -342,14 +366,11 @@ class SpecimenDatasetTask(DatasetTask):
     format = 'dwc'  # Darwin Core format
 
     package = {
-        'name': u'nhm-collection9',
+        'name': u'ke-collection',
         'notes': u'The Natural History Museum\'s collection',
-        'title': "Collection9",
-        'author': None,
-        'author_email': None,
+        'title': "NHM Collection",
+        'author': 'NHM',
         'license_id': u'other-open',
-        'maintainer': None,
-        'maintainer_email': None,
         'resources': [],
     }
 

@@ -6,6 +6,8 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 python run.py MainTask --local-scheduler --date 20140522
 
+python run.py SpecimenDatasetTask --local-scheduler --date 20140522
+
 """
 
 import luigi
