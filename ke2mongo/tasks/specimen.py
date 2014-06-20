@@ -338,6 +338,7 @@ class SpecimenCSVTask(CSVTask):
         # These do need to be defined as columns, so the inheritance / new field name is used
         # But we are over riding the default behaviour (just selecting the column)
         project['DarInstitutionCode'] = {"$literal": "NHMUK"}
+        project['DarBasisOfRecord'] = {"$literal": "Specimen"}
         # If an entom record collection code = BMNH(E), otherwise use PAL, MIN etc.,
         project['DarCollectionCode'] = { "$cond": {
             "if": {"$eq": ["$ColDepartment", "Entomology"]},
@@ -366,7 +367,7 @@ class SpecimenDatasetTask(DatasetTask):
     format = 'dwc'  # Darwin Core format
 
     package = {
-        'name': u'ke-collection',
+        'name': u'ke-collection3',
         'notes': u'The Natural History Museum\'s collection',
         'title': "NHM Collection",
         'author': 'NHM',
