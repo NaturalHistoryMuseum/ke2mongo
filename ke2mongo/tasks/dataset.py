@@ -35,6 +35,7 @@ class DatasetTask(luigi.postgres.CopyToTable):
     database = config.get('datastore', 'database')
     user = config.get('datastore', 'user')
     password = config.get('datastore', 'password')
+    owner = config.get('datastore', 'owner')
 
     # Default impl
     full_text_blacklist = []
@@ -286,17 +287,18 @@ class DatasetTask(luigi.postgres.CopyToTable):
 
         cursor = connection.cursor()
 
-        # TODO: Copy table owner
-
         # Drop the resource table
         cursor.execute('DROP TABLE IF EXISTS "{resource_id}"'.format(resource_id=self.resource_id))
+
+        # Alter table owner, otherwise these will be owned by root
+        cursor.execute('ALTER table "{table}" OWNER TO "{owner}"'.format(table=self.table, owner=self.owner))
 
         # And rename temporary
         cursor.execute('ALTER table "{table}" RENAME TO "{resource_id}"'.format(table=self.table, resource_id=self.resource_id))
 
     def copy(self, cursor, file):
 
-        cursor.execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV".format(
+        cursor.execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV ENCODING 'UTF8'".format(
             table=self.table,
             cols='","'.join(self.columns),
             file=file
