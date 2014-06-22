@@ -213,4 +213,9 @@ class CSVTask(luigi.Task):
         Luigi method: output target
         @return: luigi file ref
         """
-        return luigi.LocalTarget("/tmp/%s_%s.csv" % (self.__class__.__name__.lower(), self.date))
+
+        output_file = self.__class__.__name__.lower()
+        if self.date:
+            output_file += '_' + self.date
+
+        return luigi.LocalTarget("/tmp/%s.csv" % output_file)
