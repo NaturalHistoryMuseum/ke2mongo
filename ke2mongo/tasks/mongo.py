@@ -64,6 +64,7 @@ class MongoTask(luigi.Task):
 
     database = config.get('mongo', 'database')
     keemu_schema_file = config.get('keemu', 'schema')
+    export_dir = config.get('keemu', 'export_dir')
     archive_dir = config.get('keemu', 'archive_dir')
     batch_size = 1000
     bulk_op_size = 100000
@@ -79,7 +80,7 @@ class MongoTask(luigi.Task):
         return self.module  # By default, the collection name will be the same as the module
 
     def requires(self):
-        return KEFileTask(module=self.module, date=self.date, file_extension=self.file_extension)
+        return KEFileTask(export_dir=self.export_dir, module=self.module, date=self.date, file_extension=self.file_extension)
 
     def get_collection(self):
         """
@@ -187,7 +188,7 @@ class MongoTask(luigi.Task):
         return data
 
     def output(self):
-        return MongoTarget(database='keemu', update_id=self.update_id())
+        return MongoTarget(database=self.database, update_id=self.update_id())
 
     def update_id(self):
         """This update id will be a unique identifier for this insert on this collection."""
