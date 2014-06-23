@@ -53,9 +53,12 @@ class MongoCatalogueTask(MongoTask):
             log.debug('Skipping record %s: No model class for %s', data['irn'], record_type)
             raise InvalidRecordException
 
+        # If we don't have collection department, skip it
+        if not data.get('ColDepartment', None):
+            raise InvalidRecordException
+
         # For now, the mongo aggregator cannot handle int / bool in $concat
         # So properties that are used in dynamicProperties need to be cast as strings
-        # TODO: Test
         for i in ['DnaTotalVolume', 'FeaCultivated', 'MinMetRecoveryWeight', 'MinMetWeightAsRegistered']:
             if i in data:
                 data[i] = str(data[i])
