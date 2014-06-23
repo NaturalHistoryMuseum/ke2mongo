@@ -40,6 +40,9 @@ class DatasetTask(luigi.postgres.CopyToTable):
     # Default impl
     full_text_blacklist = []
 
+    # Default impl
+    index_fields = []
+
     @abc.abstractproperty
     def name(self):
         """
@@ -293,8 +296,15 @@ class DatasetTask(luigi.postgres.CopyToTable):
         # Alter table owner, otherwise these will be owned by root
         cursor.execute('ALTER table "{table}" OWNER TO "{owner}"'.format(table=self.table, owner=self.owner))
 
+        # If we have any extra fields to index, add them to the table
+        for index_field in self.index_fields:
+            idx = '{0}_idx'.format(index_field.lower())
+            cursor.execute('CREATE INDEX {idx} ON "{table}" ("{index_field}")'.format(idx=idx, table=self.table, index_field=index_field))
+
         # And rename temporary
         cursor.execute('ALTER table "{table}" RENAME TO "{resource_id}"'.format(table=self.table, resource_id=self.resource_id))
+
+
 
     def copy(self, cursor, file):
 

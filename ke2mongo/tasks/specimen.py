@@ -376,3 +376,5 @@ class SpecimenDatasetTask(DatasetTask):
     }
 
     csv_class = SpecimenCSVTask
+
+    index_fields = ['collectionCode']
