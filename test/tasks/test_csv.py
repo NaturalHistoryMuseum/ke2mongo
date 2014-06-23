@@ -38,6 +38,7 @@ class CSVTestTask(CSVTask):
         print df['SummaryData']
         return df
 
+
 class SpecimenDatasetTask(DatasetTask):
     """
     Class for creating specimens DwC dataset
@@ -57,6 +58,7 @@ class SpecimenDatasetTask(DatasetTask):
     }
 
     csv_class = CSVTestTask
+
 
 class MongoTestTask(MongoTask):
 
