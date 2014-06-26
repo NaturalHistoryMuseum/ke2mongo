@@ -1,0 +1,2 @@
+-e git+https://github.com/NaturalHistoryMuseum/KEParser.git#egg=KEParser
+luigi==1.0.12
