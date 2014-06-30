@@ -8,7 +8,6 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 import sys
 import os
 import logging
-from ke2sql.handlers.sqlalchemy import SQLAlchemyHandler
 
 def get_logger(name, level=logging.DEBUG):
     logger = logging.getLogger(name)
