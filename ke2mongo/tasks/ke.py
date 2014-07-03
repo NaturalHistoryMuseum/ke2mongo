@@ -9,18 +9,24 @@ import sys
 import os
 import luigi.postgres
 from luigi.format import Gzip
-from ke2mongo import config
+import codecs
+import gzip
 
+def encoding_error(e):
+    print '------- ERROR -------'
+    print e.encoding
+    print e.start
+    print e.object
+    print '------- ERROR -------'
+    return (u'-', e.start + 1)
 
 class KEFileTask(luigi.ExternalTask):
 
     """
     Task wrapper around KE File target
     """
-
     # After main run:
     # TODO: Email errors
-
     module = luigi.Parameter()
     file_extension = luigi.Parameter()
     export_dir = luigi.Parameter()
@@ -39,12 +45,10 @@ class KEFileTarget(luigi.LocalTarget):
         """
         Override LocalTarget init to set path and format based on module and settings
         """
-
         self.export_dir = export_dir
         self.module = module
         self.date = date
         self.file_extension = file_extension
-
         path, self.file_name, self.format = self.get_file()
         super(KEFileTarget, self).__init__(path, self.format)
 
@@ -74,3 +78,22 @@ class KEFileTarget(luigi.LocalTarget):
         # If the file doesn't exist we want to raise an Exception
         # If a file doesn't exist it hasn't been included in the export and needs to be investigated
         raise IOError('Export files could not be found: Tried: %s %s.gz' % (os.path.join(self.export_dir, file_name), os.path.join(self.export_dir, file_name)))
+
+    # def open(self, mode='r'):
+    #     """
+    #     Overwrite open so we use codecs for reading - better handling of UTF8 and we will ignore
+    #     Luigi's file handling
+    #     @param mode:
+    #     @return:
+    #     """
+    #     if mode == 'r':
+    #         # Register custom error handler
+    #         codecs.register_error('encoding_error_handler', encoding_error)
+    #         if self.format is luigi.format.Gzip:
+    #             reader = codecs.getreader("latin-1")
+    #             file_obj = reader(gzip.open(self.path, 'rb'), errors='encoding_error_handler')
+    #         else:
+    #             file_obj = codecs.open(self.path, 'r', 'utf-8')
+    #         return file_obj
+    #     else:
+    #         raise Exception('mode must be r')
