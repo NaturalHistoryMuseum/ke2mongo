@@ -6,6 +6,7 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 
 python run.py SpecimenDatasetTestTask --local-scheduler
+python run.py MongoTestTask --date 1 --local-scheduler
 
 """
 

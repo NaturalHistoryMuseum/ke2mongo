@@ -14,13 +14,13 @@ class SpecimenDatasetTestTask(DatasetTask):
     """
     Class for creating specimens DwC dataset
     """
-    name = 'test_dataset_6'
+    name = 'test_dataset_7'
     description = 'Test'
     format = 'dwc'
     date = None
 
     package = {
-        'name': u'test2_4',
+        'name': u'test2_5',
         'notes': u'Test',
         'title': "Test",
         'author': 'NHM',
