@@ -19,7 +19,11 @@ class MongoTestTask(MongoTask):
     module = 'ecatalogue'
     database = 'test'
     collection_name = 'test'
-    date = None
 
     # Export dir is is the parent directory's data directory
     export_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data')
+
+    def mark_complete(self):
+        # Do not archive the file
+        # self.output().touch()
+        pass
