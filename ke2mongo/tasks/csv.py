@@ -67,7 +67,8 @@ class CSVTask(luigi.Task):
 
         # Call all mongo tasks to import latest mongo data dumps
         # If a file is missing, the process will terminate with an Exception
-        yield MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoCatalogueTask(self.date)
+        # yield MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoCatalogueTask(self.date)
+        yield MongoCatalogueTask(self.date)
 
     @timeit
     def run(self):
@@ -216,6 +217,6 @@ class CSVTask(luigi.Task):
 
         output_file = self.__class__.__name__.lower()
         if self.date:
-            output_file += '_' + self.date
+            output_file += '_' + str(self.date)
 
         return luigi.LocalTarget("/tmp/%s.csv" % output_file)
