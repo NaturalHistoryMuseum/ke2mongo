@@ -21,6 +21,7 @@ from ke2mongo.lib.timeit import timeit
 from collections import OrderedDict
 from ke2mongo.tasks import ARTEFACT_TYPE
 from ke2mongo.tasks.csv import CSVTask
+from ke2mongo.lib.ckan import call_action
 
 class DatasetTask(luigi.postgres.CopyToTable):
     """
@@ -111,45 +112,10 @@ class DatasetTask(luigi.postgres.CopyToTable):
         super(DatasetTask, self).__init__(*args, **kwargs)
         self.resource_id = self.get_resource_id()
 
-
     def requires(self):
         # Create a CSV export of this field data to be used in postgres copy command
         self.csv = self.csv_class(date=self.date)
         return self.csv
-
-    # def api_call(self, action, data_dict):
-    #     """
-    #     API Call
-    #     @param action: API action
-    #     @param data: dict
-    #     @return:
-    #     """
-    #     url = '{site_url}/api/3/action/{action}'.format(
-    #         site_url=config.get('ckan', 'site_url'),
-    #         action=action
-    #     )
-    #
-    #     # Use the json module to dump a dictionary to a string for posting.
-    #     data_string = urllib.quote(json.dumps(data_dict))
-    #
-    #     # New urllib request
-    #     request = urllib2.Request(url)
-    #
-    #     request.add_header('Authorization', config.get('ckan', 'api_key'))
-    #
-    #     # Make the HTTP request.
-    #     response = urllib2.urlopen(request, data_string)
-    #     # Ensure we have correct response code 200
-    #     assert response.code == 200
-    #
-    #     # Use the json module to load CKAN's response into a dictionary.
-    #     response_dict = json.loads(response.read())
-    #
-    #     # Check the contents of the response.
-    #     assert response_dict['success'] is True
-    #     result = response_dict['result']
-    #
-    #     return result
 
     def get_resource_id(self):
         """
@@ -158,10 +124,10 @@ class DatasetTask(luigi.postgres.CopyToTable):
         @return: resource_id
         """
         try:
-            package = self.api_call('package_show', {'id': self.package['name']})
+            package = call_action('package_show', {'id': self.package['name']})
         except urllib2.HTTPError:
             # Dataset does not exist, so create it now
-            package = self.api_call('package_create', self.package)
+            package = call_action('package_create', self.package)
 
         # Does a resource of the same name already exist for this dataset?
         # If it does, assign to resource_id
@@ -190,7 +156,7 @@ class DatasetTask(luigi.postgres.CopyToTable):
             }
 
             # API call to create the datastore
-            datastore = self.api_call('datastore_create', datastore_params)
+            datastore = call_action('datastore_create', datastore_params)
             resource_id = datastore['resource_id']
 
         return resource_id
@@ -304,10 +270,7 @@ class DatasetTask(luigi.postgres.CopyToTable):
         # And rename temporary
         cursor.execute('ALTER table "{table}" RENAME TO "{resource_id}"'.format(table=self.table, resource_id=self.resource_id))
 
-
-
     def copy(self, cursor, file):
-
         cursor.execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV ENCODING 'UTF8'".format(
             table=self.table,
             cols='","'.join(self.columns),
