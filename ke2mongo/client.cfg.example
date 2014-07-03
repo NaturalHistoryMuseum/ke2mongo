@@ -3,9 +3,23 @@ database = keemu
 
 [keemu]
 # The directory where the keemu export files are deposited
-export_dir = /vagrant/exports
+export_dir = /exports
+archive_dir = /archive
 # Location of the keemu schema
-schema = /vagrant/exports/schema.pl
+schema = /schema.pl
+
+[ckan]
+site_url =
+api_key =
 
 [core]
-error-email: test@test.com
+error-email:
+
+[datastore]
+host =
+database =
+# Copy to datastore - requires root access
+user =
+password =
+# The owner to set the tables to after copying
+owner =
