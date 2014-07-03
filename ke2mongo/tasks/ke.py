@@ -78,22 +78,3 @@ class KEFileTarget(luigi.LocalTarget):
         # If the file doesn't exist we want to raise an Exception
         # If a file doesn't exist it hasn't been included in the export and needs to be investigated
         raise IOError('Export files could not be found: Tried: %s %s.gz' % (os.path.join(self.export_dir, file_name), os.path.join(self.export_dir, file_name)))
-
-    # def open(self, mode='r'):
-    #     """
-    #     Overwrite open so we use codecs for reading - better handling of UTF8 and we will ignore
-    #     Luigi's file handling
-    #     @param mode:
-    #     @return:
-    #     """
-    #     if mode == 'r':
-    #         # Register custom error handler
-    #         codecs.register_error('encoding_error_handler', encoding_error)
-    #         if self.format is luigi.format.Gzip:
-    #             reader = codecs.getreader("latin-1")
-    #             file_obj = reader(gzip.open(self.path, 'rb'), errors='encoding_error_handler')
-    #         else:
-    #             file_obj = codecs.open(self.path, 'r', 'utf-8')
-    #         return file_obj
-    #     else:
-    #         raise Exception('mode must be r')
