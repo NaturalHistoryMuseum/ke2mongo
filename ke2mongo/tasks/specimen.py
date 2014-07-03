@@ -52,7 +52,9 @@ class SpecimenCSVTask(CSVTask):
         ('DarInfraspecificRank', 'taxonRank', 'string:100', True),
 
         # Location
-        ('DarLocality', 'locality', 'string:100', True),
+        # The encoding of DarLocality is buggered - see ecatalogue.1804973
+        # So better to use the original field with the correct encoding
+        ('sumPreciseLocation', 'locality', 'string:100', True),
         ('DarStateProvince', 'stateProvince', 'string:100', True),
         ('DarCountry', 'country', 'string:100', True),
         ('DarContinent', 'continent', 'string:100', True),
@@ -109,7 +111,6 @@ class SpecimenCSVTask(CSVTask):
         ('DarYearCollected', 'year', 'string:100', True),
 
         # TODO: Test this and rerun with new downloads
-        # TODO: New download has failed.
 
         # Geo
         ('DarEarliestEon', 'earliestEonOrLowestEonothem', 'string:100', True),  # Eon
