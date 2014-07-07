@@ -14,7 +14,6 @@ from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TY
 from operator import itemgetter
 from collections import OrderedDict
 import itertools
-import pandas as pd
 
 class SpecimenCSVTask(CSVTask):
 
