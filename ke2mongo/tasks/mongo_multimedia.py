@@ -18,8 +18,7 @@ class MongoMultimediaTask(MongoTask):
         On completion, add mime type index
         @return: None
         """
-
         self.collection = self.get_collection()
-
-        self.collection.ensure_index('MimeType')
+        self.collection.ensure_index('MulMimeType')
+        # Or try MulMimeFormat?
 

@@ -21,6 +21,7 @@ from ke2mongo import config
 from ke2mongo.lib.timeit import timeit
 from pymongo import MongoClient
 from pymongo.errors import InvalidOperation
+from ConfigParser import NoOptionError
 
 class MongoTarget(luigi.Target):
 
@@ -61,11 +62,16 @@ class InvalidRecordException(Exception):
 class MongoTask(luigi.Task):
 
     date = luigi.IntParameter()
-
     database = config.get('mongo', 'database')
     keemu_schema_file = config.get('keemu', 'schema')
     export_dir = config.get('keemu', 'export_dir')
-    archive_dir = config.get('keemu', 'archive_dir')
+
+    # Allow archive dir to be none
+    try:
+        archive_dir = config.get('keemu', 'archive_dir')
+    except NoOptionError:
+        archive_dir = None
+
     batch_size = 1000
     bulk_op_size = 100000
     collection = None
@@ -106,8 +112,10 @@ class MongoTask(luigi.Task):
         self.mark_complete()
 
     def mark_complete(self):
-        # Move the file to the archive directory
-        self.input().move(os.path.join(self.archive_dir, self.input().file_name))
+
+        # Move the file to the archive directory (if specified)
+        if self.archive_dir:
+            self.input().move(os.path.join(self.archive_dir, self.input().file_name))
 
         # And mark the object as complete
         self.output().touch()

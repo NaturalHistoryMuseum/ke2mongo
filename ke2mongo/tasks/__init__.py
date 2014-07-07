@@ -22,3 +22,5 @@ INDEX_LOT_TYPE = 'Index Lot'
 ARTEFACT_TYPE = 'Artefact'
 
 MULTIMEDIA_URL = 'http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php?irn=%s&image=yes&width=600'
+
+DATE_FORMAT = 'YYYY-MM-DD'
