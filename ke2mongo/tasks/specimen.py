@@ -386,7 +386,7 @@ class SpecimenCSVTask(CSVTask):
         """
         return [
             self.specimen_aggregator_query(),
-            # self.part_parent_aggregator_query()
+            self.part_parent_aggregator_query()
         ]
 
 class SpecimenDatasetTask(DatasetTask):
