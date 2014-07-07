@@ -12,3 +12,14 @@ class MongoMultimediaTask(MongoTask):
     Import Multimedia Export file into MongoDB
     """
     module = 'emultimedia'
+
+    def on_success(self):
+        """
+        On completion, add mime type index
+        @return: None
+        """
+
+        self.collection = self.get_collection()
+
+        self.collection.ensure_index('MimeType')
+

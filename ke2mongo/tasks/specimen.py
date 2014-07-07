@@ -233,8 +233,14 @@ class SpecimenCSVTask(CSVTask):
         @param df: dataframe
         @return: dataframe
         """
-        # Update the images to use the URL
+
+        # The multimedia field contains IRNS of all items - not just images
+        # So we need to look up the IRNs against the multimedia record to get the mime type
+        # And filter out non-image mimetypes we do not support
         df['associatedMedia'] = df['associatedMedia'].apply(lambda x: '; '.join(MULTIMEDIA_URL % z.lstrip() for z in x.split(';') if z))
+
+        # We also need to format the mimetype
+
         return df
 
     def part_parent_aggregator_query(self):
