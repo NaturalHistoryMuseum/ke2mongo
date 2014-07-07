@@ -13,6 +13,8 @@ from ke2mongo.tasks.csv import CSVTask
 from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE, MULTIMEDIA_URL
 from operator import itemgetter
 from collections import OrderedDict
+import itertools
+import pandas as pd
 
 class SpecimenCSVTask(CSVTask):
 
@@ -237,11 +239,33 @@ class SpecimenCSVTask(CSVTask):
         # The multimedia field contains IRNS of all items - not just images
         # So we need to look up the IRNs against the multimedia record to get the mime type
         # And filter out non-image mimetypes we do not support
-        df['associatedMedia'] = df['associatedMedia'].apply(lambda x: '; '.join(MULTIMEDIA_URL % z.lstrip() for z in x.split(';') if z))
 
-        # We also need to format the mimetype
+        # Convert associatedMedia field to a list
+        df['associatedMedia'] = df['associatedMedia'].apply(lambda x: list(int(z.lstrip()) for z in x.split(';') if z))
+
+        # Get a unique list of IRNS
+        unique_multimedia_irns = list(set(itertools.chain(*[irn for irn in df.associatedMedia.values])))
+
+        # Get a list of multimedia irns with valid mimetypes
+        valid_multimedia = self.get_valid_multimedia(m, unique_multimedia_irns)
+
+        # And finally update the associatedMedia field, so formatting with the IRN with MULTIMEDIA_URL, if the IRN is in valid_multimedia
+        df['associatedMedia'] = df['associatedMedia'].apply(lambda irns: '; '.join(MULTIMEDIA_URL % irn for irn in irns if irn in valid_multimedia))
 
         return df
+
+    def get_valid_multimedia(self, m, multimedia_irns):
+        """
+        Get a data frame of taxonomy records
+        @param m: Monary instance
+        @param irns: taxonomy IRNs to retrieve
+        @return:
+        """
+
+        q = {'_id': {'$in': multimedia_irns}}
+        ('_id', '_taxonomy_irn', 'int32'),
+        query = m.query('keemu', 'emultimedia', q, ['_id'], ['int32'])
+        return query[0].view()
 
     def part_parent_aggregator_query(self):
         """
@@ -362,7 +386,7 @@ class SpecimenCSVTask(CSVTask):
         """
         return [
             self.specimen_aggregator_query(),
-            self.part_parent_aggregator_query()
+            # self.part_parent_aggregator_query()
         ]
 
 class SpecimenDatasetTask(DatasetTask):
