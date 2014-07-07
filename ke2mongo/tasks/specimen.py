@@ -27,9 +27,9 @@ class SpecimenCSVTask(CSVTask):
         ('DarGlobalUniqueIdentifier', 'occurrenceID', 'string:100', False),
 
         # Record level
-        ('AdmDateModified', 'modified', 'string:100', False),
+        ('AdmDateModified', 'modified', 'date', False),
         # This isn't actually in DwC - but I'm going to use dcterms:created
-        ('AdmDateInserted', 'created', 'string:100', False,),
+        ('AdmDateInserted', 'created', 'date', False,),
         ('DarInstitutionCode', 'institutionCode', 'string:100', True),
         ('DarCollectionCode', 'collectionCode', 'string:100', True),
         ('DarBasisOfRecord', 'basisOfRecord', 'string:100', True),
