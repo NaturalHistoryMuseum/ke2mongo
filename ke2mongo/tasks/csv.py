@@ -20,6 +20,7 @@ from pymongo import MongoClient
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_delete import MongoDeleteTask
+from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 import abc
 from ke2mongo.lib.file import get_export_file_dates
 
@@ -67,8 +68,7 @@ class CSVTask(luigi.Task):
 
         # Call all mongo tasks to import latest mongo data dumps
         # If a file is missing, the process will terminate with an Exception
-        # yield MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoCatalogueTask(self.date)
-        yield MongoCatalogueTask(self.date)
+        yield MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date), MongoCatalogueTask(self.date)
 
     @timeit
     def run(self):
