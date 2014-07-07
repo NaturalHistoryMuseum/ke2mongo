@@ -9,9 +9,8 @@ python run.py MongoCatalogueTask --local-scheduler --date 20140123
 """
 
 from ke2mongo.tasks.mongo import MongoTask, InvalidRecordException
-from ke2mongo.tasks import PARENT_TYPES, PART_TYPES
+from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, DATE_FORMAT
 from ke2mongo.log import log
-from pymongo.errors import BulkWriteError
 
 class MongoCatalogueTask(MongoTask):
 
@@ -55,6 +54,14 @@ class MongoCatalogueTask(MongoTask):
 
         # If we don't have collection department, skip it
         if not data.get('ColDepartment', None):
+            raise InvalidRecordException
+
+        date_inserted = data.get('AdmDateInserted', None)
+
+        # Some records have an invalid AdmDateInserted=20-09-27
+        # As we need this for the stats, we need to skip them - just checking against date length as it's much quicker
+        if not date_inserted or len(DATE_FORMAT) != len(date_inserted):
+            log.error('Skipping record %s: invalid AdmDateInserted %s', data['irn'], date_inserted)
             raise InvalidRecordException
 
         # For now, the mongo aggregator cannot handle int / bool in $concat
