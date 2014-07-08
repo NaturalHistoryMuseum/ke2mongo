@@ -15,10 +15,9 @@ class MongoMultimediaTask(MongoTask):
 
     def on_success(self):
         """
-        On completion, add mime type index
+        On completion, add mime format index
+        http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php only works with jpeg + jp2 so we need to filter images
         @return: None
         """
         self.collection = self.get_collection()
-        self.collection.ensure_index('MulMimeType')
-        # Or try MulMimeFormat?
-
+        self.collection.ensure_index('MulMimeFormat')
