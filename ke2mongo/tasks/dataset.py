@@ -211,6 +211,8 @@ class DatasetTask(luigi.postgres.CopyToTable):
         # Drop and recreate table
         self.create_table(connection)
 
+        log.info("Copying data to  table %s", self.table)
+
         # And then copy the data to the new table
         cursor = connection.cursor()
         self.init_copy(connection)
