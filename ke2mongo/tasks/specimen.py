@@ -28,9 +28,9 @@ class SpecimenCSVTask(CSVTask):
         ('DarGlobalUniqueIdentifier', 'occurrenceID', 'string:100', False),
 
         # Record level
-        ('AdmDateModified', 'modified', 'date', False),
+        ('AdmDateModified', 'modified', 'string:100', False),
         # This isn't actually in DwC - but I'm going to use dcterms:created
-        ('AdmDateInserted', 'created', 'date', False,),
+        ('AdmDateInserted', 'created', 'string:100', False,),
         ('DarInstitutionCode', 'institutionCode', 'string:100', True),
         ('DarCollectionCode', 'collectionCode', 'string:100', True),
         ('DarBasisOfRecord', 'basisOfRecord', 'string:100', True),
@@ -327,6 +327,7 @@ class SpecimenCSVTask(CSVTask):
         @return: aggregation list query
         """
         query = list()
+        query.append({'$limit': 100})
         query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}})
         project = self._get_columns_projection()
         self._alter_columns_projection(project)
@@ -385,7 +386,7 @@ class SpecimenCSVTask(CSVTask):
         """
         return [
             self.specimen_aggregator_query(),
-            self.part_parent_aggregator_query()
+            # self.part_parent_aggregator_query()
         ]
 
 class SpecimenDatasetTask(DatasetTask):
