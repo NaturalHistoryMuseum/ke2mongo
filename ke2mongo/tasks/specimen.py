@@ -10,7 +10,7 @@ python run.py SpecimenDatasetTask --local-scheduler --date 20140123
 
 from ke2mongo.tasks.dataset import DatasetTask
 from ke2mongo.tasks.csv import CSVTask
-from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE, MULTIMEDIA_URL
+from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE, MULTIMEDIA_URL, MULTIMEDIA_FORMATS
 from operator import itemgetter
 from collections import OrderedDict
 import itertools
@@ -261,7 +261,7 @@ class SpecimenCSVTask(CSVTask):
         @return:
         """
 
-        q = {'_id': {'$in': multimedia_irns}}
+        q = {'_id': {'$in': multimedia_irns}, 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS}}
         ('_id', '_taxonomy_irn', 'int32'),
         query = m.query('keemu', 'emultimedia', q, ['_id'], ['int32'])
         return query[0].view()
