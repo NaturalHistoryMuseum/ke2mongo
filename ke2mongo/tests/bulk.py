@@ -31,7 +31,7 @@ class TestBulk(unittest.TestCase):
     @classmethod
     def setup_class(cls):
 
-        # Create export dir if it doesn't already exist
+        # Remove and recreate export dir
         try:
             shutil.rmtree(cls.export_dir)
         except OSError:
