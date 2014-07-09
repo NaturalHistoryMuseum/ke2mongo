@@ -20,6 +20,7 @@ from luigi import scheduler, worker
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_delete import MongoDeleteTask
+from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.main import MainTask
 from ke2mongo.lib.file import get_export_file_dates
 from luigi.interface import setup_interface_logging
@@ -30,16 +31,15 @@ class MongoBulkTask(luigi.Task):
     This task requires all Mongo Tasks, and processes all of them for a particular date
     Therefore there will be one point of failure
 
-    The main CSV task will fail if there are Bulkple ke emu export files
+    The main CSV task will fail if there are multiple ke emu export files
     In which case, this task needs to be run with the command:
 
-    python Bulk.py
+    python bulk.py
     """
 
     date = luigi.IntParameter()
-
     def requires(self):
-        yield MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoBulkCatalogueTask(self.date)
+        yield MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date), MongoBulkCatalogueTask(self.date)
 
 
 class MongoBulkCatalogueTask(MongoCatalogueTask):

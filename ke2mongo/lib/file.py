@@ -19,14 +19,19 @@ def get_export_file_dates():
 
     files = [f for f in os.listdir(export_dir) if os.path.isfile(os.path.join(export_dir,f))]
 
+    print files
+
     # Use a set so we don't have duplicate dates
     dates = set()
 
     for f in files:
 
+        # So this will work with both .gz and not compressed files
+        f = f.replace('.gz', '')
+
         try:
             # Extract the date from the file name
-            _, _, date, _ = f.split('.')
+            _, _, date = f.split('.')
         except ValueError:
             # file not in the correct format - hidden directory etc.,
             pass
@@ -35,5 +40,7 @@ def get_export_file_dates():
 
     # Make sure they are in the right order and convert to list
     dates = sorted(list(dates))
+
+    print dates
 
     return dates

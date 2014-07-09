@@ -8,6 +8,7 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 import sys
 import os
 import luigi.postgres
+from ke2mongo import config
 from luigi.format import Gzip
 import codecs
 import gzip
@@ -29,12 +30,11 @@ class KEFileTask(luigi.ExternalTask):
     # TODO: Email errors
     module = luigi.Parameter()
     file_extension = luigi.Parameter()
-    export_dir = luigi.Parameter()
     date = luigi.IntParameter(default=None)
 
     def output(self):
-        return KEFileTarget(self.export_dir, self.module, self.date, self.file_extension)
-
+        export_dir = config.get('keemu', 'export_dir')
+        return KEFileTarget(export_dir, self.module, self.date, self.file_extension)
 
 class KEFileTarget(luigi.LocalTarget):
 

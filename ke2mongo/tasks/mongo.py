@@ -23,6 +23,7 @@ from pymongo import MongoClient
 from pymongo.errors import InvalidOperation
 from ConfigParser import NoOptionError
 
+
 class MongoTarget(luigi.Target):
 
     def __init__(self, database, update_id):
@@ -64,13 +65,6 @@ class MongoTask(luigi.Task):
     date = luigi.IntParameter()
     database = config.get('mongo', 'database')
     keemu_schema_file = config.get('keemu', 'schema')
-    export_dir = config.get('keemu', 'export_dir')
-
-    # Allow archive dir to be none
-    try:
-        archive_dir = config.get('keemu', 'archive_dir')
-    except NoOptionError:
-        archive_dir = None
 
     batch_size = 1000
     bulk_op_size = 100000
@@ -86,7 +80,7 @@ class MongoTask(luigi.Task):
         return self.module  # By default, the collection name will be the same as the module
 
     def requires(self):
-        return KEFileTask(export_dir=self.export_dir, module=self.module, date=self.date, file_extension=self.file_extension)
+        return KEFileTask(module=self.module, date=self.date, file_extension=self.file_extension)
 
     def get_collection(self):
         """
@@ -113,9 +107,14 @@ class MongoTask(luigi.Task):
 
     def mark_complete(self):
 
+
         # Move the file to the archive directory (if specified)
-        if self.archive_dir:
-            self.input().move(os.path.join(self.archive_dir, self.input().file_name))
+        try:
+            archive_dir = config.get('keemu', 'archive_dir')
+            self.input().move(os.path.join(archive_dir, self.input().file_name))
+        except NoOptionError:
+            # Allow archive dir to be none
+            pass
 
         # And mark the object as complete
         self.output().touch()
@@ -144,7 +143,6 @@ class MongoTask(luigi.Task):
             # If we do not have any records to execute, ignore error
             # They have been executed in ln132
             pass
-
 
     def batch_insert(self, ke_data):
 
