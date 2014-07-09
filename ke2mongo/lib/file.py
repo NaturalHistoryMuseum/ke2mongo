@@ -19,8 +19,6 @@ def get_export_file_dates():
 
     files = [f for f in os.listdir(export_dir) if os.path.isfile(os.path.join(export_dir,f))]
 
-    print files
-
     # Use a set so we don't have duplicate dates
     dates = set()
 
