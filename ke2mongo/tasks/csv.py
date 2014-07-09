@@ -68,7 +68,8 @@ class CSVTask(luigi.Task):
 
         # Call all mongo tasks to import latest mongo data dumps
         # If a file is missing, the process will terminate with an Exception
-        yield MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date), MongoCatalogueTask(self.date)
+        # These run in reverse order, so MongoCatalogueTask runs last
+        yield MongoCatalogueTask(self.date), MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date)
 
     @timeit
     def run(self):
