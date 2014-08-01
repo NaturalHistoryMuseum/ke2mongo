@@ -264,9 +264,12 @@ class DatasetTask(luigi.postgres.CopyToTable):
         # Alter table owner, otherwise these will be owned by root
         cursor.execute('ALTER table "{table}" OWNER TO "{owner}"'.format(table=self.table, owner=self.owner))
 
+        # Create primary index
+        cursor.execute('ALTER TABLE "{table}" ADD PRIMARY KEY (_id)'.format(table=self.table))
+
         # If we have any extra fields to index, add them to the table
         for index_field in self.index_fields:
-            idx = '{0}_idx'.format(index_field.lower())
+            idx = '_{index_field}_idx'.format(index_field=index_field.lower())
             cursor.execute('CREATE INDEX {idx} ON "{table}" ("{index_field}")'.format(idx=idx, table=self.table, index_field=index_field))
 
         # And rename temporary
