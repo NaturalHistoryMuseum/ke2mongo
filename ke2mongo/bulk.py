@@ -89,15 +89,14 @@ def main():
     export_dates.pop()
 
     sch = scheduler.CentralPlannerScheduler()
-    w = BulkWorker(scheduler=sch)
+
 
     for export_date in export_dates:
+        w = BulkWorker(scheduler=sch)
         log.info('Processing date %s', export_date)
         w.add(MongoBulkTask(date=export_date))
-
-    w.run()
-
-    w.stop()
+        w.run()
+        w.stop()
 
 if __name__ == "__main__":
     main()
