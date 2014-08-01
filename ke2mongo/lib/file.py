@@ -39,6 +39,4 @@ def get_export_file_dates():
     # Make sure they are in the right order and convert to list
     dates = sorted(list(dates))
 
-    print dates
-
     return dates
