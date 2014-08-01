@@ -240,7 +240,7 @@ class SpecimenCSVTask(CSVTask):
         # And filter out non-image mimetypes we do not support
 
         # Convert associatedMedia field to a list
-        df['associatedMedia'] = df['associatedMedia'].apply(lambda x: list(int(z.lstrip()) for z in x.split(';') if z))
+        df['associatedMedia'] = df['associatedMedia'].apply(lambda x: list(int(z.strip()) for z in x.split(';') if z.strip()))
 
         # Get a unique list of IRNS
         unique_multimedia_irns = list(set(itertools.chain(*[irn for irn in df.associatedMedia.values])))
@@ -327,7 +327,6 @@ class SpecimenCSVTask(CSVTask):
         @return: aggregation list query
         """
         query = list()
-        query.append({'$limit': 100})
         query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}})
         project = self._get_columns_projection()
         self._alter_columns_projection(project)
@@ -386,7 +385,7 @@ class SpecimenCSVTask(CSVTask):
         """
         return [
             self.specimen_aggregator_query(),
-            # self.part_parent_aggregator_query()
+            self.part_parent_aggregator_query()
         ]
 
 class SpecimenDatasetTask(DatasetTask):
@@ -405,6 +404,9 @@ class SpecimenDatasetTask(DatasetTask):
         'license_id': u'other-open',
         'resources': [],
     }
+
+    # TODO: Add GeoJSON
+    # {"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}
 
     csv_class = SpecimenCSVTask
 
