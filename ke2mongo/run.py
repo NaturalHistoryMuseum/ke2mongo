@@ -7,7 +7,10 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 python run.py MainTask --local-scheduler --date 20140522
 
 python run.py SpecimenDatasetTask --local-scheduler --date 20140703
+python run.py IndexLotDatasetTask --local-scheduler
 python run.py MongoMultimediaTask --local-scheduler --date 20140522
+python run.py MongoCollectionIndexTask --local-scheduler --date 20140123
+
 
 """
 
@@ -16,6 +19,7 @@ from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
+from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
 from ke2mongo.tasks.specimen import SpecimenDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask

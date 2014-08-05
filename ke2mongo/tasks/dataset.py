@@ -29,7 +29,7 @@ class DatasetTask(luigi.postgres.CopyToTable):
     """
 
     # The data to process
-    date = luigi.IntParameter()
+    date = luigi.IntParameter(default=None)
 
     # Copy to table params
     host = config.get('datastore', 'host')
@@ -224,7 +224,11 @@ class DatasetTask(luigi.postgres.CopyToTable):
         cursor.execute(u'UPDATE "{table}" set _full_text = to_tsvector(ARRAY_TO_STRING(ARRAY["{full_text_fields}"], \' \'))'.format(table=self.table, full_text_fields=full_text_fields))
 
         self.table_replace_resource(connection)
-        self.output().touch(connection)
+
+        # Only mark complete if a date parameter has been passed in
+        # Allows us to run and rerun during testing & debugging
+        if self.date:
+            self.output().touch(connection)
 
         # commit and clean up
         connection.commit()

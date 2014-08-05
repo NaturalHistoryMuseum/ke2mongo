@@ -30,7 +30,7 @@ class CSVTask(luigi.Task):
     This requires all mongo files have been imported into  Mongo DB
     """
     # Date to process
-    date = luigi.IntParameter()
+    date = luigi.IntParameter(default=None)
 
     mongo_db = config.get('mongo', 'database')
 
@@ -69,7 +69,10 @@ class CSVTask(luigi.Task):
         # Call all mongo tasks to import latest mongo data dumps
         # If a file is missing, the process will terminate with an Exception
         # These run in reverse order, so MongoCatalogueTask runs last
-        yield MongoCatalogueTask(self.date), MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date)
+
+        # Only require mongo tasks if data parameter is passed in - allows us to rerun for testing
+        if self.date:
+            yield MongoCatalogueTask(self.date), MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date)
 
     @timeit
     def run(self):

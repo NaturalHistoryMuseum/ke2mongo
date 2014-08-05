@@ -18,6 +18,7 @@ class IndexLotCSVTask(CSVTask):
     columns = [
         ('_id', '_id', 'int32'),
         ('EntIndIndexLotTaxonNameLocalRef', '_taxonomy_irn', 'int32'),
+        ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
         ('EntIndMaterial', 'material', 'bool'),
         ('EntIndType', 'is_type', 'bool'),
         ('EntIndMedia', 'media', 'bool'),
@@ -28,7 +29,15 @@ class IndexLotCSVTask(CSVTask):
         ('EntIndTypes', 'material_types', 'string:100'),
     ]
 
-    query = {"ColRecordType": INDEX_LOT_TYPE}
+    query = {"ColRecordType": INDEX_LOT_TYPE, '_id': {'$in': [1001668, 431174, 431172]}}
+
+    # query = {"ColRecordType": INDEX_LOT_TYPE}
+
+    # Additional columns to merge in from the taxonomy collection
+    collection_index_columns = [
+        ('_id', '_collection_index_irn', 'int32'),
+        ('ColCurrentNameRef', '_taxonomy_irn', 'int32'),
+    ]
 
     # Additional columns to merge in from the taxonomy collection
     taxonomy_columns = [
@@ -64,35 +73,73 @@ class IndexLotCSVTask(CSVTask):
         @return: dataframe
         """
 
-        # The query to pre-load all taxonomy objects takes ~96 seconds
-        # It is much faster to load taxonomy objects on the fly, for the current block
-        irns = pd.unique(df._taxonomy_irn.values.ravel()).tolist()
+        # Try and get taxonomy using the collection index
+        # BS: 20140804 - Fix indexlots taxonomy bug
+        # When the index lot record's taxonomy is updated (via collection index),
+        # the index lot record's EntIndIndexLotTaxonNameLocalRef is not updated with the new taxonomy
+        # So we need to use collection index to retrieve the record taxonomy
+        # missing = df[~df._taxonomy_irn.isin(df_to_merge._taxonomy_irn)]
 
-        # Get the taxonomy data frame
-        taxonomy_df = self.get_taxonomy(m, irns)
+            # print missing
+        collection_index_irns = pd.unique(df._collection_index_irn.values.ravel()).tolist()
 
-        # And merge into the catalogue records
-        df = pd.merge(df, taxonomy_df, how='outer', left_on=['_taxonomy_irn'], right_on=['_taxonomy_irn'])
+        if collection_index_irns:
+            ci_df = self.get_dataframe(m, 'ecollectionindex', self.collection_index_columns, collection_index_irns, '_collection_index_irn')
+
+            # And get the taxonomy for these collection
+            ci_taxonomy_irns = pd.unique(ci_df._taxonomy_irn.values.ravel()).tolist()
+            ci_tax_df = self.get_taxonomy(m, ci_taxonomy_irns)
+            ci_df = pd.merge(ci_df, ci_tax_df, how='inner', left_on=['_taxonomy_irn'], right_on=['_taxonomy_irn'])
+
+
+
+            # Get taxonomy irns which haven't been populated via collection index
+            records_without_ci_taxonomy = df[~df._collection_index_irn.isin(ci_df._collection_index_irn)]
+            taxonomy_irns = pd.unique(records_without_ci_taxonomy._taxonomy_irn.values.ravel()).tolist()
+
+            ci_df = ci_df.drop('_taxonomy_irn', 1)
+
+            # Merge in results
+            df = pd.merge(df, ci_df, how='outer', left_on=['_collection_index_irn'], right_on=['_collection_index_irn'])
+
+            print df
+
+        else:
+            taxonomy_irns = pd.unique(df._taxonomy_irn.values.ravel()).tolist()
+
+        if taxonomy_irns:
+            tax_df = self.get_taxonomy(m, taxonomy_irns)
+
+
+            # print tax_df
+
+            df = pd.merge(df, tax_df, how='outer', left_on=['_taxonomy_irn'], right_on=['_taxonomy_irn'])
+
         return df
 
-    def get_taxonomy(self, m, irns=None):
-        """
-        Get a data frame of taxonomy records
-        @param m: Monary instance
-        @param irns: taxonomy IRNs to retrieve
-        @return:
-        """
-        ke_cols, df_cols, types = zip(*self.taxonomy_columns)
+    def get_taxonomy(self, m, irns):
 
-        q = {'_id': {'$in': irns}} if irns else {}
+        return self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, irns, '_taxonomy_irn')
 
-        query = m.query('keemu', 'etaxonomy', q, ke_cols, types)
+    def get_dataframe(self, m, collection, columns, irns, key):
+        # The query to pre-load all taxonomy objects takes ~96 seconds
+        # It is much faster to load taxonomy objects on the fly, for the current block
+        # collection_index_irns = pd.unique(df._collection_index_irn.values.ravel()).tolist()
+
+        ke_cols, df_cols, types = zip(*columns)
+
+        assert key in df_cols, 'Merge dataframe key must be present in dataframe columns'
+
+        q = {'_id': {'$in': irns}}
+
+        query = m.query('keemu', collection, q, ke_cols, types)
         df = pd.DataFrame(np.matrix(query).transpose(), columns=df_cols)
 
         # Convert to int (adding index doesn't speed this up)
-        df['_taxonomy_irn'] = df['_taxonomy_irn'].astype('int32')
+        df[key] = df[key].astype('int32')
 
         return df
+
 
 
 class IndexLotDatasetTask(SpecimenDatasetTask):
@@ -104,4 +151,7 @@ class IndexLotDatasetTask(SpecimenDatasetTask):
     format = 'csv'
 
     csv_class = IndexLotCSVTask
+
+    # Inherits from SpecimenDatasetTask to reset index_fields
+    index_fields = []
 

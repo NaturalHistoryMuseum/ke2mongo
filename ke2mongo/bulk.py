@@ -21,6 +21,7 @@ from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
+from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
 from ke2mongo.tasks.main import MainTask
 from ke2mongo.lib.file import get_export_file_dates
 from luigi.interface import setup_interface_logging
@@ -39,7 +40,10 @@ class MongoBulkTask(luigi.Task):
 
     date = luigi.IntParameter()
     def requires(self):
-        yield MongoBulkCatalogueTask(self.date), MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date)
+        yield MongoCollectionIndexTask(self.date)
+
+
+            # MongoBulkCatalogueTask(self.date) , MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date)
 
 
 class MongoBulkCatalogueTask(MongoCatalogueTask):
