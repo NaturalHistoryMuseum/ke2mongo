@@ -111,8 +111,6 @@ class SpecimenCSVTask(CSVTask):
         # Merge into year
         ('DarYearCollected', 'year', 'string:100', True),
 
-        # TODO: Test this and rerun with new downloads
-
         # Geo
         ('DarEarliestEon', 'earliestEonOrLowestEonothem', 'string:100', True),  # Eon
         ('DarLatestEon', 'latestEonOrHighestEonothem', 'string:100', True),
@@ -189,6 +187,7 @@ class SpecimenCSVTask(CSVTask):
         # Mineralogy
         ('MinDateRegistered', 'dateRegistered', False),
         ('MinIdentificationAsRegistered', 'identificationAsRegistered', False),
+        ('MinIdentificationDescription', 'identificationDescription', False),
         ('MinPetOccurance', 'occurrence', False),
         ('MinOreCommodity', 'commodity', False),
         ('MinOreDepositType', 'depositType', False),
@@ -260,7 +259,6 @@ class SpecimenCSVTask(CSVTask):
         @param irns: taxonomy IRNs to retrieve
         @return:
         """
-
         q = {'_id': {'$in': multimedia_irns}, 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS}}
         ('_id', '_taxonomy_irn', 'int32'),
         query = m.query('keemu', 'emultimedia', q, ['_id'], ['int32'])
@@ -327,6 +325,7 @@ class SpecimenCSVTask(CSVTask):
         @return: aggregation list query
         """
         query = list()
+
         query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}})
         project = self._get_columns_projection()
         self._alter_columns_projection(project)
@@ -359,10 +358,17 @@ class SpecimenCSVTask(CSVTask):
         This needs to be applied to both aggregators
         @return:
         """
-        # If $DarCatalogNumber does not exist, we'll try use $RegRegistrationNumber
-        project['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$RegRegistrationNumber"]}
+
+        # If $DarCatalogNumber does not exist, we'll try use $GeneralCatalogueNumber
+        # GeneralCatalogueNumber has min bm number - RegRegistrationNumber does not
+        project['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$GeneralCatalogueNumber"]}
         # We cannot rely on the DarGlobalUniqueIdentifier field, as parts do not have it, so build manually
         project['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK:ecatalogue:", "$irn"]}
+
+        # FIXME: Mineralogy dar fields have not been correctly populated
+        # Need to contact Darrell: https://sprint.ly/product/18607/#!/item/317
+        project['DarDecimalLongitude'] = {"$ifNull": ["$DarDecimalLongitude", "$sumPreferredCentroidLongDec"]}
+        project['DarDecimalLatitude'] = {"$ifNull": ["$DarDecimalLatitude", "$sumPreferredCentroidLatDec"]}
 
         # As above, need to manually build DarCollectionCode and DarInstitutionCode
         # These do need to be defined as columns, so the inheritance / new field name is used
@@ -397,18 +403,19 @@ class SpecimenDatasetTask(DatasetTask):
     format = 'dwc'  # Darwin Core format
 
     package = {
-        'name': u'specimen-collection',
+        'name': u'specimen-collection-6',
         'notes': u'The Natural History Museum\'s collection',
         'title': "NHM Collection",
         'author': 'NHM',
         'license_id': u'other-open',
         'resources': [],
-        'dataset_type': 'Specimen'
+        'dataset_type': 'Specimen',
+        'spatial': '{"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}'
     }
-
-    # TODO: Add GeoJSON
-    # {"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}
 
     csv_class = SpecimenCSVTask
 
     index_fields = ['collectionCode']
+
+    longitude_field = 'decimalLongitude'
+    latitude_field = 'decimalLatitude'
