@@ -22,6 +22,7 @@ from collections import OrderedDict
 from ke2mongo.tasks import ARTEFACT_TYPE
 from ke2mongo.tasks.csv import CSVTask
 from ke2mongo.lib.ckan import call_action
+from sqlalchemy.exc import ProgrammingError
 
 class DatasetTask(luigi.postgres.CopyToTable):
     """
@@ -37,6 +38,7 @@ class DatasetTask(luigi.postgres.CopyToTable):
     user = config.get('datastore', 'user')
     password = config.get('datastore', 'password')
     owner = config.get('datastore', 'owner')
+    datastore_readonly = config.get('datastore', 'datastore_readonly')
 
     # Default impl
     full_text_blacklist = []
@@ -159,6 +161,13 @@ class DatasetTask(luigi.postgres.CopyToTable):
             datastore = call_action('datastore_create', datastore_params)
             resource_id = datastore['resource_id']
 
+            # If this has geom fields, then add now so they're available to copy
+            geom_data_dict = self.get_geom_fields()
+
+            if geom_data_dict:
+                log.info("Creating geometry columns for %s", resource_id)
+                geom_data_dict['resource_id'] = resource_id
+
         return resource_id
 
     def get_table_fields(self):
@@ -168,6 +177,19 @@ class DatasetTask(luigi.postgres.CopyToTable):
         """
         return [{'id': name, 'type': self.numpy_to_ckan_type(type)} for name, type in self.requires().csv_output_columns().items() if name not in ['_id']]
 
+    def get_geom_fields(self):
+        """
+        Return dict of geometry fields, or None if fields aren't defined
+        @return:
+        """
+        try:
+            return {
+                'longitude_field': self.longitude_field,
+                'latitude_field': self.latitude_field,
+            }
+        except AttributeError:
+            # No latitude or longitude fields set
+            return None
 
     @staticmethod
     def numpy_to_ckan_type(pandas_type):
@@ -211,7 +233,7 @@ class DatasetTask(luigi.postgres.CopyToTable):
         # Drop and recreate table
         self.create_table(connection)
 
-        log.info("Copying data to  table %s", self.table)
+        log.info("Copying data to table %s", self.table)
 
         # And then copy the data to the new table
         cursor = connection.cursor()
@@ -222,6 +244,16 @@ class DatasetTask(luigi.postgres.CopyToTable):
 
         # Add _full_text index to the table
         cursor.execute(u'UPDATE "{table}" set _full_text = to_tsvector(ARRAY_TO_STRING(ARRAY["{full_text_fields}"], \' \'))'.format(table=self.table, full_text_fields=full_text_fields))
+
+        # Add geospatial fields
+        geom_data_dict = self.get_geom_fields()
+
+        if geom_data_dict:
+            # Need to commit, so the table is available for the create_geom_columns connection
+            connection.commit()
+            geom_data_dict['resource_id'] = self.table
+            log.info("Updating geometry columns for %s", self.resource_id)
+            call_action('update_geom_columns', geom_data_dict)
 
         self.table_replace_resource(connection)
 
@@ -242,7 +274,6 @@ class DatasetTask(luigi.postgres.CopyToTable):
         @param connection:
         @return:
         """
-
         log.info("Creating temp table %s", self.table)
 
         cursor = connection.cursor()
@@ -251,6 +282,9 @@ class DatasetTask(luigi.postgres.CopyToTable):
 
         # And then recreate
         cursor.execute('CREATE TABLE "{table}" AS TABLE "{resource_id}" WITH NO DATA'.format(table=self.table, resource_id=self.resource_id))
+
+        # Explicitly set table owner
+        cursor.execute('ALTER TABLE "{table}" OWNER TO {owner}'.format(table=self.table, owner=self.owner))
 
     def table_replace_resource(self, connection):
         """
@@ -263,18 +297,21 @@ class DatasetTask(luigi.postgres.CopyToTable):
         cursor = connection.cursor()
 
         # Drop the resource table
+        # It would be possible here to copy deleted records into a history table if we need persistence
         cursor.execute('DROP TABLE IF EXISTS "{resource_id}"'.format(resource_id=self.resource_id))
 
         # Alter table owner, otherwise these will be owned by root
         cursor.execute('ALTER table "{table}" OWNER TO "{owner}"'.format(table=self.table, owner=self.owner))
+
+        # And make sure datastore user can read
+        cursor.execute('GRANT SELECT ON "{table}" TO "{datastore_readonly}"'.format(table=self.table, datastore_readonly=self.datastore_readonly))
 
         # Create primary index
         cursor.execute('ALTER TABLE "{table}" ADD PRIMARY KEY (_id)'.format(table=self.table))
 
         # If we have any extra fields to index, add them to the table
         for index_field in self.index_fields:
-            idx = '_{index_field}_idx'.format(index_field=index_field.lower())
-            cursor.execute('CREATE INDEX {idx} ON "{table}" ("{index_field}")'.format(idx=idx, table=self.table, index_field=index_field))
+            cursor.execute('CREATE INDEX ON "{table}" ("{index_field}")'.format(table=self.table, index_field=index_field))
 
         # And rename temporary
         cursor.execute('ALTER table "{table}" RENAME TO "{resource_id}"'.format(table=self.table, resource_id=self.resource_id))
