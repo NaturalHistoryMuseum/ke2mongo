@@ -23,3 +23,5 @@ user =
 password =
 # The owner to set the tables to after copying
 owner =
+# Datastore read user
+datastore_readonly =
