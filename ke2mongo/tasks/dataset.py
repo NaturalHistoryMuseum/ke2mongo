@@ -249,6 +249,16 @@ class DatasetTask(luigi.postgres.CopyToTable):
         geom_data_dict = self.get_geom_fields()
 
         if geom_data_dict:
+
+            # Ensure geometry field values are between 90 - 90
+            for geom_field in geom_data_dict.values():
+                cursor.execute(u'UPDATE "{table}" set "{geom_field}" = NULL WHERE "{geom_field}" < -90 OR "{geom_field}" > 90'.format(table=self.table, geom_field=geom_field))
+
+
+            # Make sure geometry fields are correct lat / lon
+            # (this is validated by the map view, so we won't be able to save the view if they aren't correct)
+            log.info("Ensuring geometry columns for %s", self.resource_id)
+
             # Need to commit, so the table is available for the create_geom_columns connection
             connection.commit()
             geom_data_dict['resource_id'] = self.table
