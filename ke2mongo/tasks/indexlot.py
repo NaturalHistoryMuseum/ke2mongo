@@ -7,17 +7,15 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 import numpy as np
 import pandas as pd
+from ke2mongo.tasks.dataset import DatasetTask
 from ke2mongo.tasks.specimen import SpecimenDatasetTask
 from ke2mongo.tasks.csv import CSVTask
 from ke2mongo.tasks import INDEX_LOT_TYPE
-
-# TODO: This should be dep on taxonomy task running first
 
 class IndexLotCSVTask(CSVTask):
 
     columns = [
         ('_id', '_id', 'int32'),
-        ('EntIndIndexLotTaxonNameLocalRef', '_taxonomy_irn', 'int32'),
         ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
         ('EntIndMaterial', 'material', 'bool'),
         ('EntIndType', 'is_type', 'bool'),
@@ -29,14 +27,19 @@ class IndexLotCSVTask(CSVTask):
         ('EntIndTypes', 'material_types', 'string:100'),
     ]
 
-    query = {"ColRecordType": INDEX_LOT_TYPE, '_id': {'$in': [1001668, 431174, 431172]}}
+    # query = {"ColRecordType": INDEX_LOT_TYPE, '_id': {'$in': [1132482, 1637891]}}
 
-    # query = {"ColRecordType": INDEX_LOT_TYPE}
+    query = {"ColRecordType": INDEX_LOT_TYPE}
 
     # Additional columns to merge in from the taxonomy collection
     collection_index_columns = [
         ('_id', '_collection_index_irn', 'int32'),
-        ('ColCurrentNameRef', '_taxonomy_irn', 'int32'),
+        # BUG FIX BS 140811
+        # ColCurrentNameRef Is not being updated correctly - see record 899984
+        # ColCurrentNameRef = 964105
+        # Not a problem, as indexlots are using ColTaxonomicNameRef for summary data etc.,
+        # So ColTaxonomicNameRef is the correct field to use.
+        ('ColTaxonomicNameRef', '_taxonomy_irn', 'int32'),
     ]
 
     # Additional columns to merge in from the taxonomy collection
@@ -78,48 +81,24 @@ class IndexLotCSVTask(CSVTask):
         # When the index lot record's taxonomy is updated (via collection index),
         # the index lot record's EntIndIndexLotTaxonNameLocalRef is not updated with the new taxonomy
         # So we need to use collection index to retrieve the record taxonomy
-        # missing = df[~df._taxonomy_irn.isin(df_to_merge._taxonomy_irn)]
 
-            # print missing
         collection_index_irns = pd.unique(df._collection_index_irn.values.ravel()).tolist()
 
-        if collection_index_irns:
-            ci_df = self.get_dataframe(m, 'ecollectionindex', self.collection_index_columns, collection_index_irns, '_collection_index_irn')
+        collection_index_df = self.get_dataframe(m, 'ecollectionindex', self.collection_index_columns, collection_index_irns, '_collection_index_irn')
 
-            # And get the taxonomy for these collection
-            ci_taxonomy_irns = pd.unique(ci_df._taxonomy_irn.values.ravel()).tolist()
-            ci_tax_df = self.get_taxonomy(m, ci_taxonomy_irns)
-            ci_df = pd.merge(ci_df, ci_tax_df, how='inner', left_on=['_taxonomy_irn'], right_on=['_taxonomy_irn'])
+        # And get the taxonomy for these collection
+        taxonomy_irns = pd.unique(collection_index_df._taxonomy_irn.values.ravel()).tolist()
 
+        taxonomy_df = self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, taxonomy_irns, '_taxonomy_irn')
 
+        # Merge the taxonomy into the collection index dataframe - we need to do this so we can merge into
+        # main dataframe keyed by collection index ID
+        collection_index_df = pd.merge(collection_index_df, taxonomy_df, how='inner', left_on=['_taxonomy_irn'], right_on=['_taxonomy_irn'])
 
-            # Get taxonomy irns which haven't been populated via collection index
-            records_without_ci_taxonomy = df[~df._collection_index_irn.isin(ci_df._collection_index_irn)]
-            taxonomy_irns = pd.unique(records_without_ci_taxonomy._taxonomy_irn.values.ravel()).tolist()
-
-            ci_df = ci_df.drop('_taxonomy_irn', 1)
-
-            # Merge in results
-            df = pd.merge(df, ci_df, how='outer', left_on=['_collection_index_irn'], right_on=['_collection_index_irn'])
-
-            print df
-
-        else:
-            taxonomy_irns = pd.unique(df._taxonomy_irn.values.ravel()).tolist()
-
-        if taxonomy_irns:
-            tax_df = self.get_taxonomy(m, taxonomy_irns)
-
-
-            # print tax_df
-
-            df = pd.merge(df, tax_df, how='outer', left_on=['_taxonomy_irn'], right_on=['_taxonomy_irn'])
+        # Merge results into main dataframe
+        df = pd.merge(df, collection_index_df, how='outer', left_on=['_collection_index_irn'], right_on=['_collection_index_irn'])
 
         return df
-
-    def get_taxonomy(self, m, irns):
-
-        return self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, irns, '_taxonomy_irn')
 
     def get_dataframe(self, m, collection, columns, irns, key):
         # The query to pre-load all taxonomy objects takes ~96 seconds
@@ -142,7 +121,7 @@ class IndexLotCSVTask(CSVTask):
 
 
 
-class IndexLotDatasetTask(SpecimenDatasetTask):
+class IndexLotDatasetTask(DatasetTask):
     """
     Class for exporting exporting IndexLots data to CSV
     """
@@ -150,8 +129,10 @@ class IndexLotDatasetTask(SpecimenDatasetTask):
     description = 'Entomology Indexlot records'
     format = 'csv'
 
+    # Use the same package details as the Specimen Dataset task
+    package = SpecimenDatasetTask.package
+
     csv_class = IndexLotCSVTask
 
-    # Inherits from SpecimenDatasetTask to reset index_fields
-    index_fields = []
+
 
