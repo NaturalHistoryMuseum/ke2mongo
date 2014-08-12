@@ -251,9 +251,16 @@ class DatasetTask(luigi.postgres.CopyToTable):
         if geom_data_dict:
 
             # Ensure geometry field values are between 90 - 90
-            for geom_field in geom_data_dict.values():
-                cursor.execute(u'UPDATE "{table}" set "{geom_field}" = NULL WHERE "{geom_field}" < -90 OR "{geom_field}" > 90'.format(table=self.table, geom_field=geom_field))
+            for geom_field_type, geom_field_name in geom_data_dict.items():
 
+                # Set threshold value to 180 if longitude; 90 for latitude
+                threshold = 180 if geom_field_type == 'longitude_field' else 90
+
+                cursor.execute(u'UPDATE "{table}" set "{geom_field}" = NULL WHERE "{geom_field_name}" < -{threshold} OR "{geom_field_name}" > {threshold}'.format(
+                    table=self.table,
+                    geom_field_name=geom_field_name,
+                    threshold=threshold
+                ))
 
             # Make sure geometry fields are correct lat / lon
             # (this is validated by the map view, so we won't be able to save the view if they aren't correct)
