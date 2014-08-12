@@ -256,7 +256,7 @@ class DatasetTask(luigi.postgres.CopyToTable):
                 # Set threshold value to 180 if longitude; 90 for latitude
                 threshold = 180 if geom_field_type == 'longitude_field' else 90
 
-                cursor.execute(u'UPDATE "{table}" set "{geom_field}" = NULL WHERE "{geom_field_name}" < -{threshold} OR "{geom_field_name}" > {threshold}'.format(
+                cursor.execute(u'UPDATE "{table}" set "{geom_field_name}" = NULL WHERE "{geom_field_name}" < -{threshold} OR "{geom_field_name}" > {threshold}'.format(
                     table=self.table,
                     geom_field_name=geom_field_name,
                     threshold=threshold
