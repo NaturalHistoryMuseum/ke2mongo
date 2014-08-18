@@ -56,7 +56,7 @@ class ArtefactDatasetTask(DatasetTask):
         'name': u'nhm-artefacts8',
         'notes': u'Artefacts from The Natural History Museum',
         'title': "Artefacts",
-        'author': None,
+        'author': 'Natural History Museum',
         'author_email': None,
         'license_id': u'other-open',
         'maintainer': None,
