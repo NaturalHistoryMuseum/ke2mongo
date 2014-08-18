@@ -406,7 +406,7 @@ class SpecimenDatasetTask(DatasetTask):
         'name': u'specimen-collection-6',
         'notes': u'The Natural History Museum\'s collection',
         'title': "NHM Collection",
-        'author': 'NHM',
+        'author': 'Natural History Museum',
         'license_id': u'other-open',
         'resources': [],
         'dataset_type': 'Specimen',
