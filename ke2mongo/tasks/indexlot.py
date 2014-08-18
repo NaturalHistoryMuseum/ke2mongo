@@ -58,7 +58,7 @@ class IndexLotCSVTask(CSVTask):
         ('ClaSubgenus', 'subgenus', 'string:100'),
         ('ClaSpecies', 'species', 'string:100'),
         ('ClaSubspecies', 'subspecies', 'string:100'),
-        ('ClaRank', 'rank', 'string:10'),
+        ('ClaRank', 'taxonomic_rank', 'string:10'),  # NB: CKAN uses rank internally
     ]
 
     def csv_output_columns(self):
