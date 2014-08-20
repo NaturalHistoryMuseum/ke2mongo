@@ -9,7 +9,7 @@ python run.py MainTask --local-scheduler --date 20140522
 python run.py SpecimenDatasetTask --local-scheduler --date 20140703
 python run.py IndexLotDatasetTask --local-scheduler
 python run.py MongoMultimediaTask --local-scheduler --date 20140522
-python run.py MongoCollectionIndexTask --local-scheduler --date 20140123
+python run.py MongoCollectionIndexTask --local-scheduler --date 20140814
 
 
 """

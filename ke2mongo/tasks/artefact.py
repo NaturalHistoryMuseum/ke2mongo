@@ -53,12 +53,12 @@ class ArtefactDatasetTask(DatasetTask):
     format = 'csv'
 
     package = {
-        'name': u'nhm-artefacts8',
-        'notes': u'Artefacts from The Natural History Museum',
+        'name': u'museum-artefacts',
+        'notes': u'Cultural and historical artefacts from The Natural History Museum',
         'title': "Artefacts",
         'author': 'Natural History Museum',
         'author_email': None,
-        'license_id': u'other-open',
+        'license_id': u'occ-by',
         'maintainer': None,
         'maintainer_email': None,
         'resources': [],
