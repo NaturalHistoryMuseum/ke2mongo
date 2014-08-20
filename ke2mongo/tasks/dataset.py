@@ -167,6 +167,7 @@ class DatasetTask(luigi.postgres.CopyToTable):
             if geom_data_dict:
                 log.info("Creating geometry columns for %s", resource_id)
                 geom_data_dict['resource_id'] = resource_id
+                call_action('create_geom_columns', geom_data_dict)
 
         return resource_id
 
@@ -328,6 +329,7 @@ class DatasetTask(luigi.postgres.CopyToTable):
 
         # If we have any extra fields to index, add them to the table
         for index_field in self.index_fields:
+            log.info("Creating index on field %s", index_field)
             cursor.execute('CREATE INDEX ON "{table}" ("{index_field}")'.format(table=self.table, index_field=index_field))
 
         # And rename temporary
