@@ -403,7 +403,7 @@ class SpecimenDatasetTask(DatasetTask):
     format = 'dwc'  # Darwin Core format
 
     package = {
-        'name': u'specimen-collection-6',
+        'name': u'specimen-collection',
         'notes': u'The Natural History Museum\'s collection',
         'title': "NHM Collection",
         'author': 'Natural History Museum',

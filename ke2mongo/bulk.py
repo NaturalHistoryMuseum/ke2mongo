@@ -39,12 +39,9 @@ class MongoBulkTask(luigi.Task):
     """
 
     date = luigi.IntParameter()
+
     def requires(self):
-        yield MongoCollectionIndexTask(self.date)
-
-
-            # MongoBulkCatalogueTask(self.date) , MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date)
-
+        yield MongoCollectionIndexTask(self.date), MongoBulkCatalogueTask(self.date) , MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date)
 
 class MongoBulkCatalogueTask(MongoCatalogueTask):
     """
