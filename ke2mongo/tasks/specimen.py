@@ -403,7 +403,7 @@ class SpecimenDatasetTask(DatasetTask):
     format = 'dwc'  # Darwin Core format
 
     package = {
-        'name': u'specimen-collection',
+        'name': u'specimens',
         'notes': u'The Natural History Museum\'s collection',
         'title': "NHM Collection",
         'author': 'Natural History Museum',
@@ -415,7 +415,10 @@ class SpecimenDatasetTask(DatasetTask):
 
     csv_class = SpecimenCSVTask
 
-    index_fields = ['collectionCode']
+    index_blacklist = ['relatedResourceID', 'dynamicProperties', 'associatedMedia']
+
+    # For the filters, we want to index every field
+    index_fields = [col[1] for col in SpecimenCSVTask.columns if not col[1].startswith('_') and col[1] not in index_blacklist]
 
     longitude_field = 'decimalLongitude'
     latitude_field = 'decimalLatitude'
