@@ -34,7 +34,9 @@ The exports of the 23/01/12 do still contain ALL records, as the last export dat
 (The eaudit dump is a dump of all deleted records ever, so is not required)
 
 
-So to import all records, all exports from 23/01/12 should be imported.
+A new dump was produced 20140814, containing all records. 
+
+Updates prior to that point do not include records updated on the date the report runs.
 
 
 Further dev
