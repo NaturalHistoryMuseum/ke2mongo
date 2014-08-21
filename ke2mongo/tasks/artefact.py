@@ -53,7 +53,7 @@ class ArtefactDatasetTask(DatasetTask):
     format = 'csv'
 
     package = {
-        'name': u'museum-artefacts',
+        'name': u'artefacts',
         'notes': u'Cultural and historical artefacts from The Natural History Museum',
         'title': "Artefacts",
         'author': 'Natural History Museum',
