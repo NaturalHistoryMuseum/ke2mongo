@@ -11,7 +11,7 @@ schema = /schema.pl
 [ckan]
 site_url =
 api_key =
-owner_org = 
+owner_org =
 
 [core]
 error-email:
