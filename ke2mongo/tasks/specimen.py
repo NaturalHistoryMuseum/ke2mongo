@@ -8,6 +8,7 @@ python run.py SpecimenDatasetTask --local-scheduler --date 20140731
 
 """
 
+from ke2mongo import config
 from ke2mongo.tasks.dataset import DatasetTask
 from ke2mongo.tasks.csv import CSVTask
 from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE, MULTIMEDIA_URL, MULTIMEDIA_FORMATS
@@ -410,7 +411,8 @@ class SpecimenDatasetTask(DatasetTask):
         'license_id': u'cc-by',
         'resources': [],
         'dataset_type': 'Specimen',
-        'spatial': '{"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}'
+        'spatial': '{"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}',
+        'owner_org': config.get('ckan', 'owner_org')
     }
 
     csv_class = SpecimenCSVTask
