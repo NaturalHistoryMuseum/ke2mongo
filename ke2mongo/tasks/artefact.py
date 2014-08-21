@@ -62,6 +62,7 @@ class ArtefactDatasetTask(DatasetTask):
         'maintainer': None,
         'maintainer_email': None,
         'resources': [],
+        'dataset_type': 'Cultural artefacts',
     }
 
     full_text_blacklist = [
