@@ -2,3 +2,5 @@
 luigi==1.0.12
 openpyxl>=1.6.1,<=2.0.0
 pandas==0.14.0
+pymongo==2.7
+Monary==0.2.3
