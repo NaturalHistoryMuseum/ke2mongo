@@ -79,8 +79,6 @@ class DatasetTask(luigi.Task):
             raise IOError('There are multiple (%s) export files requiring processing. Please investigate and run bulk.py' % len(export_file_dates))
 
     def requires(self):
-        pass
-
         # Call all mongo tasks to import latest mongo data dumps
         # If a file is missing, the process will terminate with an Exception
         # These run in reverse order, so MongoCatalogueTask runs last
