@@ -56,19 +56,16 @@ class APITask(luigi.Task):
 
             resource_id = datastore['resource_id']
 
-        print "CREATING DATA"
-
         records = []
-        # Tested 100000 - Fails
-        for i in range(2):
+        for i in range (100):
             record = {
                 'id': i,
                 'fruit': 'banana'
             }
 
-            # for i in range (79):
-            #     field = 'f%s' % i
-            #     record[field] = str(uuid.uuid4())
+            for i in range (79):
+                field = 'f%s' % i
+                record[field] = str(uuid.uuid4())
 
             records.append(record)
 
@@ -78,9 +75,8 @@ class APITask(luigi.Task):
             'primary_key': 'id'
         }
 
-        print "SAVING"
-
         self.registry.action.datastore_upsert(**datastore_params)
+
 
         print "RUN"
 

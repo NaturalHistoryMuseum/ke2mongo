@@ -3,342 +3,271 @@
 """
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
+
+When output a dataset to CSV, can be loaded into a resource with: COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV ENCODING 'UTF8'
+
 """
 
 import sys
 import os
-import urllib2
-import urllib
-import json
-from ke2mongo import config
 import luigi
-import abc
-from monary.monary import get_monary_numpy_type
+import time
 import numpy as np
+import pandas as pd
+import abc
+import ckanapi
+from monary import Monary
 from ke2mongo.log import log
-import psycopg2
 from ke2mongo.lib.timeit import timeit
+from ke2mongo import config
 from collections import OrderedDict
-from ke2mongo.tasks import ARTEFACT_TYPE
-from ke2mongo.tasks.csv import CSVTask
-from ke2mongo.lib.ckan import call_action
-from sqlalchemy.exc import ProgrammingError
+from pymongo import MongoClient
+from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
+from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
+from ke2mongo.tasks.mongo_delete import MongoDeleteTask
+from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
+from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
+from ke2mongo.lib.file import get_export_file_dates
+from ke2mongo.tasks.target import CSVTarget, CKANTarget
 
-class DatasetTask(luigi.postgres.CopyToTable):
+class DatasetTask(luigi.Task):
     """
-    Class for importing KE data into CKAN dataset
+    Class for processing data mongo into a dataset
+    If date set, this task requires all mongo files for that date to have been imported into Mongo DB
     """
-
-    # The data to process
+    # Date to process
     date = luigi.IntParameter(default=None)
 
-    # Copy to table params
-    host = config.get('datastore', 'host')
-    database = config.get('datastore', 'database')
-    user = config.get('datastore', 'user')
-    password = config.get('datastore', 'password')
-    owner = config.get('datastore', 'owner')
-    datastore_readonly = config.get('datastore', 'datastore_readonly')
+    mongo_db = config.get('mongo', 'database')
 
-    # Default impl
-    full_text_blacklist = []
-
-    # Default impl
-    index_fields = []
+    collection_name = 'ecatalogue'
 
     @abc.abstractproperty
-    def name(self):
-        """
-        Name for this dataset
-        @return: str
-        """
-        return None
-
-    @abc.abstractproperty
-    def description(self):
-        """
-        Description for this dataset
-        @return: str
-        """
-        return None
-
-    @abc.abstractproperty
-    def format(self):
-        """
-        Format eg: DWC / CSV
-        @return: str
-        """
-        return None
-
-    @abc.abstractproperty
-    def package(self):
-        """
-        Params for creating the package
-        @return: str
-        """
-        return None
-
-    @abc.abstractproperty
-    def csv_class(self):
-        """
-        Class to use for generating CSV
-        @return: str
-        """
-        return None
-
-    @property
-    def table(self):
-        """
-        Use table called _tmp_[resource_id]
-        This will then replace the main resource table
-        @return:
-        """
-        return '_tmp_%s' % self.resource_id
-
-    @property
     def columns(self):
         """
-        List of columns to use, based on the ones used to produce the CSV
-        @return:
-        """
-        return self.csv.csv_output_columns().keys()
-
-    def __init__(self, *args, **kwargs):
-        """
-        Override init to retrieve the resource id
-        @param args:
-        @param kwargs:
-        @return:
-        """
-
-        super(DatasetTask, self).__init__(*args, **kwargs)
-        self.resource_id = self.get_resource_id()
-
-    def requires(self):
-        # Create a CSV export of this field data to be used in postgres copy command
-        self.csv = self.csv_class(date=self.date)
-        return self.csv
-
-    def get_resource_id(self):
-        """
-        Get the resource id for the dataset
-        If the resource doesn't already exist, this function will create it
-        @return: resource_id
-        """
-        try:
-            package = call_action('package_show', {'id': self.package['name']})
-        except urllib2.HTTPError:
-            # Dataset does not exist, so create it now
-            package = call_action('package_create', self.package)
-
-        # Does a resource of the same name already exist for this dataset?
-        # If it does, assign to resource_id
-        resource_id = None
-        for resource in package['resources']:
-            if resource['name'] == self.name:
-                resource_id = resource['id']
-                break
-
-        #  If the resource doesn't already exist, create it
-        if not resource_id:
-
-            # Dictionary of fields and field type
-            fields = self.get_table_fields()
-
-            # Parameters to create the datastore
-            datastore_params = {
-                'records': [],
-                'resource': {
-                    'name': self.name,
-                    'description': self.description,
-                    'package_id': package['id'],
-                    'format': self.format
-                },
-                'fields': fields
-            }
-
-            # API call to create the datastore
-            datastore = call_action('datastore_create', datastore_params)
-            resource_id = datastore['resource_id']
-
-            # If this has geom fields, then add now so they're available to copy
-            geom_data_dict = self.get_geom_fields()
-
-            if geom_data_dict:
-                log.info("Creating geometry columns for %s", resource_id)
-                geom_data_dict['resource_id'] = resource_id
-                call_action('create_geom_columns', geom_data_dict)
-
-        return resource_id
-
-    def get_table_fields(self):
-        """
-        Get a list of all fields, in the format {'type': '[field type]', 'id': '[field name]'}
+        Columns to use from mongoDB
         @return: list
         """
-        return [{'id': name, 'type': self.numpy_to_ckan_type(type)} for name, type in self.requires().csv_output_columns().items() if name not in ['_id']]
+        return None
 
-    def get_geom_fields(self):
+    @abc.abstractproperty
+    def query(self):
         """
-        Return dict of geometry fields, or None if fields aren't defined
-        @return:
+        Query object
+        @return: list || dict
         """
-        try:
-            return {
-                'longitude_field': self.longitude_field,
-                'latitude_field': self.latitude_field,
-            }
-        except AttributeError:
-            # No latitude or longitude fields set
-            return None
+        return None
 
-    @staticmethod
-    def numpy_to_ckan_type(pandas_type):
+    @abc.abstractmethod
+    def output(self):
         """
-        For a pandas field type, return s the corresponding ckan data type, to be used when creating datastore
-        init32 => integer
-        @param pandas_type: pandas data type
-        @return: ckan data type
+        Output method
+        This overrides luigi.task.output, to ensure it is set
         """
-        type_num, type_arg, numpy_type = get_monary_numpy_type(pandas_type)
+        return None
 
-        try:
-            if issubclass(numpy_type, np.signedinteger):
-                ckan_type = 'integer'
-            elif issubclass(numpy_type, np.floating):
-                ckan_type = 'float'
-            elif numpy_type is bool:
-                ckan_type = 'bool'
-            else:
-                ckan_type = 'text'
-        except TypeError:
-            # Strings are not objects, so we'll get a TypeError
-            ckan_type = 'text'
+    def __init__(self, *args, **kwargs):
 
-        return ckan_type
+        # If a date parameter has been passed in, we'll just use that
+        # Otherwise, loop through the files and get all dates
+        super(DatasetTask, self).__init__(*args, **kwargs)
+
+        export_file_dates = get_export_file_dates()
+        # If we have more than one file export date, it could be problem if one of the mongo import files
+        # So raise an exception, and ask the user to run manually
+        if len(export_file_dates) > 1:
+            raise IOError('There are multiple (%s) export files requiring processing. Please investigate and run bulk.py' % len(export_file_dates))
+
+    def requires(self):
+        pass
+
+        # Call all mongo tasks to import latest mongo data dumps
+        # If a file is missing, the process will terminate with an Exception
+        # These run in reverse order, so MongoCatalogueTask runs last
+
+        # Only require mongo tasks if data parameter is passed in - allows us to rerun for testing
+        if self.date:
+            yield MongoCatalogueTask(self.date), MongoDeleteTask(self.date), MongoTaxonomyTask(self.date),  MongoMultimediaTask(self.date), MongoMultimediaTask(self.date)
 
     @timeit
     def run(self):
+
+        # Number of records to retrieve (~200 breaks CSV)
+        block_size = 100 if isinstance(self.output(), CSVTarget) else 5000
+
+        count = 0
+
+        mongo = MongoClient()
+        db = mongo[self.mongo_db]
+
+        # Default collection name. This can be over-ridden by the $out setting in an aggregator
+        collection_name = self.collection_name
+
+        # Is this query object a list? (an aggregation query)
+        if isinstance(self.query, list):
+
+            # This is an aggregator, so needs building and the query will return everything ({})
+
+            # The last element needs to be the out collection
+            out = self.query[len(self.query) - 1]
+
+            # Set the collection name to the out collection.
+            # If last key isn't $out, this will raise an exception
+            collection_name = out['$out']
+
+            # Run the aggregation query
+            log.info("Building aggregated collection: %s", collection_name)
+
+            result = db[self.collection_name].aggregate(self.query, allowDiskUse=True)
+
+            # Ensure the aggregation process succeeded
+            assert result['ok'] == 1.0
+
+            # Select everything from the aggregation pipeline
+            query = {}
+
+        elif isinstance(self.query, dict): # A normal mongo query
+            query = self.query
+        else:
+            raise TypeError('Query needs to be either an aggregation list or query dict')
+
+        with Monary() as m:
+
+            query_fields, df_cols, field_types, indexed = zip(*self.columns)
+
+            catalogue_blocks = m.block_query(self.mongo_db, collection_name, query, query_fields, field_types, block_size=block_size)
+
+            for catalogue_block in catalogue_blocks:
+
+                # Columns are indexed by key in the catalogue
+                catalogue_block = [arr.astype(np.str).filled('') if self._is_output_field(df_cols[i]) else arr for i, arr in enumerate(catalogue_block)]
+
+                # Create a pandas data frame with block of records
+                # Columns use the name from the output columns - but must be in the same order as query_fields
+                # Which is why we're using tuples for the columns
+                df = pd.DataFrame(np.matrix(catalogue_block).transpose(), columns=df_cols)
+
+                # Loop through all the columns and ensure hidden integer fields are cast as int32
+                # For example, taxonomy_irn is used to join with taxonomy df
+                for i, df_col in enumerate(df_cols):
+                    if not self._is_output_field(df_col) and field_types[i] == 'int32':
+                        df[df_col] = df[df_col].astype('int32')
+
+                df = self.process_dataframe(m, df)
+
+                # Output the dataframe
+                self.output().write(df)
+
+                row_count, col_count = df.shape
+                count += row_count
+                log.info("\t %s records", count)
+
+    def process_dataframe(self, m, df):
+        return df  # default impl
+
+    @staticmethod
+    def _is_output_field(field):
         """
-        Mongo has been written to CSV file - so upload to datastore
-        @return:
+        Fields starting with _ are hidden and shouldn't be included in output (excluding _id)
+        @param field:
+        @return: bool
         """
+        return field == '_id' or not field.startswith('_')
 
-        # Get text fields
-        fields = self.get_table_fields()
+    def get_output_columns(self):
+        return OrderedDict((col[1], col[2]) for col in self.columns if self._is_output_field(col[1]))
 
-        full_text_fields = '","'.join([f['id'] for f in fields if f['type'] == 'text' and f['id'] not in self.full_text_blacklist])
 
-        connection = self.output().connect()
-
-        # Drop and recreate table
-        self.create_table(connection)
-
-        log.info("Copying data to table %s", self.table)
-
-        # And then copy the data to the new table
-        cursor = connection.cursor()
-        self.init_copy(connection)
-        self.copy(cursor, self.input().path)
-
-        log.info("Updating full text index for %s", self.resource_id)
-
-        # Add _full_text index to the table
-        cursor.execute(u'UPDATE "{table}" set _full_text = to_tsvector(ARRAY_TO_STRING(ARRAY["{full_text_fields}"], \' \'))'.format(table=self.table, full_text_fields=full_text_fields))
-
-        # Add geospatial fields
-        geom_data_dict = self.get_geom_fields()
-
-        if geom_data_dict:
-
-            # Ensure geometry field values are between 90 - 90
-            for geom_field_type, geom_field_name in geom_data_dict.items():
-
-                # Set threshold value to 180 if longitude; 90 for latitude
-                threshold = 180 if geom_field_type == 'longitude_field' else 90
-
-                cursor.execute(u'UPDATE "{table}" set "{geom_field_name}" = NULL WHERE "{geom_field_name}" < -{threshold} OR "{geom_field_name}" > {threshold}'.format(
-                    table=self.table,
-                    geom_field_name=geom_field_name,
-                    threshold=threshold
-                ))
-
-            # Make sure geometry fields are correct lat / lon
-            # (this is validated by the map view, so we won't be able to save the view if they aren't correct)
-            log.info("Ensuring geometry columns for %s", self.resource_id)
-
-            # Need to commit, so the table is available for the create_geom_columns connection
-            connection.commit()
-            geom_data_dict['resource_id'] = self.table
-            log.info("Updating geometry columns for %s", self.resource_id)
-            call_action('update_geom_columns', geom_data_dict)
-
-        self.table_replace_resource(connection)
-
-        # Only mark complete if a date parameter has been passed in
-        # Allows us to run and rerun during testing & debugging
-        if self.date:
-            self.output().touch(connection)
-
-        # commit and clean up
-        connection.commit()
-        connection.close()
-
-    def create_table(self, connection):
+class DatasetToCKANTask(DatasetTask):
+    """
+    Output dataset to CKAN
+    """
+    @abc.abstractproperty
+    def package(self):
         """
-        Override CopyToTable.create_table
-        We already have the resource table in the datastore
-        So we want to clone this table structure to use for the tmp import table
-        @param connection:
-        @return:
+        Package property
+        @return: dict
         """
-        log.info("Creating temp table %s", self.table)
+        return None
 
-        cursor = connection.cursor()
-        # Drop the table if it exists
-        cursor.execute('DROP TABLE IF EXISTS "{table}"'.format(table=self.table))
-
-        # And then recreate
-        cursor.execute('CREATE TABLE "{table}" AS TABLE "{resource_id}" WITH NO DATA'.format(table=self.table, resource_id=self.resource_id))
-
-        # Explicitly set table owner
-        cursor.execute('ALTER TABLE "{table}" OWNER TO {owner}'.format(table=self.table, owner=self.owner))
-
-    def table_replace_resource(self, connection):
+    @abc.abstractproperty
+    def datastore(self):
         """
-        Replace the existing resource table with the new one
-        @param connection:
-        @return:
+        Datastore property
+        @return: dict
         """
-        log.info("Replacing resource table %s", self.resource_id)
+        return None
 
-        cursor = connection.cursor()
+    @property
+    def primary_key(self):
+        """
+        Optional primary key property
+        @return: str
+        """
+        return None
 
-        # Drop the resource table
-        # It would be possible here to copy deleted records into a history table if we need persistence
-        cursor.execute('DROP TABLE IF EXISTS "{resource_id}"'.format(resource_id=self.resource_id))
+    def __init__(self, *args, **kwargs):
 
-        # Alter table owner, otherwise these will be owned by root
-        cursor.execute('ALTER table "{table}" OWNER TO "{owner}"'.format(table=self.table, owner=self.owner))
+        super(DatasetToCKANTask, self).__init__(*args, **kwargs)
 
-        # And make sure datastore user can read
-        cursor.execute('GRANT SELECT ON "{table}" TO "{datastore_readonly}"'.format(table=self.table, datastore_readonly=self.datastore_readonly))
+        # Get resource id - and create datastore if it doesn't exist
+        # Set up connection to CKAN
+        self.ckan = ckanapi.RemoteCKAN(config.get('ckan', 'site_url'), apikey=config.get('ckan', 'api_key'))
 
-        # Create primary index
-        cursor.execute('ALTER TABLE "{table}" ADD PRIMARY KEY (_id)'.format(table=self.table))
+        try:
+            # If the package exists, retrieve the resource
+            package = self.ckan.action.package_show(id=self.package['name'])
+            self.resource_id = package['resources'][0]['id']
 
-        # If we have any extra fields to index, add them to the table
-        for index_field in self.index_fields:
-            log.info("Creating index on field %s", index_field)
-            cursor.execute('CREATE INDEX ON "{table}" ("{index_field}")'.format(table=self.table, index_field=index_field))
+        except ckanapi.NotFound:
 
-        # And rename temporary
-        cursor.execute('ALTER table "{table}" RENAME TO "{resource_id}"'.format(table=self.table, resource_id=self.resource_id))
+            log.info("Package %s not found - creating", self.package['name'])
 
-    def copy(self, cursor, file):
-        cursor.execute("COPY \"{table}\"(\"{cols}\") FROM '{file}' DELIMITER ',' CSV ENCODING 'UTF8'".format(
-            table=self.table,
-            cols='","'.join(self.columns),
-            file=file
-            )
-        )
+            # Create the package
+            package = self.ckan.action.package_create(**self.package)
+            # And create the datastore
+            self.datastore['resource']['package_id'] = package['id']
+            # Add the field indexes
+            # Add which fields should be indexed
+            indexes = [col[1] for col in self.columns if col[3] and col[2].startswith('string')]
+            fields = [{'id': col[1], 'type': 'text'} for col in self.columns if col[3]]
+
+            self.datastore['indexes'] = indexes
+            self.datastore['fields'] = fields
+
+            # API call to create the datastore
+            datastore = self.ckan.action.datastore_create(**self.datastore)
+
+            self.resource_id = datastore['resource_id']
+
+            # If this has geospatial fields, create geom columns
+            if self.geospatial_fields:
+                log.info("Creating geometry columns for %s", self.resource_id)
+                self.geospatial_fields['resource_id'] = self.resource_id
+                self.ckan.action.create_geom_columns(**self.geospatial_fields)
+
+            log.info("Created datastore resource %s", self.resource_id)
+
+    def output(self):
+        return CKANTarget(self.resource_id)
+
+
+class DatasetToCSVTask(DatasetTask):
+    """
+    Output dataset to CSV
+    """
+
+    @property
+    def file_name(self):
+        """
+        File name to output
+        @return: str
+        """
+        return self.__class__.__name__.replace('DatasetToCSVTask', '').lower()
+
+    def output(self):
+        """
+        Luigi method: output target
+        @return: luigi file ref
+        """
+        return CSVTarget(file_name=self.file_name, date=self.date, columns=self.get_output_columns())

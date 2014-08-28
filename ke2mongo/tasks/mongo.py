@@ -107,7 +107,6 @@ class MongoTask(luigi.Task):
 
     def mark_complete(self):
 
-
         # Move the file to the archive directory (if specified)
         try:
             archive_dir = config.get('keemu', 'archive_dir')
@@ -126,6 +125,7 @@ class MongoTask(luigi.Task):
         count = 0
 
         for record in self.iterate_data(ke_data):
+
             # Find and replace doc - inserting if it doesn't exist
             bulk.find({'_id': record['_id']}).upsert().replace_one(record)
             count += 1
@@ -191,6 +191,10 @@ class MongoTask(luigi.Task):
         data['_id'] = data['irn']
         # Keep the IRN but cast as string, so we can use it in $concat
         data['irn'] = str(data['irn'])
+
+        # Add the date of the export file
+        data['exportFileDate'] = self.date
+
         return data
 
     def output(self):
@@ -199,3 +203,15 @@ class MongoTask(luigi.Task):
     def update_id(self):
         """This update id will be a unique identifier for this insert on this collection."""
         return self.task_id
+
+    def on_success(self):
+        """
+        On completion, add indexes
+        @return: None
+        """
+
+        self.collection = self.get_collection()
+
+        log.info("Adding exportFileDate index")
+
+        self.collection.ensure_index('exportFileDate')

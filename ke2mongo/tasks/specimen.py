@@ -4,34 +4,35 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
-python run.py SpecimenDatasetTask --local-scheduler --date 20140731
+python specimen.py SpecimenDatasetToCKANTask --local-scheduler --date 20140731
+python specimen.py SpecimenDatasetToCSVTask --local-scheduler --date 20140821
 
 """
 
-from ke2mongo import config
-from ke2mongo.tasks.dataset import DatasetTask
-from ke2mongo.tasks.csv import CSVTask
-from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE, MULTIMEDIA_URL, MULTIMEDIA_FORMATS
-from operator import itemgetter
-from collections import OrderedDict
+import os
+import luigi
 import itertools
+from ke2mongo import config
+from ke2mongo.tasks.dataset import DatasetTask, DatasetToCSVTask, DatasetToCKANTask
+from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE, MULTIMEDIA_URL, MULTIMEDIA_FORMATS
+from ke2mongo.tasks.target import CSVTarget, CKANTarget
+from ke2mongo.log import log
+from collections import OrderedDict
 
-class SpecimenCSVTask(CSVTask):
+class SpecimenDatasetTask(DatasetTask):
 
     columns = [
 
-        # Specimen column tuples have an extra value, denoting if the field is inheritable by part records
-        # ([KE EMu field], [new field], [field type], Inheritable False|False)
-
-        ('_id', '_id', 'int32', False),
+        # List of columns
+        # ([KE EMu field], [new field], [field type])
 
         # Identifier
-        ('DarGlobalUniqueIdentifier', 'occurrenceID', 'string:100', False),
+        ('DarGlobalUniqueIdentifier', 'occurrenceID', 'string:100', True),
 
         # Record level
-        ('AdmDateModified', 'modified', 'string:100', False),
+        ('AdmDateModified', 'modified', 'string:100', True),
         # This isn't actually in DwC - but I'm going to use dcterms:created
-        ('AdmDateInserted', 'created', 'string:100', False,),
+        ('AdmDateInserted', 'created', 'string:100', True),
         ('DarInstitutionCode', 'institutionCode', 'string:100', True),
         ('DarCollectionCode', 'collectionCode', 'string:100', True),
         ('DarBasisOfRecord', 'basisOfRecord', 'string:100', True),
@@ -66,7 +67,7 @@ class SpecimenCSVTask(CSVTask):
         # ('DarContinentOcean', 'continentOcean', 'string:100', True),
         ('DarWaterBody', 'waterBody', 'string:100', True),
         ('DarHigherGeography', 'higherGeography', 'string:100', True),
-        ('ColHabitatVerbatim', 'habitat', 'string:100', False),
+        ('ColHabitatVerbatim', 'habitat', 'string:100', True),
 
         ('DarDecimalLongitude', 'decimalLongitude', 'float32', True),
         ('DarDecimalLatitude', 'decimalLatitude', 'float32', True),
@@ -131,101 +132,144 @@ class SpecimenCSVTask(CSVTask):
         ('DarBed', 'bed', 'string:100', True),
 
         # Resource relationship
-        ('DarRelatedCatalogItem', 'relatedResourceID', 'string:100', True),
+        ('DarRelatedCatalogItem', 'relatedResourceID', 'string:100', False),
         # Dynamic properties
         ('dynamicProperties', 'dynamicProperties', 'string:400', False),
         # Multimedia
-        ('MulMultiMediaRef', 'associatedMedia', 'string:100', True),
+        ('MulMultiMediaRef', 'associatedMedia', 'string:100', False),
 
         # Removed: We do not want notes, could contain anything
-        # ('DarNotes', 'DarNotes', 'string:100', True),
-        # ('DarLatLongComments', 'latLongComments', 'string:100', True),
+        # ('DarNotes', 'DarNotes', 'string:100'),
+        # ('DarLatLongComments', 'latLongComments', 'string:100'),
     ]
 
     # Dynamic properties - these will map into one dynamicProperties field
     # They are use in the aggregator, not the monary query so specifying type isn't required
     dynamic_property_columns = [
-        ('ColRecordType', 'recordType', False),
-        ('ColSubDepartment', 'subDepartment', True),
-        ('PrtType', 'partType', False),
-        ('RegCode', 'registrationCode', False),
-        ('CatKindOfObject', 'kindOfObject', False),
-        ('CatKindOfCollection', 'kindOfCollection', False),
-        ('CatPreservative', 'preservative', False),
-        ('ColKind', 'collectionKind', False),
-        ('EntPriCollectionName', 'collectionName', False),
-        ('PartRefStr', 'partRefs', True),
-        ('PalAcqAccLotDonorFullName', 'donorName', True),
-        ('DarPreparationType', 'preparationType', True),
-        ('DarObservedWeight', 'observedWeight', True),
+        ('ColRecordType', 'recordType'),
+        ('ColSubDepartment', 'subDepartment'),
+        ('PrtType', 'partType'),
+        ('RegCode', 'registrationCode'),
+        ('CatKindOfObject', 'kindOfObject'),
+        ('CatKindOfCollection', 'kindOfCollection'),
+        ('CatPreservative', 'preservative'),
+        ('ColKind', 'collectionKind'),
+        ('EntPriCollectionName', 'collectionName'),
+        ('PartRefStr', 'partRefs'),
+        ('PalAcqAccLotDonorFullName', 'donorName'),
+        ('DarPreparationType', 'preparationType'),
+        ('DarObservedWeight', 'observedWeight'),
         # Extra fields from specific KE EMu record types
         # No need to inherit these properties - not parts etc.,
         # DNA
-        ('DnaExtractionMethod', 'extractionMethod', False),
-        ('DnaReSuspendedIn', 'resuspendedIn', False),
-        ('DnaTotalVolume', 'totalVolume', False),
+        ('DnaExtractionMethod', 'extractionMethod'),
+        ('DnaReSuspendedIn', 'resuspendedIn'),
+        ('DnaTotalVolume', 'totalVolume'),
         # Parasite card
-        ('CardBarcode', 'barcode', False),
+        ('CardBarcode', 'barcode'),
         # Egg
-        ('EggClutchSize', 'clutchSize', False),
-        ('EggSetMark', 'setMark', False),
+        ('EggClutchSize', 'clutchSize'),
+        ('EggSetMark', 'setMark'),
         # Nest
-        ('NesShape', 'nestShape', False),
-        ('NesSite', 'nestSite', False),
+        ('NesShape', 'nestShape'),
+        ('NesSite', 'nestSite'),
         # Silica gel
-        ('SilPopulationCode', 'populationCode', False),
+        ('SilPopulationCode', 'populationCode'),
         # Botany
-        ('CollExsiccati', 'exsiccati', False),
-        ('ColExsiccatiNumber', 'exsiccatiNumber', False),
-        ('ColSiteDescription', 'siteDescription', False), # This is called "Label locality" in existing NHM online DBs
-        ('ColPlantDescription', 'plantDescription', False),
-        ('FeaCultivated', 'cultivated', False),
-        ('FeaPlantForm', 'plantForm', False),
+        ('CollExsiccati', 'exsiccati'),
+        ('ColExsiccatiNumber', 'exsiccatiNumber'),
+        ('ColSiteDescription', 'siteDescription'), # This is called "Label locality" in existing NHM online DBs
+        ('ColPlantDescription', 'plantDescription'),
+        ('FeaCultivated', 'cultivated'),
+        ('FeaPlantForm', 'plantForm'),
         # Paleo
-        ('PalDesDescription', 'catalogueDescription', False),
-        ('PalStrChronostratLocal', 'chronostratigraphy', False),
-        ('PalStrLithostratLocal', 'lithostratigraphy', False),
+        ('PalDesDescription', 'catalogueDescription'),
+        ('PalStrChronostratLocal', 'chronostratigraphy'),
+        ('PalStrLithostratLocal', 'lithostratigraphy'),
         # Mineralogy
-        ('MinDateRegistered', 'dateRegistered', False),
-        ('MinIdentificationAsRegistered', 'identificationAsRegistered', False),
-        ('MinIdentificationDescription', 'identificationDescription', False),
-        ('MinPetOccurance', 'occurrence', False),
-        ('MinOreCommodity', 'commodity', False),
-        ('MinOreDepositType', 'depositType', False),
-        ('MinTextureStructure', 'texture', False),
-        ('MinIdentificationVariety', 'identificationVariety', False),
-        ('MinIdentificationOther', 'identificationOther', False),
-        ('MinHostRock', 'hostRock', False),
-        ('MinAgeDataAge', 'age', False),
-        ('MinAgeDataType', 'ageType', False),
+        ('MinDateRegistered', 'dateRegistered'),
+        ('MinIdentificationAsRegistered', 'identificationAsRegistered'),
+        ('MinIdentificationDescription', 'identificationDescription'),
+        ('MinPetOccurance', 'occurrence'),
+        ('MinOreCommodity', 'commodity'),
+        ('MinOreDepositType', 'depositType'),
+        ('MinTextureStructure', 'texture'),
+        ('MinIdentificationVariety', 'identificationVariety'),
+        ('MinIdentificationOther', 'identificationOther'),
+        ('MinHostRock', 'hostRock'),
+        ('MinAgeDataAge', 'age'),
+        ('MinAgeDataType', 'ageType'),
         # Mineralogy location
-        ('MinNhmTectonicProvinceLocal', 'tectonicProvince', False),
-        ('MinNhmStandardMineLocal', 'mine', False),
-        ('MinNhmMiningDistrictLocal', 'miningDistrict', False),
-        ('MinNhmComplexLocal', 'mineralComplex', False),
-        ('MinNhmRegionLocal', 'geologyRegion', False),
+        ('MinNhmTectonicProvinceLocal', 'tectonicProvince'),
+        ('MinNhmStandardMineLocal', 'mine'),
+        ('MinNhmMiningDistrictLocal', 'miningDistrict'),
+        ('MinNhmComplexLocal', 'mineralComplex'),
+        ('MinNhmRegionLocal', 'geologyRegion'),
         # Meteorite
-        ('MinMetType', 'meteoriteType', False),
-        ('MinMetGroup', 'meteoriteGroup', False),
-        ('MinMetChondriteAchondrite', 'chondriteAchondrite', False),
-        ('MinMetClass', 'meteoriteClass', False),
-        ('MinMetPetType', 'petType', False),
-        ('MinMetPetSubtype', 'petSubType', False),
-        ('MinMetRecoveryFindFall', 'recovery', False),
-        ('MinMetRecoveryDate', 'recoveryDate', False),
-        ('MinMetRecoveryWeight', 'recoveryWeight', False),
-        ('MinMetWeightAsRegistered', 'registeredWeight', False),
-        ('MinMetWeightAsRegisteredUnit', 'registeredWeightUnit', False),
+        ('MinMetType', 'meteoriteType'),
+        ('MinMetGroup', 'meteoriteGroup'),
+        ('MinMetChondriteAchondrite', 'chondriteAchondrite'),
+        ('MinMetClass', 'meteoriteClass'),
+        ('MinMetPetType', 'petType'),
+        ('MinMetPetSubtype', 'petSubType'),
+        ('MinMetRecoveryFindFall', 'recovery'),
+        ('MinMetRecoveryDate', 'recoveryDate'),
+        ('MinMetRecoveryWeight', 'recoveryWeight'),
+        ('MinMetWeightAsRegistered', 'registeredWeight'),
+        ('MinMetWeightAsRegisteredUnit', 'registeredWeightUnit'),
     ]
 
-    def get_columns(self, keys=[0, 1, 2]):
+    @property
+    def query(self):
         """
-        Return list of columns
-        You can pass in the keys of the tuples you want to return - 0,1,2 are the default for the CSV parser
-        @param keys:
-        @return:
+        Build a query
+        @return: aggregation list query
         """
-        return [itemgetter(*keys)(c) for c in self.columns]
+        query = list()
+
+        query.append({'$limit': 1})
+
+        match = {'$match': {"ColRecordType": {"$nin": PARENT_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}}
+
+        # If we have a date. we're only going to get specimens imported on that date
+        if self.date:
+            match['$match']['exportFileDate'] = self.date
+
+        query.append(match)
+
+        # Build list of columns to select
+        project = {col[0]: 1 for col in self.columns}
+
+        # Create an array of dynamicProperties to use in an aggregation projection
+        # In the format {dynamicProperties : {$concat: [{$cond: {if: "$ColRecordType", then: {$concat: ["ColRecordType=","$ColRecordType", ";"]}, else: ''}}
+        dynamic_properties = [{"$cond": OrderedDict([("if", "${}".format(col[0])), ("then", {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}), ("else", '')])} for col in self.dynamic_property_columns]
+        project['dynamicProperties'] = {"$concat": dynamic_properties}
+
+        # We cannot rely on some DwC fields, as they are missing / incomplete for some records
+        # So we manually add them based on other fields
+
+        # If $DarCatalogNumber does not exist, we'll try use $GeneralCatalogueNumber
+        # GeneralCatalogueNumber has min bm number - RegRegistrationNumber does not
+        project['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$GeneralCatalogueNumber"]}
+        # We cannot rely on the DarGlobalUniqueIdentifier field, as parts do not have it, so build manually
+        project['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK:ecatalogue:", "$irn"]}
+
+        # As above, need to manually build DarCollectionCode and DarInstitutionCode
+        # These do need to be defined as columns, so the inheritance / new field name is used
+        # But we are over riding the default behaviour (just selecting the column)
+        project['DarInstitutionCode'] = {"$literal": "NHMUK"}
+        project['DarBasisOfRecord'] = {"$literal": "Specimen"}
+        # If an entom record collection code = BMNH(E), otherwise use PAL, MIN etc.,
+        project['DarCollectionCode'] = { "$cond": {
+            "if": {"$eq": ["$ColDepartment", "Entomology"]},
+            "then": "BMNH(E)",
+            "else": {"$toUpper": {"$substr": ["$ColDepartment", 0, 3]}}
+            }
+        }
+
+        query.append({'$project': project})
+        query.append({'$out': 'agg_%s_specimens' % self.collection_name})
+        return query
 
     def process_dataframe(self, m, df):
         """
@@ -242,169 +286,38 @@ class SpecimenCSVTask(CSVTask):
         # Convert associatedMedia field to a list
         df['associatedMedia'] = df['associatedMedia'].apply(lambda x: list(int(z.strip()) for z in x.split(';') if z.strip()))
 
+        def get_valid_multimedia(self, multimedia_irns):
+            """
+            Get a data frame of taxonomy records
+            @param m: Monary instance
+            @param irns: taxonomy IRNs to retrieve
+            @return:
+            """
+            q = {'_id': {'$in': multimedia_irns}, 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS}}
+            ('_id', '_taxonomy_irn', 'int32'),
+            query = m.query('keemu', 'emultimedia', q, ['_id'], ['int32'])
+            return query[0].view()
+
         # Get a unique list of IRNS
         unique_multimedia_irns = list(set(itertools.chain(*[irn for irn in df.associatedMedia.values])))
 
         # Get a list of multimedia irns with valid mimetypes
-        valid_multimedia = self.get_valid_multimedia(m, unique_multimedia_irns)
+        valid_multimedia = get_valid_multimedia(m, unique_multimedia_irns)
 
         # And finally update the associatedMedia field, so formatting with the IRN with MULTIMEDIA_URL, if the IRN is in valid_multimedia
         df['associatedMedia'] = df['associatedMedia'].apply(lambda irns: '; '.join(MULTIMEDIA_URL % irn for irn in irns if irn in valid_multimedia))
 
         return df
 
-    def get_valid_multimedia(self, m, multimedia_irns):
-        """
-        Get a data frame of taxonomy records
-        @param m: Monary instance
-        @param irns: taxonomy IRNs to retrieve
-        @return:
-        """
-        q = {'_id': {'$in': multimedia_irns}, 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS}}
-        ('_id', '_taxonomy_irn', 'int32'),
-        query = m.query('keemu', 'emultimedia', q, ['_id'], ['int32'])
-        return query[0].view()
 
-    def part_parent_aggregator_query(self):
-        """
-        Part / Parents using an aggregator which needs to be initiated before running
-        @return: status dict
-        """
-        query = list()
+class SpecimenDatasetToCSVTask(SpecimenDatasetTask, DatasetToCSVTask):
+    pass
 
-        # Exclude all types except Parent and Part types
-        query.append({'$match': {"ColRecordType": {"$in": PARENT_TYPES + PART_TYPES}}})
 
-        # Columns has field type, but we do not use that here, and need to ensure it has the
-        # Same dimensions as dynamic_property_columns
-        columns = self.get_columns([0, 1, 3])
-
-        columns += self.dynamic_property_columns
-
-        # Select all fields
-        project = {col[0]: 1 for col in columns}
-        # Add the PartRef field so we can unwind it
-        project['part_id'] = {"$ifNull": ["$PartRef", [None]]}
-
-        # Explicitly add ColRecordType & PartRef - this process will break they do not exist
-        project['ColRecordType'] = 1
-        project['PartRef'] = 1
-
-        self._alter_columns_projection(project)
-
-        query.append({'$project': project})
-
-        # # Unwind based on part ID
-        query.append({'$unwind': "$part_id"})
-
-        # Add all fields to the group
-        #  If col[3] is True (inheritable) use {$first: "$col"} to get the parent record value
-        # Otherwise use {$last: "$col"} to use the part record value for that field
-        # Due to the way unwind works, part records are always after the parent record
-        group = {col[0]: {"%s" % '$first' if col[2] else '$last': "$%s" % col[0]} for col in columns}
-
-        # Add the group key
-        group['_id'] = {"$ifNull": ["$part_id", "$_id"]}
-
-        # Add part refs
-        group['PartRef'] = {"$first": "$PartRef"}
-
-        query.append({'$group': group})
-
-        query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES}}})
-
-        query.append({'$project': self._get_columns_projection()})
-
-        # Output to DwC collection
-        query.append({'$out': 'agg_%s_parts' % self.collection_name})
-
-        return query
-
-    def specimen_aggregator_query(self):
-        """
-        Aggregator for non part specimen records
-        @return: aggregation list query
-        """
-        query = list()
-
-        query.append({'$match': {"ColRecordType": {"$nin": PARENT_TYPES + PART_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}})
-        project = self._get_columns_projection()
-        self._alter_columns_projection(project)
-        query.append({'$project': project})
-        query.append({'$out': 'agg_%s_specimens' % self.collection_name})
-
-        return query
-
-    def _get_columns_projection(self):
-        """
-        Get a list of column projections, to use in an aggregated query
-        @return: list
-        """
-
-        #  All non-dynamic property columns
-        project = {col[0]: 1 for col in self.columns}
-
-        # Create an array of dynamicProperties to use in an aggregation projection
-        # In the format {dynamicProperties : {$concat: [{$cond: {if: "$ColRecordType", then: {$concat: ["ColRecordType=","$ColRecordType", ";"]}, else: ''}}
-        dynamic_properties = [{"$cond": OrderedDict([("if", "${}".format(col[0])), ("then", {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}), ("else", '')])} for col in self.dynamic_property_columns]
-        project['dynamicProperties'] = {"$concat": dynamic_properties}
-
-        return project
-
-    @staticmethod
-    def _alter_columns_projection(project):
-        """
-        We cannot rely on some DwC fields, as they are missing / incomplete for some records
-        So we manually add them based on other fields
-        This needs to be applied to both aggregators
-        @return:
-        """
-
-        # If $DarCatalogNumber does not exist, we'll try use $GeneralCatalogueNumber
-        # GeneralCatalogueNumber has min bm number - RegRegistrationNumber does not
-        project['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$GeneralCatalogueNumber"]}
-        # We cannot rely on the DarGlobalUniqueIdentifier field, as parts do not have it, so build manually
-        project['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK:ecatalogue:", "$irn"]}
-
-        # FIXME: Mineralogy dar fields have not been correctly populated
-        # Need to contact Darrell: https://sprint.ly/product/18607/#!/item/317
-        project['DarDecimalLongitude'] = {"$ifNull": ["$DarDecimalLongitude", "$sumPreferredCentroidLongDec"]}
-        project['DarDecimalLatitude'] = {"$ifNull": ["$DarDecimalLatitude", "$sumPreferredCentroidLatDec"]}
-
-        # As above, need to manually build DarCollectionCode and DarInstitutionCode
-        # These do need to be defined as columns, so the inheritance / new field name is used
-        # But we are over riding the default behaviour (just selecting the column)
-        project['DarInstitutionCode'] = {"$literal": "NHMUK"}
-        project['DarBasisOfRecord'] = {"$literal": "Specimen"}
-        # If an entom record collection code = BMNH(E), otherwise use PAL, MIN etc.,
-        project['DarCollectionCode'] = { "$cond": {
-            "if": {"$eq": ["$ColDepartment", "Entomology"]},
-            "then": "BMNH(E)",
-            "else": {"$toUpper": {"$substr": ["$ColDepartment", 0, 3]}}
-            }
-        }
-
-    @property
-    def query(self):
-        """
-        Return list of query objects - either an aggregation query or query dict
-        @return: list of queries
-        """
-        return [
-            self.specimen_aggregator_query(),
-            self.part_parent_aggregator_query()
-        ]
-
-class SpecimenDatasetTask(DatasetTask):
-    """
-    Class for creating specimens DwC dataset
-    """
-    name = 'Specimens'
-    description = 'Specimen records'
-    format = 'dwc'  # Darwin Core format
+class SpecimenDatasetToCKANTask(SpecimenDatasetTask, DatasetToCKANTask):
 
     package = {
-        'name': u'specimens',
+        'name': 'specimens',
         'notes': u'The Natural History Museum\'s collection',
         'title': "NHM Collection",
         'author': 'Natural History Museum',
@@ -415,12 +328,22 @@ class SpecimenDatasetTask(DatasetTask):
         'owner_org': config.get('ckan', 'owner_org')
     }
 
-    csv_class = SpecimenCSVTask
+    # And now save to the datastore
+    datastore = {
+        'resource': {
+            'name': 'Test data',
+            'description': 'Test data',
+            'format': 'dwc' # Darwin core
+        },
+    }
 
-    index_blacklist = ['relatedResourceID', 'dynamicProperties', 'associatedMedia']
+    primary_key = 'occurrenceID'
 
-    # For the filters, we want to index every field
-    index_fields = [col[1] for col in SpecimenCSVTask.columns if not col[1].startswith('_') and col[1] not in index_blacklist]
+    geospatial_fields = {
+        'latitude_field': 'decimalLatitude',
+        'longitude_field': 'decimalLongitude'
+    }
 
-    longitude_field = 'decimalLongitude'
-    latitude_field = 'decimalLatitude'
+
+if __name__ == "__main__":
+    luigi.run()
