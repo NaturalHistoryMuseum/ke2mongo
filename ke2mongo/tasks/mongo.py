@@ -77,7 +77,7 @@ class MongoTask(luigi.Task):
 
     date = luigi.IntParameter()
     # Added parameter to allow skipping the processing of records - this is so MW can look at the raw data in mongo
-    process = luigi.BooleanParameter(default=True)
+    unprocessed = luigi.BooleanParameter()
     flatten_mode = FlattenModeParameter(default=FLATTEN_ALL)
 
     database = config.get('mongo', 'database')
@@ -194,28 +194,28 @@ class MongoTask(luigi.Task):
             if status:
                 log.info(status)
 
-
+            # Use the IRN as _id
+            record['_id'] = record['irn']
 
             try:
-                # Only process if flag is set (default=True)
-                if self.process:
+                # Do not process if unprocessed flag is set
+                if not self.unprocessed:
                     record = self.process_record(record)
+
             except InvalidRecordException:
                 continue
             else:
                 yield record
 
-    def process_record(self, data):
+    def process_record(self, record):
 
-        # Use the IRN as _id & remove original
-        data['_id'] = data['irn']
         # Keep the IRN but cast as string, so we can use it in $concat
-        data['irn'] = str(data['irn'])
+        record['irn'] = str(record['irn'])
 
         # Add the date of the export file
-        data['exportFileDate'] = self.date
+        record['exportFileDate'] = self.date
 
-        return data
+        return record
 
     def output(self):
         return MongoTarget(database=self.database, update_id=self.update_id())
