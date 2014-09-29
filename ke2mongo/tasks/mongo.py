@@ -4,8 +4,6 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
-Prior to
-
 """
 
 import sys
@@ -13,10 +11,11 @@ import os
 import luigi
 import datetime
 import abc
+from luigi.parameter import ParameterException
 from ke2mongo.tasks.ke import KEFileTask
 from ke2mongo.log import log
 from keparser import KEParser
-from keparser.parser import FLATTEN_ALL
+from keparser.parser import FLATTEN_NONE, FLATTEN_SINGLE, FLATTEN_ALL
 from ke2mongo import config
 from ke2mongo.lib.timeit import timeit
 from pymongo import MongoClient
@@ -59,10 +58,28 @@ class InvalidRecordException(Exception):
     """
     pass
 
+class FlattenModeParameter(luigi.Parameter):
+    """Parameter whose value is one of FLATTEN_NONE, FLATTEN_SINGLE, FLATTEN_ALL"""
+
+    flatten_modes = [FLATTEN_NONE, FLATTEN_SINGLE, FLATTEN_ALL]
+
+    def parse(self, s):
+
+        s = int(s)
+
+        if not s in self.flatten_modes:
+            raise ParameterException('Flatten mode must be one of %s' % ' '.join([str(m) for m in self.flatten_modes]))
+
+        return s
+
 
 class MongoTask(luigi.Task):
 
     date = luigi.IntParameter()
+    # Added parameter to allow skipping the processing of records - this is so MW can look at the raw data in mongo
+    process = luigi.BooleanParameter(default=True)
+    flatten_mode = FlattenModeParameter(default=FLATTEN_ALL)
+
     database = config.get('mongo', 'database')
     keemu_schema_file = config.get('keemu', 'schema')
 
@@ -92,8 +109,7 @@ class MongoTask(luigi.Task):
     @timeit
     def run(self):
 
-        ke_data = KEParser(self.input().open('r'), schema_file=self.keemu_schema_file, input_file_path=self.input().path, flatten_mode=FLATTEN_ALL)
-
+        ke_data = KEParser(self.input().open('r'), schema_file=self.keemu_schema_file, input_file_path=self.input().path, flatten_mode=self.flatten_mode)
         self.collection = self.get_collection()
 
         # If we have any records in the collection, use bulk_update with mongo bulk upsert
@@ -178,8 +194,12 @@ class MongoTask(luigi.Task):
             if status:
                 log.info(status)
 
+
+
             try:
-                record = self.process_record(record)
+                # Only process if flag is set (default=True)
+                if self.process:
+                    record = self.process_record(record)
             except InvalidRecordException:
                 continue
             else:
