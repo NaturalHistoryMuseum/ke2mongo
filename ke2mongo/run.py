@@ -21,9 +21,9 @@ from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
 from ke2mongo.tasks.specimen import SpecimenDatasetTask
-from ke2mongo.tasks.indexlot import IndexLotDatasetTask
-from ke2mongo.tasks.artefact import ArtefactDatasetTask
-from ke2mongo.tasks.main import MainTask
+# from ke2mongo.tasks.indexlot import IndexLotDatasetTask
+# from ke2mongo.tasks.artefact import ArtefactDatasetTask
+# from ke2mongo.tasks.main import MainTask
 
 if __name__ == "__main__":
     luigi.run()
