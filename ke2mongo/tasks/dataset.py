@@ -164,17 +164,8 @@ class DatasetTask(luigi.Task):
     def process_dataframe(self, m, df):
         return df  # default impl
 
-    @staticmethod
-    def _is_output_field(field):
-        """
-        Fields starting with _ are hidden and shouldn't be included in output (excluding _id)
-        @param field:
-        @return: bool
-        """
-        return field == '_id' or not field.startswith('_')
-
     def get_output_columns(self):
-        return OrderedDict((col[1], col[2]) for col in self.columns if self._is_output_field(col[1]))
+        return OrderedDict((col[1], col[2]) for col in self.columns if not col[1].startswith('_'))
 
 
 class DatasetToCKANTask(DatasetTask):
@@ -269,4 +260,7 @@ class DatasetToCSVTask(DatasetTask):
         Luigi method: output target
         @return: luigi file ref
         """
+
+        print self.get_output_columns()
+
         return CSVTarget(file_name=self.file_name, date=self.date, columns=self.get_output_columns())
