@@ -37,7 +37,6 @@ class DatasetTask(luigi.Task):
     """
     # Date to process
     date = luigi.IntParameter(default=None)
-
     mongo_db = config.get('mongo', 'database')
 
     collection_name = 'ecatalogue'
@@ -98,25 +97,23 @@ class DatasetTask(luigi.Task):
         mongo = MongoClient()
         db = mongo[self.mongo_db]
 
-        # Default collection name. This can be over-ridden by the $out setting in an aggregator
-        collection_name = self.collection_name
-
         # Is this query object a list? (an aggregation query)
         if isinstance(self.query, list):
 
-            # This is an aggregator, so needs building and the query will return everything ({})
+            # Monary cannot use an aggregator query, so we'll output to another collection
+            # and then query against that for everything {}
+            collection_name = 'agg_%s' % self.collection_name
 
-            # The last element needs to be the out collection
-            out = self.query[len(self.query) - 1]
+            q = self.query
 
-            # Set the collection name to the out collection.
-            # If last key isn't $out, this will raise an exception
-            collection_name = out['$out']
+            # Add the output collection the query
+            q.append({'$out': collection_name})
+
+            print q
 
             # Run the aggregation query
             log.info("Building aggregated collection: %s", collection_name)
-
-            result = db[self.collection_name].aggregate(self.query, allowDiskUse=True)
+            result = db[self.collection_name].aggregate(q, allowDiskUse=True)
 
             # Ensure the aggregation process succeeded
             assert result['ok'] == 1.0
@@ -124,7 +121,8 @@ class DatasetTask(luigi.Task):
             # Select everything from the aggregation pipeline
             query = {}
 
-        elif isinstance(self.query, dict): # A normal mongo query
+        elif isinstance(self.query, dict):  # A normal mongo query
+            collection_name = self.collection_name
             query = self.query
         else:
             raise TypeError('Query needs to be either an aggregation list or query dict')

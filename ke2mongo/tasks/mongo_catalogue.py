@@ -8,9 +8,8 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 """
 
-import luigi
 from ke2mongo.tasks.mongo import MongoTask, InvalidRecordException
-from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, DATE_FORMAT
+from ke2mongo.tasks import DATE_FORMAT
 from ke2mongo.log import log
 
 class MongoCatalogueTask(MongoTask):
@@ -50,7 +49,7 @@ class MongoCatalogueTask(MongoTask):
         record_type = data.get('ColRecordType', 'Missing')
 
         if record_type in self.excluded_types:
-            log.debug('Skipping record %s: No model class for %s', data['irn'], record_type)
+            log.debug('Skipping record %s: Excluded type %s', data['irn'], record_type)
             raise InvalidRecordException
 
         # If we don't have collection department, skip it
@@ -86,8 +85,3 @@ class MongoCatalogueTask(MongoTask):
         self.collection.ensure_index('ColRecordType')
 
         super(MongoCatalogueTask, self).on_success()
-
-
-
-if __name__ == "__main__":
-    luigi.run()

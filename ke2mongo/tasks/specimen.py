@@ -12,6 +12,7 @@ python specimen.py SpecimenDatasetToCSVTask --local-scheduler --date 20140821
 import os
 import luigi
 import itertools
+import pandas as pd
 from ke2mongo import config
 from ke2mongo.tasks.dataset import DatasetTask, DatasetToCSVTask, DatasetToCKANTask
 from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE, MULTIMEDIA_URL, MULTIMEDIA_FORMATS
@@ -19,12 +20,12 @@ from ke2mongo.tasks.target import CSVTarget, CKANTarget
 from ke2mongo.log import log
 from collections import OrderedDict
 
-class SpecimenDatasetTask(DatasetTask):
 
+class SpecimenDatasetTask(DatasetTask):
     columns = [
 
         # List of columns
-        # ([KE EMu field], [new field], [field type])
+        # ([KE EMu field], [new field], [field type], indexed)
 
         # Identifier
         ('DarGlobalUniqueIdentifier', 'occurrenceID', 'string:100', True),
@@ -86,7 +87,7 @@ class SpecimenDatasetTask(DatasetTask):
         ('DarCollectorNumber', 'recordNumber', 'string:100', True),
         ('DarIndividualCount', 'individualCount', 'string:100', True),
         ('DarLifeStage', 'lifeStage', 'string:100', True),
-        #  According to docs, ageClass has been superseded by lifeStage. We have both, but ageClass duplicates
+        # According to docs, ageClass has been superseded by lifeStage. We have both, but ageClass duplicates
         # And for the ~200 it has extra data, the data isn't good
         # ('DarAgeClass', 'ageClass', 'string:100', True),
         ('DarSex', 'sex', 'string:100', True),
@@ -138,6 +139,10 @@ class SpecimenDatasetTask(DatasetTask):
         # Multimedia
         ('MulMultiMediaRef', 'associatedMedia', 'string:100', False),
 
+        # Private, internal-only fields
+        ('RegRegistrationParentRef', '_parentRef', 'int32', False),
+
+
         # Removed: We do not want notes, could contain anything
         # ('DarNotes', 'DarNotes', 'string:100'),
         # ('DarLatLongComments', 'latLongComments', 'string:100'),
@@ -178,7 +183,7 @@ class SpecimenDatasetTask(DatasetTask):
         # Botany
         ('CollExsiccati', 'exsiccati'),
         ('ColExsiccatiNumber', 'exsiccatiNumber'),
-        ('ColSiteDescription', 'siteDescription'), # This is called "Label locality" in existing NHM online DBs
+        ('ColSiteDescription', 'siteDescription'),  # This is called "Label locality" in existing NHM online DBs
         ('ColPlantDescription', 'plantDescription'),
         ('FeaCultivated', 'cultivated'),
         ('FeaPlantForm', 'plantForm'),
@@ -227,9 +232,13 @@ class SpecimenDatasetTask(DatasetTask):
         """
         query = list()
 
-        query.append({'$limit': 1})
+        #
 
-        match = {'$match': {"ColRecordType": {"$nin": PARENT_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}}
+        # match = {'$match': {"ColRecordType": {"$nin": PARENT_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}}
+
+        match = {'$match': {"RegRegistrationParentRef": {"$exists": True}}}
+
+        query.append({'$limit': 100})
 
         # If we have a date. we're only going to get specimens imported on that date
         if self.date:
@@ -242,7 +251,9 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Create an array of dynamicProperties to use in an aggregation projection
         # In the format {dynamicProperties : {$concat: [{$cond: {if: "$ColRecordType", then: {$concat: ["ColRecordType=","$ColRecordType", ";"]}, else: ''}}
-        dynamic_properties = [{"$cond": OrderedDict([("if", "${}".format(col[0])), ("then", {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}), ("else", '')])} for col in self.dynamic_property_columns]
+        dynamic_properties = [{"$cond": OrderedDict([("if", "${}".format(col[0])), ("then", {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}), ("else", '')])} for col in
+                              self.dynamic_property_columns]
+
         project['dynamicProperties'] = {"$concat": dynamic_properties}
 
         # We cannot rely on some DwC fields, as they are missing / incomplete for some records
@@ -260,15 +271,16 @@ class SpecimenDatasetTask(DatasetTask):
         project['DarInstitutionCode'] = {"$literal": "NHMUK"}
         project['DarBasisOfRecord'] = {"$literal": "Specimen"}
         # If an entom record collection code = BMNH(E), otherwise use PAL, MIN etc.,
-        project['DarCollectionCode'] = { "$cond": {
-            "if": {"$eq": ["$ColDepartment", "Entomology"]},
-            "then": "BMNH(E)",
-            "else": {"$toUpper": {"$substr": ["$ColDepartment", 0, 3]}}
+        project['DarCollectionCode'] = {
+            "$cond": {
+                "if": {"$eq": ["$ColDepartment", "Entomology"]},
+                "then": "BMNH(E)",
+                "else": {"$toUpper": {"$substr": ["$ColDepartment", 0, 3]}}
             }
         }
 
         query.append({'$project': project})
-        query.append({'$out': 'agg_%s_specimens' % self.collection_name})
+
         return query
 
     def process_dataframe(self, m, df):
@@ -286,7 +298,7 @@ class SpecimenDatasetTask(DatasetTask):
         # Convert associatedMedia field to a list
         df['associatedMedia'] = df['associatedMedia'].apply(lambda x: list(int(z.strip()) for z in x.split(';') if z.strip()))
 
-        def get_valid_multimedia(self, multimedia_irns):
+        def get_valid_multimedia(multimedia_irns):
             """
             Get a data frame of taxonomy records
             @param m: Monary instance
@@ -302,10 +314,17 @@ class SpecimenDatasetTask(DatasetTask):
         unique_multimedia_irns = list(set(itertools.chain(*[irn for irn in df.associatedMedia.values])))
 
         # Get a list of multimedia irns with valid mimetypes
-        valid_multimedia = get_valid_multimedia(m, unique_multimedia_irns)
+        valid_multimedia = get_valid_multimedia(unique_multimedia_irns)
 
         # And finally update the associatedMedia field, so formatting with the IRN with MULTIMEDIA_URL, if the IRN is in valid_multimedia
         df['associatedMedia'] = df['associatedMedia'].apply(lambda irns: '; '.join(MULTIMEDIA_URL % irn for irn in irns if irn in valid_multimedia))
+
+        # Process part parents
+
+        parent_irns = pd.unique(df._parentRef.values.ravel()).tolist()
+
+        print parent_irns
+
 
         return df
 
@@ -315,7 +334,6 @@ class SpecimenDatasetToCSVTask(SpecimenDatasetTask, DatasetToCSVTask):
 
 
 class SpecimenDatasetToCKANTask(SpecimenDatasetTask, DatasetToCKANTask):
-
     package = {
         'name': 'specimens',
         'notes': u'The Natural History Museum\'s collection',
@@ -333,7 +351,7 @@ class SpecimenDatasetToCKANTask(SpecimenDatasetTask, DatasetToCKANTask):
         'resource': {
             'name': 'Test data',
             'description': 'Test data',
-            'format': 'dwc' # Darwin core
+            'format': 'dwc'  # Darwin core
         },
     }
 
