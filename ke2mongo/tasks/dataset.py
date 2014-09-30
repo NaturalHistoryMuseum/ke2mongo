@@ -154,7 +154,6 @@ class DatasetTask(luigi.Task):
                 df = self.process_dataframe(m, df)
 
                 # Output the dataframe
-                # TODO: Is out outputting hidden fields?
                 self.output().write(df)
 
                 row_count, col_count = df.shape
@@ -164,8 +163,17 @@ class DatasetTask(luigi.Task):
     def process_dataframe(self, m, df):
         return df  # default impl
 
+    @staticmethod
+    def _is_output_field(field):
+        """
+        Fields starting with _ are hidden and shouldn't be included in output
+        @param field:
+        @return: bool
+        """
+        return not field.startswith('_')
+
     def get_output_columns(self):
-        return OrderedDict((col[1], col[2]) for col in self.columns if not col[1].startswith('_'))
+        return OrderedDict((col[1], col[2]) for col in self.columns if self._is_output_field(col[1]))
 
 
 class DatasetToCKANTask(DatasetTask):

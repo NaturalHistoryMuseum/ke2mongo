@@ -437,7 +437,3 @@ class SpecimenDatasetToCKANTask(SpecimenDatasetTask, DatasetToCKANTask):
         'latitude_field': 'decimalLatitude',
         'longitude_field': 'decimalLongitude'
     }
-
-
-if __name__ == "__main__":
-    luigi.run()
