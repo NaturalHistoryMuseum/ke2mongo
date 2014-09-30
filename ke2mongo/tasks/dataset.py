@@ -49,14 +49,6 @@ class DatasetTask(luigi.Task):
         """
         return None
 
-    @abc.abstractproperty
-    def query(self):
-        """
-        Query object
-        @return: list || dict
-        """
-        return None
-
     @abc.abstractmethod
     def output(self):
         """
@@ -64,6 +56,22 @@ class DatasetTask(luigi.Task):
         This overrides luigi.task.output, to ensure it is set
         """
         return None
+
+    @property
+    def aggregation_query(self):
+        """
+        Query aggregation object
+        @return: list
+        """
+        return None  # Default impl
+
+    @property
+    def query(self):
+        """
+        Query object
+        @return: dict
+        """
+        return {}  # Default imply: query to return everything
 
     def __init__(self, *args, **kwargs):
 
@@ -97,19 +105,19 @@ class DatasetTask(luigi.Task):
         mongo = MongoClient()
         db = mongo[self.mongo_db]
 
-        # Is this query object a list? (an aggregation query)
-        if isinstance(self.query, list):
+        # Trigger pre query event
+        self.trigger_event('pre_query', self, db)
 
+        # Do we have an aggregation query?
+        if self.aggregation_query:
             # Monary cannot use an aggregator query, so we'll output to another collection
             # and then query against that for everything {}
             collection_name = 'agg_%s' % self.collection_name
 
-            q = self.query
+            q = self.aggregation_query
 
             # Add the output collection the query
             q.append({'$out': collection_name})
-
-            print q
 
             # Run the aggregation query
             log.info("Building aggregated collection: %s", collection_name)
@@ -118,20 +126,14 @@ class DatasetTask(luigi.Task):
             # Ensure the aggregation process succeeded
             assert result['ok'] == 1.0
 
-            # Select everything from the aggregation pipeline
-            query = {}
-
-        elif isinstance(self.query, dict):  # A normal mongo query
-            collection_name = self.collection_name
-            query = self.query
-        else:
-            raise TypeError('Query needs to be either an aggregation list or query dict')
 
         with Monary() as m:
 
+            log.info("Querying Monary")
+
             query_fields, df_cols, field_types, indexed = zip(*self.columns)
 
-            catalogue_blocks = m.block_query(self.mongo_db, collection_name, query, query_fields, field_types, block_size=block_size)
+            catalogue_blocks = m.block_query(self.mongo_db, collection_name, self.query, query_fields, field_types, block_size=block_size)
 
             for catalogue_block in catalogue_blocks:
 
@@ -152,6 +154,7 @@ class DatasetTask(luigi.Task):
                 df = self.process_dataframe(m, df)
 
                 # Output the dataframe
+                # TODO: Is out outputting hidden fields?
                 self.output().write(df)
 
                 row_count, col_count = df.shape

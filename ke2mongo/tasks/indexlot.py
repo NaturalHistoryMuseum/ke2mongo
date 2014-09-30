@@ -119,8 +119,6 @@ class IndexLotCSVTask(CSVTask):
 
         return df
 
-
-
 class IndexLotDatasetTask(DatasetTask):
     """
     Class for exporting exporting IndexLots data to CSV

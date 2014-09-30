@@ -10,9 +10,13 @@ python specimen.py SpecimenDatasetToCSVTask --local-scheduler --date 20140821
 """
 
 import os
+import sys
 import luigi
 import itertools
 import pandas as pd
+from pandas.core.common import isnull
+
+import numpy as np
 from ke2mongo import config
 from ke2mongo.tasks.dataset import DatasetTask, DatasetToCSVTask, DatasetToCKANTask
 from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE, MULTIMEDIA_URL, MULTIMEDIA_FORMATS
@@ -141,6 +145,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Private, internal-only fields
         ('RegRegistrationParentRef', '_parentRef', 'int32', False),
+        ('_id', '_id', 'int32', False),
 
 
         # Removed: We do not want notes, could contain anything
@@ -225,53 +230,61 @@ class SpecimenDatasetTask(DatasetTask):
     ]
 
     @property
-    def query(self):
+    def aggregation_query(self):
         """
         Build a query
         @return: aggregation list query
         """
-        query = list()
+        aggregation_query = list()
 
-        #
-
-        # match = {'$match': {"ColRecordType": {"$nin": PARENT_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}}
-
-        match = {'$match': {"RegRegistrationParentRef": {"$exists": True}}}
-
-        query.append({'$limit': 100})
+        # We do not want parent types - these will be merged in the DF
+        match = {'$match': {"ColRecordType": {"$nin": PARENT_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}}
 
         # If we have a date. we're only going to get specimens imported on that date
         if self.date:
             match['$match']['exportFileDate'] = self.date
 
-        query.append(match)
+        aggregation_query.append(match)
+
+        # aggregation_query.append({'$limit': 2000})
+
+        aggregation_query.append({'$project': self.aggregated_query_projection})
+
+        return aggregation_query
+
+    @property
+    def aggregated_query_projection(self):
+        """
+        The aggregated query projection
+        @return: list
+        """
 
         # Build list of columns to select
-        project = {col[0]: 1 for col in self.columns}
+        projection = {col[0]: 1 for col in self.columns}
 
-        # Create an array of dynamicProperties to use in an aggregation projection
+        # Create an array of dynamicProperties to use in an aggregation projectionion
         # In the format {dynamicProperties : {$concat: [{$cond: {if: "$ColRecordType", then: {$concat: ["ColRecordType=","$ColRecordType", ";"]}, else: ''}}
         dynamic_properties = [{"$cond": OrderedDict([("if", "${}".format(col[0])), ("then", {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}), ("else", '')])} for col in
                               self.dynamic_property_columns]
 
-        project['dynamicProperties'] = {"$concat": dynamic_properties}
+        projection['dynamicProperties'] = {"$concat": dynamic_properties}
 
         # We cannot rely on some DwC fields, as they are missing / incomplete for some records
         # So we manually add them based on other fields
 
         # If $DarCatalogNumber does not exist, we'll try use $GeneralCatalogueNumber
         # GeneralCatalogueNumber has min bm number - RegRegistrationNumber does not
-        project['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$GeneralCatalogueNumber"]}
+        projection['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$GeneralCatalogueNumber"]}
         # We cannot rely on the DarGlobalUniqueIdentifier field, as parts do not have it, so build manually
-        project['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK:ecatalogue:", "$irn"]}
+        projection['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK:ecatalogue:", "$irn"]}
 
         # As above, need to manually build DarCollectionCode and DarInstitutionCode
         # These do need to be defined as columns, so the inheritance / new field name is used
         # But we are over riding the default behaviour (just selecting the column)
-        project['DarInstitutionCode'] = {"$literal": "NHMUK"}
-        project['DarBasisOfRecord'] = {"$literal": "Specimen"}
+        projection['DarInstitutionCode'] = {"$literal": "NHMUK"}
+        projection['DarBasisOfRecord'] = {"$literal": "Specimen"}
         # If an entom record collection code = BMNH(E), otherwise use PAL, MIN etc.,
-        project['DarCollectionCode'] = {
+        projection['DarCollectionCode'] = {
             "$cond": {
                 "if": {"$eq": ["$ColDepartment", "Entomology"]},
                 "then": "BMNH(E)",
@@ -279,17 +292,58 @@ class SpecimenDatasetTask(DatasetTask):
             }
         }
 
-        query.append({'$project': project})
+        return projection
 
-        return query
+    @DatasetTask.event_handler("pre_query")
+    def pre_query(self, db):
+        """
+        Build a query of parent records, to be merged in the DF
+        This will query against the aggregation query above
+        @return: query
+        """
 
-    def process_dataframe(self, m, df):
-        """
-        Process the dataframe, updating multimedia irns => URIs
-        @param m: monary
-        @param df: dataframe
-        @return: dataframe
-        """
+        parent_aggregation_query = list()
+
+        # We do not want parent types - these will be merged in the DF
+
+        parent_aggregation_query.append({'$match': {"ColRecordType": {"$in": PARENT_TYPES}}})
+        parent_aggregation_query.append({'$project': self.aggregated_query_projection})
+
+        collection_name = 'agg_parent_%s' % self.collection_name
+
+        # Add the output collection the query
+        parent_aggregation_query.append({'$out': collection_name})
+
+        log.info("Building parent aggregated collection: %s", collection_name)
+
+        # TEMP: Put this back in
+        # result = db[self.collection_name].aggregate(parent_aggregation_query, allowDiskUse=True)
+        #
+        # # Ensure the aggregation process succeeded
+        # assert result['ok'] == 1.0
+
+    def get_dataframe(self, m, collection, columns, irns, key):
+        # The query to pre-load all taxonomy objects takes ~96 seconds
+        # It is much faster to load taxonomy objects on the fly, for the current block
+        # collection_index_irns = pd.unique(df._collection_index_irn.values.ravel()).tolist()
+
+        query_fields, df_cols, field_types, indexed = zip(*self.columns)
+        assert key in df_cols, 'Merge dataframe key must be present in dataframe columns'
+
+        q = {'_id': {'$in': irns}}
+
+        query = m.query('keemu', collection, q, query_fields, field_types)
+        df = pd.DataFrame(np.matrix(query).transpose(), columns=df_cols)
+
+        # Convert to int (adding index doesn't speed this up)
+        df[key] = df[key].astype('int32')
+
+        df.index = df[key]
+
+        return df
+
+    @staticmethod
+    def ensure_multimedia(m, df):
 
         # The multimedia field contains IRNS of all items - not just images
         # So we need to look up the IRNs against the multimedia record to get the mime type
@@ -319,12 +373,33 @@ class SpecimenDatasetTask(DatasetTask):
         # And finally update the associatedMedia field, so formatting with the IRN with MULTIMEDIA_URL, if the IRN is in valid_multimedia
         df['associatedMedia'] = df['associatedMedia'].apply(lambda irns: '; '.join(MULTIMEDIA_URL % irn for irn in irns if irn in valid_multimedia))
 
-        # Process part parents
+    def process_dataframe(self, m, df):
+        """
+        Process the dataframe, updating multimedia irns => URIs
+        @param m: monary
+        @param df: dataframe
+        @return: dataframe
+        """
 
+        self.ensure_multimedia(m, df)
+
+        # Process part parents
         parent_irns = pd.unique(df._parentRef.values.ravel()).tolist()
 
-        print parent_irns
+        if parent_irns:
 
+            parent_df = self.get_dataframe(m, self.collection_name, self.columns, parent_irns, '_id')
+
+            # Ensure the parent multimedia images are usable
+            self.ensure_multimedia(m, parent_df)
+
+            df.index = df['_parentRef']
+
+            # Convert empty strings to NaNs
+            df = df.applymap(lambda x: np.nan if isinstance(x, basestring) and x == '' else x)
+
+            # Which allows us to use combine_first() to replace NaNs with value from parent df
+            df = df.combine_first(parent_df)
 
         return df
 
