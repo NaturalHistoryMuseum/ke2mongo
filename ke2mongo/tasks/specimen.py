@@ -246,7 +246,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         aggregation_query.append(match)
 
-        # aggregation_query.append({'$limit': 2000})
+        aggregation_query.append({'$limit': 50})
 
         aggregation_query.append({'$project': self.aggregated_query_projection})
 
@@ -393,6 +393,7 @@ class SpecimenDatasetTask(DatasetTask):
             # Ensure the parent multimedia images are usable
             self.ensure_multimedia(m, parent_df)
 
+            # Assign parentRef as the index to allow us to combine with parent_df
             df.index = df['_parentRef']
 
             # Convert empty strings to NaNs
