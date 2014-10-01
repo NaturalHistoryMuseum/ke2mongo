@@ -21,12 +21,10 @@ from ke2mongo.log import log
 from ke2mongo.lib.timeit import timeit
 from ke2mongo import config
 from collections import OrderedDict
-from pymongo import MongoClient
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
-from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
-from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
+from ke2mongo.tasks.delete import DeleteTask
 from ke2mongo.lib.file import get_export_file_dates
 from ke2mongo.tasks.target import CSVTarget, CKANTarget
 
@@ -58,20 +56,18 @@ class DatasetTask(luigi.Task):
         return None
 
     @property
-    def aggregation_query(self):
-        """
-        Query aggregation object
-        @return: list
-        """
-        return None  # Default impl
-
-    @property
     def query(self):
         """
         Query object
         @return: dict
         """
-        return {}  # Default imply: query to return everything
+
+        query = {"ColRecordType": self.record_type}
+
+        if self.date:
+            query['exportFileDate'] = self.date
+
+        return query
 
     def __init__(self, *args, **kwargs):
 
@@ -92,40 +88,17 @@ class DatasetTask(luigi.Task):
 
         # Only require mongo tasks if data parameter is passed in - allows us to rerun for testing
         if self.date:
-            yield MongoCatalogueTask(self.date), MongoDeleteTask(self.date), MongoTaxonomyTask(self.date),  MongoMultimediaTask(self.date), MongoMultimediaTask(self.date)
+            yield MongoCatalogueTask(self.date), DeleteTask(self.date), MongoTaxonomyTask(self.date),  MongoMultimediaTask(self.date), MongoMultimediaTask(self.date)
 
     @timeit
     def run(self):
 
+        # # Default collection name - overridden by aggregation queries
+        # collection_name = self.collection_name
+
         # Number of records to retrieve (~200 breaks CSV)
         block_size = 100 if isinstance(self.output(), CSVTarget) else 5000
-
         count = 0
-
-        mongo = MongoClient()
-        db = mongo[self.mongo_db]
-
-        # Trigger pre query event
-        self.trigger_event('pre_query', self, db)
-
-        # Do we have an aggregation query?
-        if self.aggregation_query:
-            # Monary cannot use an aggregator query, so we'll output to another collection
-            # and then query against that for everything {}
-            collection_name = 'agg_%s' % self.collection_name
-
-            q = self.aggregation_query
-
-            # Add the output collection the query
-            q.append({'$out': collection_name})
-
-            # Run the aggregation query
-            log.info("Building aggregated collection: %s", collection_name)
-            result = db[self.collection_name].aggregate(q, allowDiskUse=True)
-
-            # Ensure the aggregation process succeeded
-            assert result['ok'] == 1.0
-
 
         with Monary() as m:
 
@@ -133,7 +106,7 @@ class DatasetTask(luigi.Task):
 
             query_fields, df_cols, field_types, indexed = zip(*self.columns)
 
-            catalogue_blocks = m.block_query(self.mongo_db, collection_name, self.query, query_fields, field_types, block_size=block_size)
+            catalogue_blocks = m.block_query(self.mongo_db, self.collection_name, self.query, query_fields, field_types, block_size=block_size)
 
             for catalogue_block in catalogue_blocks:
 
@@ -162,6 +135,23 @@ class DatasetTask(luigi.Task):
 
     def process_dataframe(self, m, df):
         return df  # default impl
+
+    def get_dataframe(self, m, collection, columns, irns, key):
+
+        query_fields, df_cols, field_types, indexed = zip(*self.columns)
+        assert key in df_cols, 'Merge dataframe key must be present in dataframe columns'
+
+        q = {'_id': {'$in': irns}}
+
+        query = m.query('keemu', collection, q, query_fields, field_types)
+        df = pd.DataFrame(np.matrix(query).transpose(), columns=df_cols)
+
+        # Convert to int
+        df[key] = df[key].astype('int32')
+        # And make index
+        df.index = df[key]
+
+        return df
 
     @staticmethod
     def _is_output_field(field):
@@ -268,7 +258,4 @@ class DatasetToCSVTask(DatasetTask):
         Luigi method: output target
         @return: luigi file ref
         """
-
-        print self.get_output_columns()
-
         return CSVTarget(file_name=self.file_name, date=self.date, columns=self.get_output_columns())

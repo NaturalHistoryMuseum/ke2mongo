@@ -14,20 +14,22 @@ import sys
 import luigi
 import itertools
 import pandas as pd
-from pandas.core.common import isnull
+from pymongo import MongoClient
 
 import numpy as np
 from ke2mongo import config
+from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, MULTIMEDIA_URL, MULTIMEDIA_FORMATS
 from ke2mongo.tasks.dataset import DatasetTask, DatasetToCSVTask, DatasetToCKANTask
-from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, ARTEFACT_TYPE, INDEX_LOT_TYPE, MULTIMEDIA_URL, MULTIMEDIA_FORMATS
 from ke2mongo.tasks.target import CSVTarget, CKANTarget
+from ke2mongo.tasks.artefact import ArtefactDatasetTask
+from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 from ke2mongo.log import log
 from collections import OrderedDict
 
 
 class SpecimenDatasetTask(DatasetTask):
-    columns = [
 
+    columns = [
         # List of columns
         # ([KE EMu field], [new field], [field type], indexed)
 
@@ -229,43 +231,56 @@ class SpecimenDatasetTask(DatasetTask):
         ('MinMetWeightAsRegisteredUnit', 'registeredWeightUnit'),
     ]
 
-    @property
-    def aggregation_query(self):
+    query = {}  # Selecting data is moved to aggregation query
+
+    def run(self):
+
+        # Before running, build aggregation query
+        self.build_aggregation_query()
+
+        super(SpecimenDatasetTask, self).run()
+
+
+        # # Do we have an aggregation query?
+        # if self.aggregation_query:
+        #     # Monary cannot use an aggregator query, so we'll output to another collection
+        #     # and then query against that for everything {}
+        #     collection_name = 'agg_%s' % self.collection_name
+        #
+        #     q = self.aggregation_query
+        #
+        #     # Add the output collection the query
+        #     q.append({'$out': collection_name})
+        #
+        #     # Run the aggregation query
+        #     log.info("Building aggregated collection: %s", collection_name)
+        #     result = db[self.collection_name].aggregate(q, allowDiskUse=True)
+        #
+        #     # Ensure the aggregation process succeeded
+        #     assert result['ok'] == 1.0
+
+    def build_aggregation_query(self):
         """
-        Build a query
-        @return: aggregation list query
+        Build aggregation query
+        The specimen dataset is too complicated, and we need to use MongoDB's aggregation queries
+        Monary cannot handle aggregation queries however, so we'll build the aggregator, and then use {} for the query
+
+        @return: Boolean, denoting success
         """
-        aggregation_query = list()
 
-        # We do not want parent types - these will be merged in the DF
-        match = {'$match': {"ColRecordType": {"$nin": PARENT_TYPES + [ARTEFACT_TYPE, INDEX_LOT_TYPE]}}}
+        mongo = MongoClient()
+        db_collection = mongo[self.mongo_db][self.collection_name]
 
-        # If we have a date. we're only going to get specimens imported on that date
-        if self.date:
-            match['$match']['exportFileDate'] = self.date
-
-        aggregation_query.append(match)
-
-        aggregation_query.append({'$limit': 50})
-
-        aggregation_query.append({'$project': self.aggregated_query_projection})
-
-        return aggregation_query
-
-    @property
-    def aggregated_query_projection(self):
-        """
-        The aggregated query projection
-        @return: list
-        """
+        # Update collection name to use agg_
+        # Monary will query against the collection name
+        self.collection_name = 'agg_%s' % self.collection_name
 
         # Build list of columns to select
         projection = {col[0]: 1 for col in self.columns}
 
-        # Create an array of dynamicProperties to use in an aggregation projectionion
+        # Create an array of dynamicProperties to use in an aggregation projection
         # In the format {dynamicProperties : {$concat: [{$cond: {if: "$ColRecordType", then: {$concat: ["ColRecordType=","$ColRecordType", ";"]}, else: ''}}
-        dynamic_properties = [{"$cond": OrderedDict([("if", "${}".format(col[0])), ("then", {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}), ("else", '')])} for col in
-                              self.dynamic_property_columns]
+        dynamic_properties = [{"$cond": OrderedDict([("if", "${}".format(col[0])), ("then", {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}), ("else", '')])} for col in self.dynamic_property_columns]
 
         projection['dynamicProperties'] = {"$concat": dynamic_properties}
 
@@ -292,55 +307,56 @@ class SpecimenDatasetTask(DatasetTask):
             }
         }
 
-        return projection
-
-    @DatasetTask.event_handler("pre_query")
-    def pre_query(self, db):
-        """
-        Build a query of parent records, to be merged in the DF
-        This will query against the aggregation query above
-        @return: query
-        """
+        # Build an aggregation query for parent records
+        # Uses the same projection, so we can easily merge into part records when we're processing the dataframe
 
         parent_aggregation_query = list()
 
         # We do not want parent types - these will be merged in the DF
 
         parent_aggregation_query.append({'$match': {"ColRecordType": {"$in": PARENT_TYPES}}})
-        parent_aggregation_query.append({'$project': self.aggregated_query_projection})
+        parent_aggregation_query.append({'$project': projection})
 
-        collection_name = 'agg_parent_%s' % self.collection_name
+        self.agg_parent_collection_name = '%s_parent' % self.collection_name
 
         # Add the output collection the query
-        parent_aggregation_query.append({'$out': collection_name})
+        parent_aggregation_query.append({'$out': self.agg_parent_collection_name})
 
-        log.info("Building parent aggregated collection: %s", collection_name)
+        log.info("Building parent aggregated collection: %s", self.agg_parent_collection_name)
 
         # TEMP: Put this back in
-        # result = db[self.collection_name].aggregate(parent_aggregation_query, allowDiskUse=True)
+        # result = db_collection.aggregate(parent_aggregation_query, allowDiskUse=True)
         #
         # # Ensure the aggregation process succeeded
         # assert result['ok'] == 1.0
 
-    def get_dataframe(self, m, collection, columns, irns, key):
-        # The query to pre-load all taxonomy objects takes ~96 seconds
-        # It is much faster to load taxonomy objects on the fly, for the current block
-        # collection_index_irns = pd.unique(df._collection_index_irn.values.ravel()).tolist()
+        # And now build the main aggregation query we'll use with Monary
 
-        query_fields, df_cols, field_types, indexed = zip(*self.columns)
-        assert key in df_cols, 'Merge dataframe key must be present in dataframe columns'
+        aggregation_query = list()
 
-        q = {'_id': {'$in': irns}}
+        # We do not want parent types - these will be merged in the DF
+        match = {'$match': {"ColRecordType": {"$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]}}}
 
-        query = m.query('keemu', collection, q, query_fields, field_types)
-        df = pd.DataFrame(np.matrix(query).transpose(), columns=df_cols)
+        # If we have a date. we're only going to get specimens imported on that date
+        if self.date:
+            match['$match']['exportFileDate'] = self.date
 
-        # Convert to int (adding index doesn't speed this up)
-        df[key] = df[key].astype('int32')
+        aggregation_query.append(match)
 
-        df.index = df[key]
+        aggregation_query.append({'$limit': 500})
 
-        return df
+        aggregation_query.append({'$project': projection})
+
+           # Add the output collection the query
+        aggregation_query.append({'$out': self.collection_name})
+
+        # Run the aggregation query
+        log.info("Building aggregated collection: %s", self.collection_name)
+        result = db_collection.aggregate(aggregation_query, allowDiskUse=True)
+
+        # Ensure the aggregation process succeeded
+        assert result['ok'] == 1.0
+
 
     @staticmethod
     def ensure_multimedia(m, df):
@@ -388,7 +404,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         if parent_irns:
 
-            parent_df = self.get_dataframe(m, self.collection_name, self.columns, parent_irns, '_id')
+            parent_df = self.get_dataframe(m, self.agg_parent_collection_name, self.columns, parent_irns, '_id')
 
             # Ensure the parent multimedia images are usable
             self.ensure_multimedia(m, parent_df)

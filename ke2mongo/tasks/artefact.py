@@ -16,11 +16,10 @@ import pandas as pd
 from ke2mongo.log import log
 from ke2mongo import config
 from ke2mongo.tasks.dataset import DatasetTask
-from ke2mongo.tasks.csv import CSVTask
-from ke2mongo.tasks import ARTEFACT_TYPE, MULTIMEDIA_URL
+from ke2mongo.tasks import MULTIMEDIA_URL
 
 
-class ArtefactCSVTask(CSVTask):
+class ArtefactDatasetTask(DatasetTask):
 
     columns = [
         ('_id', '_id', 'int32'),
@@ -30,7 +29,7 @@ class ArtefactCSVTask(CSVTask):
         ('MulMultiMediaRef', 'multimedia', 'string:100')
     ]
 
-    query = {"ColRecordType": ARTEFACT_TYPE}
+    record_type = 'Artefact'
 
     def process_dataframe(self, m, df):
         """
@@ -45,32 +44,34 @@ class ArtefactCSVTask(CSVTask):
         return df
 
 
-class ArtefactDatasetTask(DatasetTask):
-    """
-    Class for exporting exporting IndexLots data to CSV
-    """
-    name = 'Artefacts'
-    description = 'Museum artefacts'
-    format = 'csv'
-
-    package = {
-        'name': u'artefacts5',
-        'notes': u'Cultural and historical artefacts from The Natural History Museum',
-        'title': "Artefacts",
-        'author': 'Natural History Museum',
-        'author_email': None,
-        'license_id': u'cc-by',
-        'maintainer': None,
-        'maintainer_email': None,
-        'resources': [],
-        'dataset_type': 'Cultural artefacts',
-        'owner_org': config.get('ckan', 'owner_org')
-    }
-
-    full_text_blacklist = [
-        'multimedia'
-    ]
-
-    csv_class = ArtefactCSVTask
+# class ArtefactDatasetTask(DatasetTask):
+#     """
+#     Class for exporting exporting IndexLots data to CSV
+#     """
+#     name = 'Artefacts'
+#     description = 'Museum artefacts'
+#     format = 'csv'
+#
+#     package = {
+#         'name': u'artefacts5',
+#         'notes': u'Cultural and historical artefacts from The Natural History Museum',
+#         'title': "Artefacts",
+#         'author': 'Natural History Museum',
+#         'author_email': None,
+#         'license_id': u'cc-by',
+#         'maintainer': None,
+#         'maintainer_email': None,
+#         'resources': [],
+#         'dataset_type': 'Cultural artefacts',
+#         'owner_org': config.get('ckan', 'owner_org')
+#     }
+#
+#     full_text_blacklist = [
+#         'multimedia'
+#     ]
+#
+#
+#
+#     csv_class = ArtefactCSVTask
 
 

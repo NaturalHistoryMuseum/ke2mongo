@@ -77,7 +77,7 @@ class MongoTask(luigi.Task):
 
     date = luigi.IntParameter()
     # Added parameter to allow skipping the processing of records - this is so MW can look at the raw data in mongo
-    unprocessed = luigi.BooleanParameter()
+    unprocessed = luigi.BooleanParameter(default=False)
     flatten_mode = FlattenModeParameter(default=FLATTEN_ALL)
 
     database = config.get('mongo', 'database')

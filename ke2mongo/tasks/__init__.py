@@ -17,10 +17,6 @@ PART_TYPES = [
     'Mammal Group Part'
 ]
 
-INDEX_LOT_TYPE = 'Index Lot'
-
-ARTEFACT_TYPE = 'Artefact'
-
 MULTIMEDIA_URL = 'http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php?irn=%s&image=yes&width=600'
 
 # http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php only supports jp2 and jpeg - not gif, tiff etc.,

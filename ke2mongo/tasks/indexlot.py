@@ -7,58 +7,53 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 import numpy as np
 import pandas as pd
-from ke2mongo.tasks.dataset import DatasetTask
-from ke2mongo.tasks.specimen import SpecimenDatasetTask
-from ke2mongo.tasks.csv import CSVTask
-from ke2mongo.tasks import INDEX_LOT_TYPE
+from ke2mongo.tasks.dataset import DatasetTask, DatasetToCSVTask, DatasetToCKANTask
 
-class IndexLotCSVTask(CSVTask):
+class IndexLotDatasetTask(DatasetTask):
 
     columns = [
-        ('_id', '_id', 'int32'),
-        ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
-        ('EntIndMaterial', 'material', 'bool'),
-        ('EntIndType', 'is_type', 'bool'),
-        ('EntIndMedia', 'media', 'bool'),
-        ('EntIndKindOfMaterial', 'kind_of_material', 'string:100'),
-        ('EntIndKindOfMedia', 'kind_of_media', 'string:100'),
+        ('_id', '_id', 'int32', False),
+        ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32', True),
+        ('EntIndMaterial', 'material', 'bool', False),
+        ('EntIndType', 'is_type', 'bool', False),
+        ('EntIndMedia', 'media', 'bool', False),
+        ('EntIndKindOfMaterial', 'kind_of_material', 'string:100', True),
+        ('EntIndKindOfMedia', 'kind_of_media', 'string:100', True),
         # Material detail
-        ('EntIndCount', 'material_count', 'string:100'),
-        ('EntIndTypes', 'material_types', 'string:100'),
+        ('EntIndCount', 'material_count', 'string:100', False),
+        ('EntIndTypes', 'material_types', 'string:100', True),
     ]
 
-    # query = {"ColRecordType": INDEX_LOT_TYPE, '_id': {'$in': [1132482, 1637891]}}
-
-    query = {"ColRecordType": INDEX_LOT_TYPE}
+    record_type = 'Index Lot'
 
     # Additional columns to merge in from the taxonomy collection
     collection_index_columns = [
-        ('_id', '_collection_index_irn', 'int32'),
+        ('_id', '_collection_index_irn', 'int32', False),
         # BUG FIX BS 140811
         # ColCurrentNameRef Is not being updated correctly - see record 899984
         # ColCurrentNameRef = 964105
         # Not a problem, as indexlots are using ColTaxonomicNameRef for summary data etc.,
         # So ColTaxonomicNameRef is the correct field to use.
-        ('ColTaxonomicNameRef', '_taxonomy_irn', 'int32'),
+        ('ColTaxonomicNameRef', '_taxonomy_irn', 'int32', False),
     ]
 
     # Additional columns to merge in from the taxonomy collection
     taxonomy_columns = [
-        ('_id', '_taxonomy_irn', 'int32'),
-        ('ClaScientificNameBuilt', 'scientific_name', 'string:100'),
-        ('ClaKingdom', 'kingdom', 'string:60'),
-        ('ClaPhylum', 'phylum', 'string:100'),
-        ('ClaClass', 'class', 'string:100'),
-        ('ClaOrder', 'order', 'string:100'),
-        ('ClaSuborder', 'suborder', 'string:100'),
-        ('ClaSuperfamily', 'superfamily', 'string:100'),
-        ('ClaFamily', 'family', 'string:100'),
-        ('ClaSubfamily', 'subfamily', 'string:100'),
-        ('ClaGenus', 'genus', 'string:100'),
-        ('ClaSubgenus', 'subgenus', 'string:100'),
-        ('ClaSpecies', 'species', 'string:100'),
-        ('ClaSubspecies', 'subspecies', 'string:100'),
-        ('ClaRank', 'taxonomic_rank', 'string:10'),  # NB: CKAN uses rank internally
+        ('_id', '_taxonomy_irn', 'int32', False),
+        ('ClaScientificNameBuilt', 'scientific_name', 'string:100', True),
+        ('ClaKingdom', 'kingdom', 'string:60', True),
+        ('ClaPhylum', 'phylum', 'string:100', True),
+        ('ClaClass', 'class', 'string:100', True),
+        ('ClaOrder', 'order', 'string:100', True),
+        ('ClaSuborder', 'suborder', 'string:100', True),
+        ('ClaSuperfamily', 'superfamily', 'string:100', True),
+        ('ClaFamily', 'family', 'string:100', True),
+        ('ClaSubfamily', 'subfamily', 'string:100', True),
+        ('ClaGenus', 'genus', 'string:100', True),
+        ('ClaSubgenus', 'subgenus', 'string:100', True),
+        ('ClaSpecies', 'species', 'string:100', True),
+        ('ClaSubspecies', 'subspecies', 'string:100', True),
+        ('ClaRank', 'taxonomic_rank', 'string:10', True),  # NB: CKAN uses rank internally
     ]
 
     def csv_output_columns(self):
@@ -89,6 +84,9 @@ class IndexLotCSVTask(CSVTask):
         # And get the taxonomy for these collection
         taxonomy_irns = pd.unique(collection_index_df._taxonomy_irn.values.ravel()).tolist()
 
+        # The query to pre-load all taxonomy objects takes ~96 seconds
+        # It is much faster to load taxonomy objects on the fly, for the current block
+        # collection_index_irns = pd.unique(df._collection_index_irn.values.ravel()).tolist()
         taxonomy_df = self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, taxonomy_irns, '_taxonomy_irn')
 
         # Merge the taxonomy into the collection index dataframe - we need to do this so we can merge into
@@ -100,37 +98,37 @@ class IndexLotCSVTask(CSVTask):
 
         return df
 
-    def get_dataframe(self, m, collection, columns, irns, key):
-        # The query to pre-load all taxonomy objects takes ~96 seconds
-        # It is much faster to load taxonomy objects on the fly, for the current block
-        # collection_index_irns = pd.unique(df._collection_index_irn.values.ravel()).tolist()
 
-        ke_cols, df_cols, types = zip(*columns)
+class IndexLotDatasetToCSVTask(IndexLotDatasetTask, DatasetToCSVTask):
+    pass
 
-        assert key in df_cols, 'Merge dataframe key must be present in dataframe columns'
 
-        q = {'_id': {'$in': irns}}
+class IndexLotDatasetToCKANTask(IndexLotDatasetTask, DatasetToCKANTask):
 
-        query = m.query('keemu', collection, q, ke_cols, types)
-        df = pd.DataFrame(np.matrix(query).transpose(), columns=df_cols)
+    # TODO: Fix all of this
 
-        # Convert to int (adding index doesn't speed this up)
-        df[key] = df[key].astype('int32')
+    package = {
+        'name': 'specimens',
+        'notes': u'The Natural History Museum\'s collection',
+        'title': "NHM Collection",
+        'author': 'Natural History Museum',
+        'license_id': u'cc-by',
+        'resources': [],
+        'dataset_type': 'Specimen',
+        'spatial': '{"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}',
+        # 'owner_org': config.get('ckan', 'owner_org')
+    }
 
-        return df
+    # And now save to the datastore
+    datastore = {
+        'resource': {
+            'name': 'Test data',
+            'description': 'Test data',
+            'format': 'dwc'  # Darwin core
+        },
+    }
 
-class IndexLotDatasetTask(DatasetTask):
-    """
-    Class for exporting exporting IndexLots data to CSV
-    """
-    name = 'Indexlots'
-    description = 'Entomology Indexlot records'
-    format = 'csv'
-
-    # Use the same package details as the Specimen Dataset task
-    package = SpecimenDatasetTask.package
-
-    csv_class = IndexLotCSVTask
+    primary_key = 'occurrenceID'
 
 
 
