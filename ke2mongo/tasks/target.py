@@ -145,12 +145,18 @@ class CKANTarget(luigi.Target):
 
         print "Saving records to CKAN"
 
+        for col, np_type in self.columns.iteritems():
+            if np_type.startswith('float'):
+                # Ensure any float fields with value 0.0 are actually None
+                df[col][df[col] == '0.0'] = np.NaN
+            elif np_type.startswith('bool'):
+                # And make sure '' in boolean fields are also None
+                df[col][df[col] == ''] = np.NaN
+
         # Loop through all the dataframe columns, removing internal ones (starting with _)
         for col in df:
             if col.startswith('_'):
                 df.drop(col, axis=1, inplace=True)
-
-        print df['catalogue_number']
 
         df = df.where(pd.notnull(df), None)
         records = df.to_dict(outtype='records')

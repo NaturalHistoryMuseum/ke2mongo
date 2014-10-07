@@ -104,7 +104,7 @@ class DatasetTask(luigi.Task):
 
             log.info("Querying Monary")
 
-            query_fields, df_cols, field_types, indexed = zip(*self.columns)
+            query_fields, df_cols, field_types = zip(*self.columns)
 
             catalogue_blocks = m.block_query(self.mongo_db, self.collection_name, self.query, query_fields, field_types, block_size=block_size)
 
@@ -138,7 +138,7 @@ class DatasetTask(luigi.Task):
 
     def get_dataframe(self, m, collection, columns, irns, key):
 
-        query_fields, df_cols, field_types, indexed = zip(*columns)
+        query_fields, df_cols, field_types = zip(*columns)
         assert key in df_cols, 'Merge dataframe key must be present in dataframe columns'
 
         q = {'_id': {'$in': irns}}

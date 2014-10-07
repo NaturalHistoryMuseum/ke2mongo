@@ -29,123 +29,123 @@ class SpecimenDatasetTask(DatasetTask):
 
     columns = [
         # List of columns
-        # ([KE EMu field], [new field], [field type], indexed)
+        # ([KE EMu field], [new field], [field type])
 
         # Identifier
-        ('DarGlobalUniqueIdentifier', 'occurrenceID', 'string:100', False),  # Needs to be false: this is the primary key
+        ('DarGlobalUniqueIdentifier', 'occurrenceID', 'string:100'),
 
         # Record level
-        ('AdmDateModified', 'modified', 'string:100', True),
+        ('AdmDateModified', 'modified', 'string:100'),
         # This isn't actually in DwC - but I'm going to use dcterms:created
-        ('AdmDateInserted', 'created', 'string:100', True),
-        ('DarInstitutionCode', 'institutionCode', 'string:100', True),
-        ('DarCollectionCode', 'collectionCode', 'string:100', True),
-        ('DarBasisOfRecord', 'basisOfRecord', 'string:100', True),
+        ('AdmDateInserted', 'created', 'string:100'),
+        ('DarInstitutionCode', 'institutionCode', 'string:100'),
+        ('DarCollectionCode', 'collectionCode', 'string:100'),
+        ('DarBasisOfRecord', 'basisOfRecord', 'string:100'),
 
         # Taxonomy
-        ('DarScientificName', 'scientificName', 'string:100', True),
+        ('DarScientificName', 'scientificName', 'string:100'),
         # Rather than using the two darwin core fields DarScientificNameAuthorYear and ScientificNameAuthor
         # It's easier to just use IdeFiledAsAuthors which has them both concatenated
-        ('IdeFiledAsAuthors', 'scientificNameAuthorship', 'string:100', True),
-        ('DarKingdom', 'kingdom', 'string:100', True),
-        ('DarPhylum', 'phylum', 'string:100', True),
-        ('DarClass', 'class', 'string:100', True),
-        ('DarOrder', 'order', 'string:100', True),
-        ('DarFamily', 'family', 'string:100', True),
-        ('DarGenus', 'genus', 'string:100', True),
-        ('DarSubgenus', 'subgenus', 'string:100', True),
-        ('DarSpecies', 'specificEpithet', 'string:100', True),
-        ('DarSubspecies', 'infraspecificEpithet', 'string:100', True),
-        ('DarHigherTaxon', 'higherClassification', 'string:100', True),
-        ('DarInfraspecificRank', 'taxonRank', 'string:100', True),
+        ('IdeFiledAsAuthors', 'scientificNameAuthorship', 'string:100'),
+        ('DarKingdom', 'kingdom', 'string:100'),
+        ('DarPhylum', 'phylum', 'string:100'),
+        ('DarClass', 'class', 'string:100'),
+        ('DarOrder', 'order', 'string:100'),
+        ('DarFamily', 'family', 'string:100'),
+        ('DarGenus', 'genus', 'string:100'),
+        ('DarSubgenus', 'subgenus', 'string:100'),
+        ('DarSpecies', 'specificEpithet', 'string:100'),
+        ('DarSubspecies', 'infraspecificEpithet', 'string:100'),
+        ('DarHigherTaxon', 'higherClassification', 'string:100'),
+        ('DarInfraspecificRank', 'taxonRank', 'string:100'),
 
         # Location
         # The encoding of DarLocality is buggered - see ecatalogue.1804973
         # So better to use the original field with the correct encoding
-        ('sumPreciseLocation', 'locality', 'string:100', True),
-        ('DarStateProvince', 'stateProvince', 'string:100', True),
-        ('DarCountry', 'country', 'string:100', True),
-        ('DarContinent', 'continent', 'string:100', True),
-        ('DarIsland', 'island', 'string:100', True),
-        ('DarIslandGroup', 'islandGroup', 'string:100', True),
+        ('sumPreciseLocation', 'locality', 'string:100'),
+        ('DarStateProvince', 'stateProvince', 'string:100'),
+        ('DarCountry', 'country', 'string:100'),
+        ('DarContinent', 'continent', 'string:100'),
+        ('DarIsland', 'island', 'string:100'),
+        ('DarIslandGroup', 'islandGroup', 'string:100'),
         # Removed: continentOcean is not in current DwC standard, replaced by waterBody and continent
-        # ('DarContinentOcean', 'continentOcean', 'string:100', True),
-        ('DarWaterBody', 'waterBody', 'string:100', True),
-        ('DarHigherGeography', 'higherGeography', 'string:100', True),
-        ('ColHabitatVerbatim', 'habitat', 'string:100', True),
+        # ('DarContinentOcean', 'continentOcean', 'string:100'),
+        ('DarWaterBody', 'waterBody', 'string:100'),
+        ('DarHigherGeography', 'higherGeography', 'string:100'),
+        ('ColHabitatVerbatim', 'habitat', 'string:100'),
 
-        ('DarDecimalLongitude', 'decimalLongitude', 'float32', True),
-        ('DarDecimalLatitude', 'decimalLatitude', 'float32', True),
-        ('DarGeodeticDatum', 'geodeticDatum', 'string:100', True),
-        ('DarGeorefMethod', 'georeferenceProtocol', 'string:100', True),
+        ('DarDecimalLongitude', 'decimalLongitude', 'float32'),
+        ('DarDecimalLatitude', 'decimalLatitude', 'float32'),
+        ('DarGeodeticDatum', 'geodeticDatum', 'string:100'),
+        ('DarGeorefMethod', 'georeferenceProtocol', 'string:100'),
 
-        ('DarMinimumElevationInMeters', 'minimumElevationInMeters', 'string:100', True),
-        ('DarMaximumElevationInMeters', 'maximumElevationInMeters', 'string:100', True),
-        ('DarMinimumDepthInMeters', 'minimumDepthInMeters', 'string:100', True),
-        ('DarMaximumDepthInMeters', 'maximumDepthInMeters', 'string:100', True),
+        ('DarMinimumElevationInMeters', 'minimumElevationInMeters', 'string:100'),
+        ('DarMaximumElevationInMeters', 'maximumElevationInMeters', 'string:100'),
+        ('DarMinimumDepthInMeters', 'minimumDepthInMeters', 'string:100'),
+        ('DarMaximumDepthInMeters', 'maximumDepthInMeters', 'string:100'),
 
         # Occurrence
-        ('DarCatalogNumber', 'catalogNumber', 'string:100', True),
-        ('DarOtherCatalogNumbers', 'otherCatalogNumbers', 'string:100', True),
-        ('DarCollector', 'recordedBy', 'string:100', True),
-        ('DarCollectorNumber', 'recordNumber', 'string:100', True),
-        ('DarIndividualCount', 'individualCount', 'string:100', True),
-        ('DarLifeStage', 'lifeStage', 'string:100', True),
+        ('DarCatalogNumber', 'catalogNumber', 'string:100'),
+        ('DarOtherCatalogNumbers', 'otherCatalogNumbers', 'string:100'),
+        ('DarCollector', 'recordedBy', 'string:100'),
+        ('DarCollectorNumber', 'recordNumber', 'string:100'),
+        ('DarIndividualCount', 'individualCount', 'string:100'),
+        ('DarLifeStage', 'lifeStage', 'string:100'),
         # According to docs, ageClass has been superseded by lifeStage. We have both, but ageClass duplicates
         # And for the ~200 it has extra data, the data isn't good
-        # ('DarAgeClass', 'ageClass', 'string:100', True),
-        ('DarSex', 'sex', 'string:100', True),
-        ('DarPreparations', 'preparations', 'string:100', True),
+        # ('DarAgeClass', 'ageClass', 'string:100'),
+        ('DarSex', 'sex', 'string:100'),
+        ('DarPreparations', 'preparations', 'string:100'),
 
         # Identification
-        ('DarIdentifiedBy', 'identifiedBy', 'string:100', True),
+        ('DarIdentifiedBy', 'identifiedBy', 'string:100'),
         # KE Emu has 3 fields for identification date: DarDayIdentified, DarMonthIdentified and DarYearIdentified
         # But EntIdeDateIdentified holds them all - which is what we want for dateIdentified
-        ('EntIdeDateIdentified', 'dateIdentified', 'string:100', True),
-        ('DarIdentificationQualifier', 'identificationQualifier', 'string:100', True),
-        ('DarTypeStatus', 'typeStatus', 'string:100', True),
+        ('EntIdeDateIdentified', 'dateIdentified', 'string:100'),
+        ('DarIdentificationQualifier', 'identificationQualifier', 'string:100'),
+        ('DarTypeStatus', 'typeStatus', 'string:100'),
 
         # Collection event
-        ('DarFieldNumber', 'fieldNumber', 'string:100', True),
+        ('DarFieldNumber', 'fieldNumber', 'string:100'),
         # Merge into eventTime (DarStartTimeOfDay & DarEndTimeOfDay not used when eventTime is empty)
-        ('DarTimeOfDay', 'eventTime', 'string:100', True),
+        ('DarTimeOfDay', 'eventTime', 'string:100'),
         # KE EMu uses 3 fields: DarDayCollected, DarStartDayCollected and DarEndDayCollected
         # However DarStartDayCollected & DarEndDayCollected is never populated when DarDayCollected isn't
         # So lets just use DarDayCollected
-        ('DarDayCollected', 'day', 'string:100', True),
+        ('DarDayCollected', 'day', 'string:100'),
         # As day: DarStartMonthCollected + DarEndMonthCollected => DarMonthCollected
-        ('DarMonthCollected', 'month', 'string:100', True),
+        ('DarMonthCollected', 'month', 'string:100'),
         # Merge into year
-        ('DarYearCollected', 'year', 'string:100', True),
+        ('DarYearCollected', 'year', 'string:100'),
 
         # Geo
-        ('DarEarliestEon', 'earliestEonOrLowestEonothem', 'string:100', True),  # Eon
-        ('DarLatestEon', 'latestEonOrHighestEonothem', 'string:100', True),
-        ('DarEarliestEra', 'earliestEraOrLowestErathem', 'string:100', True),  # Era
-        ('DarLatestEra', 'latestEraOrHighestErathem', 'string:100', True),
-        ('DarEarliestPeriod', 'earliestPeriodOrLowestSystem', 'string:100', True),  # Period
-        ('DarLatestPeriod', 'latestPeriodOrHighestSystem', 'string:100', True),
-        ('DarEarliestEpoch', 'earliestEpochOrLowestSeries', 'string:100', True),  # Epoch
-        ('DarLatestEpoch', 'latestEpochOrHighestSeries', 'string:100', True),
-        ('DarEarliestAge', 'earliestAgeOrLowestStage', 'string:100', True),  # Age
-        ('DarLatestAge', 'latestAgeOrHighestStage', 'string:100', True),
-        ('DarLowestBiostrat', 'lowestBiostratigraphicZone', 'string:100', True),  # Biostratigraphy
-        ('DarHighestBiostrat', 'highestBiostratigraphicZone', 'string:100', True),
-        ('DarGroup', 'group', 'string:100', True),
-        ('DarFormation', 'formation', 'string:100', True),
-        ('DarMember', 'member', 'string:100', True),
-        ('DarBed', 'bed', 'string:100', True),
+        ('DarEarliestEon', 'earliestEonOrLowestEonothem', 'string:100'),  # Eon
+        ('DarLatestEon', 'latestEonOrHighestEonothem', 'string:100'),
+        ('DarEarliestEra', 'earliestEraOrLowestErathem', 'string:100'),  # Era
+        ('DarLatestEra', 'latestEraOrHighestErathem', 'string:100'),
+        ('DarEarliestPeriod', 'earliestPeriodOrLowestSystem', 'string:100'),  # Period
+        ('DarLatestPeriod', 'latestPeriodOrHighestSystem', 'string:100'),
+        ('DarEarliestEpoch', 'earliestEpochOrLowestSeries', 'string:100'),  # Epoch
+        ('DarLatestEpoch', 'latestEpochOrHighestSeries', 'string:100'),
+        ('DarEarliestAge', 'earliestAgeOrLowestStage', 'string:100'),  # Age
+        ('DarLatestAge', 'latestAgeOrHighestStage', 'string:100'),
+        ('DarLowestBiostrat', 'lowestBiostratigraphicZone', 'string:100'),  # Biostratigraphy
+        ('DarHighestBiostrat', 'highestBiostratigraphicZone', 'string:100'),
+        ('DarGroup', 'group', 'string:100'),
+        ('DarFormation', 'formation', 'string:100'),
+        ('DarMember', 'member', 'string:100'),
+        ('DarBed', 'bed', 'string:100'),
 
         # Resource relationship
-        ('DarRelatedCatalogItem', 'relatedResourceID', 'string:100', False),
+        ('DarRelatedCatalogItem', 'relatedResourceID', 'string:100'),
         # Dynamic properties
-        ('dynamicProperties', 'dynamicProperties', 'string:400', False),
+        ('dynamicProperties', 'dynamicProperties', 'string:400'),
         # Multimedia
-        ('MulMultiMediaRef', 'associatedMedia', 'string:100', False),
+        ('MulMultiMediaRef', 'associatedMedia', 'string:100'),
 
         # Private, internal-only fields
-        ('RegRegistrationParentRef', '_parentRef', 'int32', False),
-        ('_id', '_id', 'int32', False),
+        ('RegRegistrationParentRef', '_parentRef', 'int32'),
+        ('_id', '_id', 'int32'),
 
         # Removed: We do not want notes, could contain anything
         # ('DarNotes', 'DarNotes', 'string:100'),
@@ -403,11 +403,6 @@ class SpecimenDatasetTask(DatasetTask):
             parent_df.loc[dummy_index] = ['-' for _ in parent_df]
             df = df.combine_first(parent_df)
             df = df.drop([dummy_index])
-
-            # Ensure any float fields with value 0.0 are actually None
-            for col in self.columns:
-                if col[2].startswith('float'):
-                    df[col[1]][df[col[1]] == '0.0'] = np.NaN
 
         return df
 

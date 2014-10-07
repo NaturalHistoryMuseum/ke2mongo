@@ -16,47 +16,47 @@ class IndexLotDatasetTask(DatasetTask):
     record_type = 'Index Lot'
 
     columns = [
-        ('_id', '_id', 'int32', False),
-        ('_id', 'catalogue_number', 'int32', False),
-        ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32', True),
-        # ('EntIndMaterial', 'material', 'bool', False),
-        # ('EntIndType', 'is_type', 'bool', False),
-        # ('EntIndMedia', 'media', 'bool', False),
-        ('EntIndKindOfMaterial', 'kind_of_material', 'string:100', True),
-        ('EntIndKindOfMedia', 'kind_of_media', 'string:100', True),
+        ('_id', '_id', 'int32'),
+        ('_id', 'catalogue_number', 'int32'),
+        ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
+        ('EntIndMaterial', 'material', 'bool'),
+        ('EntIndType', 'is_type', 'bool'),
+        ('EntIndMedia', 'media', 'bool'),
+        ('EntIndKindOfMaterial', 'kind_of_material', 'string:100'),
+        ('EntIndKindOfMedia', 'kind_of_media', 'string:100'),
         # Material detail
-        ('EntIndCount', 'material_count', 'string:100', False),
-        ('EntIndTypes', 'material_types', 'string:100', True),
+        ('EntIndCount', 'material_count', 'string:100'),
+        ('EntIndTypes', 'material_types', 'string:100'),
     ]
 
     # Additional columns to merge in from the taxonomy collection
     collection_index_columns = [
-        ('_id', '_collection_index_irn', 'int32', False),
+        ('_id', '_collection_index_irn', 'int32'),
         # BUG FIX BS 140811
         # ColCurrentNameRef Is not being updated correctly - see record 899984
         # ColCurrentNameRef = 964105
         # Not a problem, as indexlots are using ColTaxonomicNameRef for summary data etc.,
         # So ColTaxonomicNameRef is the correct field to use.
-        ('ColTaxonomicNameRef', '_taxonomy_irn', 'int32', False),
+        ('ColTaxonomicNameRef', '_taxonomy_irn', 'int32'),
     ]
 
     # Additional columns to merge in from the taxonomy collection
     taxonomy_columns = [
-        ('_id', '_taxonomy_irn', 'int32', False),
-        ('ClaScientificNameBuilt', 'scientific_name', 'string:100', True),
-        ('ClaKingdom', 'kingdom', 'string:60', True),
-        ('ClaPhylum', 'phylum', 'string:100', True),
-        ('ClaClass', 'class', 'string:100', True),
-        ('ClaOrder', 'order', 'string:100', True),
-        ('ClaSuborder', 'suborder', 'string:100', True),
-        ('ClaSuperfamily', 'superfamily', 'string:100', True),
-        ('ClaFamily', 'family', 'string:100', True),
-        ('ClaSubfamily', 'subfamily', 'string:100', True),
-        ('ClaGenus', 'genus', 'string:100', True),
-        ('ClaSubgenus', 'subgenus', 'string:100', True),
-        ('ClaSpecies', 'species', 'string:100', True),
-        ('ClaSubspecies', 'subspecies', 'string:100', True),
-        ('ClaRank', 'taxonomic_rank', 'string:10', True),  # NB: CKAN uses rank internally
+        ('_id', '_taxonomy_irn', 'int32'),
+        ('ClaScientificNameBuilt', 'scientific_name', 'string:100'),
+        ('ClaKingdom', 'kingdom', 'string:60'),
+        ('ClaPhylum', 'phylum', 'string:100'),
+        ('ClaClass', 'class', 'string:100'),
+        ('ClaOrder', 'order', 'string:100'),
+        ('ClaSuborder', 'suborder', 'string:100'),
+        ('ClaSuperfamily', 'superfamily', 'string:100'),
+        ('ClaFamily', 'family', 'string:100'),
+        ('ClaSubfamily', 'subfamily', 'string:100'),
+        ('ClaGenus', 'genus', 'string:100'),
+        ('ClaSubgenus', 'subgenus', 'string:100'),
+        ('ClaSpecies', 'species', 'string:100'),
+        ('ClaSubspecies', 'subspecies', 'string:100'),
+        ('ClaRank', 'taxonomic_rank', 'string:10'),  # NB: CKAN uses rank internally
     ]
 
     def process_dataframe(self, m, df):
@@ -105,7 +105,7 @@ class IndexLotDatasetToCSVTask(IndexLotDatasetTask, DatasetToCSVTask):
 class IndexLotDatasetToCKANTask(IndexLotDatasetTask, DatasetToCKANTask):
 
     package = {
-        'name': 'specimens-12317',
+        'name': 'specimens-12348',
         'notes': u'The Natural History Museum\'s collection',
         'title': "NHM Collection",
         'author': 'Natural History Museum',
