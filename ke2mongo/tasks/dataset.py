@@ -138,7 +138,7 @@ class DatasetTask(luigi.Task):
 
     def get_dataframe(self, m, collection, columns, irns, key):
 
-        query_fields, df_cols, field_types, indexed = zip(*self.columns)
+        query_fields, df_cols, field_types, indexed = zip(*columns)
         assert key in df_cols, 'Merge dataframe key must be present in dataframe columns'
 
         q = {'_id': {'$in': irns}}
@@ -163,13 +163,19 @@ class DatasetTask(luigi.Task):
         return not field.startswith('_')
 
     def get_output_columns(self):
-        return OrderedDict((col[1], col[2]) for col in self.columns if self._is_output_field(col[1]))
+        x =  OrderedDict((col[1], col[2]) for col in self.columns if self._is_output_field(col[1]))
+        print x
+        return x
 
 
 class DatasetToCKANTask(DatasetTask):
     """
     Output dataset to CKAN
     """
+
+    primary_key = None
+    geospatial_fields = None
+
     @abc.abstractproperty
     def package(self):
         """
@@ -186,65 +192,14 @@ class DatasetToCKANTask(DatasetTask):
         """
         return None
 
-    @property
-    def primary_key(self):
-        """
-        Optional primary key property
-        @return: str
-        """
-        return None
-
-    def __init__(self, *args, **kwargs):
-
-        super(DatasetToCKANTask, self).__init__(*args, **kwargs)
-
-        # Get resource id - and create datastore if it doesn't exist
-        # Set up connection to CKAN
-        self.ckan = ckanapi.RemoteCKAN(config.get('ckan', 'site_url'), apikey=config.get('ckan', 'api_key'))
-
-        try:
-            # If the package exists, retrieve the resource
-            package = self.ckan.action.package_show(id=self.package['name'])
-            self.resource_id = package['resources'][0]['id']
-
-        except ckanapi.NotFound:
-
-            log.info("Package %s not found - creating", self.package['name'])
-
-            # Create the package
-            package = self.ckan.action.package_create(**self.package)
-            # And create the datastore
-            self.datastore['resource']['package_id'] = package['id']
-            # Add the field indexes
-            # Add which fields should be indexed
-            indexes = [col[1] for col in self.columns if col[3] and col[2].startswith('string')]
-            fields = [{'id': col[1], 'type': 'text'} for col in self.columns if col[3]]
-
-            self.datastore['indexes'] = indexes
-            self.datastore['fields'] = fields
-
-            # API call to create the datastore
-            datastore = self.ckan.action.datastore_create(**self.datastore)
-
-            self.resource_id = datastore['resource_id']
-
-            # If this has geospatial fields, create geom columns
-            if self.geospatial_fields:
-                log.info("Creating geometry columns for %s", self.resource_id)
-                self.geospatial_fields['resource_id'] = self.resource_id
-                self.ckan.action.create_geom_columns(**self.geospatial_fields)
-
-            log.info("Created datastore resource %s", self.resource_id)
-
     def output(self):
-        return CKANTarget(self.resource_id)
+        return CKANTarget(package=self.package, datastore=self.datastore, columns=self.get_output_columns(), geospatial_fields=self.geospatial_fields, primary_key=self.primary_key)
 
 
 class DatasetToCSVTask(DatasetTask):
     """
     Output dataset to CSV
     """
-
     @property
     def file_name(self):
         """

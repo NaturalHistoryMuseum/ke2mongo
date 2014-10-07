@@ -7,24 +7,27 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 import numpy as np
 import pandas as pd
+from collections import OrderedDict
+from ke2mongo import config
 from ke2mongo.tasks.dataset import DatasetTask, DatasetToCSVTask, DatasetToCKANTask
 
 class IndexLotDatasetTask(DatasetTask):
 
+    record_type = 'Index Lot'
+
     columns = [
         ('_id', '_id', 'int32', False),
+        ('_id', 'catalogue_number', 'int32', False),
         ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32', True),
-        ('EntIndMaterial', 'material', 'bool', False),
-        ('EntIndType', 'is_type', 'bool', False),
-        ('EntIndMedia', 'media', 'bool', False),
+        # ('EntIndMaterial', 'material', 'bool', False),
+        # ('EntIndType', 'is_type', 'bool', False),
+        # ('EntIndMedia', 'media', 'bool', False),
         ('EntIndKindOfMaterial', 'kind_of_material', 'string:100', True),
         ('EntIndKindOfMedia', 'kind_of_media', 'string:100', True),
         # Material detail
         ('EntIndCount', 'material_count', 'string:100', False),
         ('EntIndTypes', 'material_types', 'string:100', True),
     ]
-
-    record_type = 'Index Lot'
 
     # Additional columns to merge in from the taxonomy collection
     collection_index_columns = [
@@ -55,13 +58,6 @@ class IndexLotDatasetTask(DatasetTask):
         ('ClaSubspecies', 'subspecies', 'string:100', True),
         ('ClaRank', 'taxonomic_rank', 'string:10', True),  # NB: CKAN uses rank internally
     ]
-
-    def csv_output_columns(self):
-        """
-        Columns to output to CSV - overrideable
-        @return: Dictionary field_name : type
-        """
-        return self._map_csv_columns(self.columns + self.taxonomy_columns)
 
     def process_dataframe(self, m, df):
         """
@@ -98,6 +94,9 @@ class IndexLotDatasetTask(DatasetTask):
 
         return df
 
+    def get_output_columns(self):
+        return OrderedDict((col[1], col[2]) for col in self.columns + self.taxonomy_columns if self._is_output_field(col[1]))
+
 
 class IndexLotDatasetToCSVTask(IndexLotDatasetTask, DatasetToCSVTask):
     pass
@@ -105,10 +104,8 @@ class IndexLotDatasetToCSVTask(IndexLotDatasetTask, DatasetToCSVTask):
 
 class IndexLotDatasetToCKANTask(IndexLotDatasetTask, DatasetToCKANTask):
 
-    # TODO: Fix all of this
-
     package = {
-        'name': 'specimens',
+        'name': 'specimens-12317',
         'notes': u'The Natural History Museum\'s collection',
         'title': "NHM Collection",
         'author': 'Natural History Museum',
@@ -116,19 +113,19 @@ class IndexLotDatasetToCKANTask(IndexLotDatasetTask, DatasetToCKANTask):
         'resources': [],
         'dataset_type': 'Specimen',
         'spatial': '{"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}',
-        # 'owner_org': config.get('ckan', 'owner_org')
+        'owner_org': config.get('ckan', 'owner_org')
     }
 
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Test data',
-            'description': 'Test data',
-            'format': 'dwc'  # Darwin core
+            'name': 'Index lots',
+            'description': 'Index lots',
+            'format': 'csv'
         },
     }
 
-    primary_key = 'occurrenceID'
+    primary_key = 'catalogue_number'
 
 
 

@@ -17,15 +17,13 @@ import pandas as pd
 from pymongo import MongoClient
 
 import numpy as np
-from ke2mongo import config
 from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, MULTIMEDIA_URL, MULTIMEDIA_FORMATS
 from ke2mongo.tasks.dataset import DatasetTask, DatasetToCSVTask, DatasetToCKANTask
 from ke2mongo.tasks.target import CSVTarget, CKANTarget
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
-from ke2mongo.tasks.indexlot import IndexLotDatasetTask
+from ke2mongo.tasks.indexlot import IndexLotDatasetTask, IndexLotDatasetToCKANTask
 from ke2mongo.log import log
 from collections import OrderedDict
-
 
 class SpecimenDatasetTask(DatasetTask):
 
@@ -34,7 +32,7 @@ class SpecimenDatasetTask(DatasetTask):
         # ([KE EMu field], [new field], [field type], indexed)
 
         # Identifier
-        ('DarGlobalUniqueIdentifier', 'occurrenceID', 'string:100', True),
+        ('DarGlobalUniqueIdentifier', 'occurrenceID', 'string:100', False),  # Needs to be false: this is the primary key
 
         # Record level
         ('AdmDateModified', 'modified', 'string:100', True),
@@ -149,7 +147,6 @@ class SpecimenDatasetTask(DatasetTask):
         ('RegRegistrationParentRef', '_parentRef', 'int32', False),
         ('_id', '_id', 'int32', False),
 
-
         # Removed: We do not want notes, could contain anything
         # ('DarNotes', 'DarNotes', 'string:100'),
         # ('DarLatLongComments', 'latLongComments', 'string:100'),
@@ -237,27 +234,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Before running, build aggregation query
         self.build_aggregation_query()
-
         super(SpecimenDatasetTask, self).run()
-
-
-        # # Do we have an aggregation query?
-        # if self.aggregation_query:
-        #     # Monary cannot use an aggregator query, so we'll output to another collection
-        #     # and then query against that for everything {}
-        #     collection_name = 'agg_%s' % self.collection_name
-        #
-        #     q = self.aggregation_query
-        #
-        #     # Add the output collection the query
-        #     q.append({'$out': collection_name})
-        #
-        #     # Run the aggregation query
-        #     log.info("Building aggregated collection: %s", collection_name)
-        #     result = db[self.collection_name].aggregate(q, allowDiskUse=True)
-        #
-        #     # Ensure the aggregation process succeeded
-        #     assert result['ok'] == 1.0
 
     def build_aggregation_query(self):
         """
@@ -278,11 +255,11 @@ class SpecimenDatasetTask(DatasetTask):
         # Build list of columns to select
         projection = {col[0]: 1 for col in self.columns}
 
-        # Create an array of dynamicProperties to use in an aggregation projection
-        # In the format {dynamicProperties : {$concat: [{$cond: {if: "$ColRecordType", then: {$concat: ["ColRecordType=","$ColRecordType", ";"]}, else: ''}}
-        dynamic_properties = [{"$cond": OrderedDict([("if", "${}".format(col[0])), ("then", {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}), ("else", '')])} for col in self.dynamic_property_columns]
-
-        projection['dynamicProperties'] = {"$concat": dynamic_properties}
+        # # Create an array of dynamicProperties to use in an aggregation projection
+        # # In the format {dynamicProperties : {$concat: [{$cond: {if: "$ColRecordType", then: {$concat: ["ColRecordType=","$ColRecordType", ";"]}, else: ''}}
+        # dynamic_properties = [{"$cond": OrderedDict([("if", "${}".format(col[0])), ("then", {"$concat": ["{}=".format(col[1]), "${}".format(col[0]), ";"]}), ("else", '')])} for col in self.dynamic_property_columns]
+        #
+        # projection['dynamicProperties'] = {"$concat": dynamic_properties}
 
         # We cannot rely on some DwC fields, as they are missing / incomplete for some records
         # So we manually add them based on other fields
@@ -341,8 +318,11 @@ class SpecimenDatasetTask(DatasetTask):
         if self.date:
             match['$match']['exportFileDate'] = self.date
 
+        # match['$match']['_id'] = {"$in": [480206, 433477]}
+
         aggregation_query.append(match)
 
+        # TEMP: Limit
         aggregation_query.append({'$limit': 500})
 
         aggregation_query.append({'$project': projection})
@@ -413,10 +393,21 @@ class SpecimenDatasetTask(DatasetTask):
             df.index = df['_parentRef']
 
             # Convert empty strings to NaNs
-            df = df.applymap(lambda x: np.nan if isinstance(x, basestring) and x == '' else x)
-
             # Which allows us to use combine_first() to replace NaNs with value from parent df
+            df = df.applymap(lambda x: np.NaN if isinstance(x, basestring) and x == '' else x)
+
+            # There is a annoying bug that coerces string columns to integers in combine_first
+            # Hack: ensure there's always a string value that cannot be coerced in every column
+            # So will create a dummy row, that gets deleted after combine_first is called
+            dummy_index = len(df) + 1
+            parent_df.loc[dummy_index] = ['-' for _ in parent_df]
             df = df.combine_first(parent_df)
+            df = df.drop([dummy_index])
+
+            # Ensure any float fields with value 0.0 are actually None
+            for col in self.columns:
+                if col[2].startswith('float'):
+                    df[col[1]][df[col[1]] == '0.0'] = np.NaN
 
         return df
 
@@ -426,17 +417,8 @@ class SpecimenDatasetToCSVTask(SpecimenDatasetTask, DatasetToCSVTask):
 
 
 class SpecimenDatasetToCKANTask(SpecimenDatasetTask, DatasetToCKANTask):
-    package = {
-        'name': 'specimens',
-        'notes': u'The Natural History Museum\'s collection',
-        'title': "NHM Collection",
-        'author': 'Natural History Museum',
-        'license_id': u'cc-by',
-        'resources': [],
-        'dataset_type': 'Specimen',
-        'spatial': '{"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}',
-        'owner_org': config.get('ckan', 'owner_org')
-    }
+
+    package = IndexLotDatasetToCKANTask.package
 
     # And now save to the datastore
     datastore = {

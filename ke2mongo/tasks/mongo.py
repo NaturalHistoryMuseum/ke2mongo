@@ -58,6 +58,7 @@ class InvalidRecordException(Exception):
     """
     pass
 
+
 class FlattenModeParameter(luigi.Parameter):
     """Parameter whose value is one of FLATTEN_NONE, FLATTEN_SINGLE, FLATTEN_ALL"""
 
@@ -77,8 +78,8 @@ class MongoTask(luigi.Task):
 
     date = luigi.IntParameter()
     # Added parameter to allow skipping the processing of records - this is so MW can look at the raw data in mongo
-    unprocessed = luigi.BooleanParameter(default=False)
-    flatten_mode = FlattenModeParameter(default=FLATTEN_ALL)
+    unprocessed = luigi.BooleanParameter(default=False, significant=False)
+    flatten_mode = FlattenModeParameter(default=FLATTEN_ALL, significant=False)
 
     database = config.get('mongo', 'database')
     keemu_schema_file = config.get('keemu', 'schema')

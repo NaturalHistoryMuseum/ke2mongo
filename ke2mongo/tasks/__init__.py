@@ -23,3 +23,4 @@ MULTIMEDIA_URL = 'http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php?irn=%s&ima
 MULTIMEDIA_FORMATS = ['jp2', 'jpeg']
 
 DATE_FORMAT = 'YYYY-MM-DD'
+
