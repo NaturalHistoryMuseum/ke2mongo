@@ -21,15 +21,8 @@ class CSVTarget(luigi.LocalTarget):
     """
     def __init__(self, *args, **kwargs):
 
-        # print args
-        file_name = kwargs.pop('file_name')
-        date = kwargs.pop('date', None)
+        # Remove custom kwargs before passing to luigi.LocalTarget.__init__()
         self.columns = kwargs.pop('columns')
-
-        if date:
-            file_name += '-' + str(date)
-
-        kwargs['path'] = os.path.join('/tmp', file_name + '.csv')
         super(CSVTarget, self).__init__(*args, **kwargs)
 
     def write(self, df):
@@ -146,7 +139,6 @@ class CKANTarget(luigi.Target):
     def write(self, df):
 
         self.resource_id = self.get_or_create_datastore()
-
         log.info("Saving records to CKAN resource %s", self.resource_id)
 
         for col, np_type in self.columns.iteritems():

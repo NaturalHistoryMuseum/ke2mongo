@@ -192,21 +192,40 @@ class DatasetToCKANTask(DatasetTask):
         return CKANTarget(package=self.package, datastore=self.datastore, columns=self.get_output_columns(), geospatial_fields=self.geospatial_fields)
 
 
+# If this works, all tasks will be CKAN tasks.
+# So move dataset creation to DatasetTask
+
 class DatasetToCSVTask(DatasetTask):
     """
     Output dataset to CSV
     """
     @property
-    def file_name(self):
+    def path(self):
         """
         File name to output
         @return: str
         """
-        return self.__class__.__name__.replace('DatasetToCSVTask', '').lower()
+        file_name = self.__class__.__name__.replace('DatasetToCSVTask', '').lower()
+
+        if self.date:
+            file_name += '-' + str(self.date)
+
+        return os.path.join('/tmp', file_name + '.csv')
 
     def output(self):
         """
         Luigi method: output target
         @return: luigi file ref
         """
-        return CSVTarget(file_name=self.file_name, date=self.date, columns=self.get_output_columns())
+        return CSVTarget(path=self.path, columns=self.get_output_columns())
+
+    def on_success(self):
+
+        log.info("You can import CSV file with:")
+        log.info("COPY \"[RESOURCE ID]\" (\"{cols}\") FROM {path} DELIMITER ',' CSV ENCODING 'UTF8'".format(
+           cols='","'.join(col[1] for col in self.columns if self._is_output_field(col[1])),
+           path=self.path
+        ))
+
+        return super(DatasetToCSVTask, self).complete()
+

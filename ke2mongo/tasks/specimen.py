@@ -25,6 +25,9 @@ from ke2mongo.tasks.indexlot import IndexLotDatasetTask, IndexLotDatasetToCKANTa
 from ke2mongo.log import log
 from collections import OrderedDict
 
+# TODO: CSV task should check field order
+# TODO: 
+
 class SpecimenDatasetTask(DatasetTask):
 
     columns = [
@@ -398,7 +401,7 @@ class SpecimenDatasetToCKANTask(SpecimenDatasetTask, DatasetToCKANTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Test data8',
+            'name': 'Test data9',
             'description': 'Test data',
             'format': 'dwc'  # Darwin core
         },
