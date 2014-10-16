@@ -163,17 +163,13 @@ class DatasetTask(luigi.Task):
         return not field.startswith('_')
 
     def get_output_columns(self):
-        x =  OrderedDict((col[1], col[2]) for col in self.columns if self._is_output_field(col[1]))
-        print x
-        return x
+        return OrderedDict((col[1], col[2]) for col in self.columns if self._is_output_field(col[1]))
 
 
 class DatasetToCKANTask(DatasetTask):
     """
     Output dataset to CKAN
     """
-
-    primary_key = None
     geospatial_fields = None
 
     @abc.abstractproperty
@@ -193,7 +189,7 @@ class DatasetToCKANTask(DatasetTask):
         return None
 
     def output(self):
-        return CKANTarget(package=self.package, datastore=self.datastore, columns=self.get_output_columns(), geospatial_fields=self.geospatial_fields, primary_key=self.primary_key)
+        return CKANTarget(package=self.package, datastore=self.datastore, columns=self.get_output_columns(), geospatial_fields=self.geospatial_fields)
 
 
 class DatasetToCSVTask(DatasetTask):

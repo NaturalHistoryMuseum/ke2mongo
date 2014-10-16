@@ -105,7 +105,7 @@ class IndexLotDatasetToCSVTask(IndexLotDatasetTask, DatasetToCSVTask):
 class IndexLotDatasetToCKANTask(IndexLotDatasetTask, DatasetToCKANTask):
 
     package = {
-        'name': 'specimens-12348',
+        'name': 'specimens-12352',
         'notes': u'The Natural History Museum\'s collection',
         'title': "NHM Collection",
         'author': 'Natural History Museum',
@@ -123,9 +123,5 @@ class IndexLotDatasetToCKANTask(IndexLotDatasetTask, DatasetToCKANTask):
             'description': 'Index lots',
             'format': 'csv'
         },
+        'primary_key': 'catalogue_number'
     }
-
-    primary_key = 'catalogue_number'
-
-
-

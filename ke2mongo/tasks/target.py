@@ -61,13 +61,12 @@ class CSVTarget(luigi.LocalTarget):
 
 class CKANTarget(luigi.Target):
 
-    def __init__(self, package, datastore, columns, geospatial_fields=None, primary_key=None):
+    def __init__(self, package, datastore, columns, geospatial_fields=None):
 
         self.package = package
         self.datastore = datastore
         self.columns = columns
         self.geospatial_fields = geospatial_fields
-        self.primary_key = primary_key
 
         # Get resource id - and create datastore if it doesn't exist
         # Set up connection to CKAN
@@ -75,37 +74,40 @@ class CKANTarget(luigi.Target):
 
     def get_or_create_datastore(self):
 
+        resource_id = None
+
         try:
             # If the package exists, retrieve the resource
             ckan_package = self.ckan.action.package_show(id=self.package['name'])
-            resource_id = ckan_package['resources'][0]['id']
+
+            # Does a resource of the same name already exist for this dataset?
+            # If it does, assign to resource_id
+            for resource in ckan_package['resources']:
+                if resource['name'] == self.datastore['resource']['name']:
+                    resource_id = resource['id']
+                    break
 
         except ckanapi.NotFound:
-
             log.info("Package %s not found - creating", self.package['name'])
-
             # Create the package
-            self.datastore['resource']['package_id'] = self.ckan.action.package_create(**self.package)['id']
-            # Add the field indexes
-            # Add which fields should be indexed
-            # TODO: Bugger. I need indexable
-            # indexes = [col[1] for col in self.columns if col[3] and col[2].startswith('string')]
-            fields = [{'id': col, 'type': self.numpy_to_ckan_type(np_type)} for col, np_type in self.columns.iteritems()]
+            ckan_package = self.ckan.action.package_create(**self.package)
 
-            # self.datastore['indexes'] = indexes
-            self.datastore['fields'] = fields
+        # If we don't have the resource ID, create
+        if not resource_id:
 
-            if self.primary_key:
-                self.datastore['primary_key'] = [self.primary_key]
+            log.info("Resource %s not found - creating", self.datastore['resource']['name'])
+
+            self.datastore['fields'] = [{'id': col, 'type': self.numpy_to_ckan_type(np_type)} for col, np_type in self.columns.iteritems()]
+            self.datastore['resource']['package_id'] = ckan_package['id']
 
             # API call to create the datastore
             resource_id = self.ckan.action.datastore_create(**self.datastore)['resource_id']
 
-            # # If this has geospatial fields, create geom columns
-            # if geospatial_fields:
-            #     log.info("Creating geometry columns for %s", self.resource_id)
-            #     geospatial_fields['resource_id'] = self.resource_id
-            #     self.ckan.action.create_geom_columns(**geospatial_fields)
+            # If this has geospatial fields, create geom columns
+            if self.geospatial_fields:
+                log.info("Creating geometry columns for %s", self.resource_id)
+                self.geospatial_fields['resource_id'] = self.resource_id
+                self.ckan.action.create_geom_columns(**self.geospatial_fields)
 
             log.info("Created datastore resource %s", resource_id)
 
@@ -129,6 +131,7 @@ class CKANTarget(luigi.Target):
             elif numpy_type is bool:
                 ckan_type = 'bool'
             else:
+                # TODO: Add field type: citext
                 ckan_type = 'text'
         except TypeError:
             # Strings are not objects, so we'll get a TypeError
@@ -143,7 +146,7 @@ class CKANTarget(luigi.Target):
 
         self.resource_id = self.get_or_create_datastore()
 
-        print "Saving records to CKAN"
+        log.info("Saving records to CKAN resource %s", self.resource_id)
 
         for col, np_type in self.columns.iteritems():
             if np_type.startswith('float'):
@@ -153,21 +156,22 @@ class CKANTarget(luigi.Target):
                 # And make sure '' in boolean fields are also None
                 df[col][df[col] == ''] = np.NaN
 
-        # Loop through all the dataframe columns, removing internal ones (starting with _)
+        # Loop through all the dataframe columns, removing internal ones (fields starting with _)
         for col in df:
             if col.startswith('_'):
                 df.drop(col, axis=1, inplace=True)
 
+        # Convert all NaN to None
         df = df.where(pd.notnull(df), None)
+
+        # Convert records to dictionary
         records = df.to_dict(outtype='records')
 
         datastore_params = {
             'resource_id': self.resource_id,
-            'records': records
+            'records': records,
+            'primary_key': self.datastore['primary_key']
         }
-
-        if self.primary_key:
-            datastore_params['primary_key'] = self.primary_key
 
         # Check that the data doesn't contain invalid chars
         try:
@@ -198,7 +202,7 @@ class CKANTarget(luigi.Target):
         # else:
         #     self.ckan.action.datastore_create(**datastore_params)
 
-    def datastore_exists(self):
-        sql = 'SELECT COUNT(*) as count FROM "{0}"'.format(self.resource_id)
-        result = self.ckan.action.datastore_search_sql(sql=sql)
-        return int(result['records'][0]['count']) > 0
+    # def datastore_exists(self):
+    #     sql = 'SELECT COUNT(*) as count FROM "{0}"'.format(self.resource_id)
+    #     result = self.ckan.action.datastore_search_sql(sql=sql)
+    #     return int(result['records'][0]['count']) > 0
