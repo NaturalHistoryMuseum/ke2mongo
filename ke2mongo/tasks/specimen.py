@@ -206,7 +206,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Internal
         ('RegRegistrationParentRef', '_parentRef', 'int32'),
-        ('_id', '_id', 'int32')
+        ('_id', '_id', 'int32'),
 
         # Removed: We do not want notes, could contain anything
         # ('DarNotes', 'DarNotes', 'string:100'),
@@ -236,59 +236,16 @@ class SpecimenDatasetTask(DatasetTask):
         # Monary will query against the collection name
         self.collection_name = 'agg_%s' % self.collection_name
 
-
-
-        # # Build an aggregation query for parent records
-        # # Uses the same projection, so we can easily merge into part records when we're processing the dataframe
-        #
-        # parent_aggregation_query = list()
-        #
-        # # We do not want parent types - these will be merged in the DF
-        #
-        # parent_aggregation_query.append({'$match': {"ColRecordType": {"$in": PARENT_TYPES}}})
-        # parent_aggregation_query.append({'$project': projection})
-        #
-        # self.agg_parent_collection_name = '%s_parent' % self.collection_name
-        #
-        # # Add the output collection the query
-        # parent_aggregation_query.append({'$out': self.agg_parent_collection_name})
-        #
-        # log.info("Building parent aggregated collection: %s", self.agg_parent_collection_name)
-        #
-        # # TEMP: Put this back in
-        # # result = db_collection.aggregate(parent_aggregation_query, allowDiskUse=True)
-        # #
-        # # # Ensure the aggregation process succeeded
-        # # assert result['ok'] == 1.0
-        #
-        # # And now build the main aggregation query we'll use with Monary
-        # # TODO: This really isn't necessary now  - remove and rewrite query
-
-        aggregation_query = list()
-
-        # We do not want parent types - these will be merged in the DF
-        match = {'$match': {"ColRecordType": {"$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]}}}
-
-        # If we have a date. we're only going to get specimens imported on that date
-        if self.date:
-            match['$match']['exportFileDate'] = self.date
-
-        # match['$match']['_id'] = {"$in": [480206, 433477]}
-
-        aggregation_query.append(match)
-
-        # TEMP: Limit
-        aggregation_query.append({'$limit': 1000})
-
         # Build list of columns to select
         projection = {col[0]: 1 for col in self.columns}
 
         # We cannot rely on some DwC fields, as they are missing / incomplete for some records
         # So we manually add them based on other fields
 
-        # If $DarCatalogNumber does not exist, we'll try use $GeneralCatalogueNumber
-        # GeneralCatalogueNumber has min bm number - RegRegistrationNumber does not
-        projection['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$GeneralCatalogueNumber"]}
+        # If $DarCatalogNumber does not exist, we'll try use $RegRegistrationNumber
+        # BUGFIX 141016: Using RegRegistrationNumber rather than GeneralCatalogueNumber
+        # GeneralCatalogueNumber is not populated for bird part records & DarCatalogNumber has MinBmNumber
+        projection['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$RegRegistrationNumber"]}
         # We cannot rely on the DarGlobalUniqueIdentifier field, as parts do not have it, so build manually
         projection['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK:ecatalogue:", "$irn"]}
 
@@ -305,6 +262,48 @@ class SpecimenDatasetTask(DatasetTask):
                 "else": {"$toUpper": {"$substr": ["$ColDepartment", 0, 3]}}
             }
         }
+
+        # Build an aggregation query for parent records
+        # Uses the same projection, so we can easily merge into part records when we're processing the dataframe
+        # TBH, the aggregation query is so simple now dynamic properties are their own fields, this is probably unnecessary
+        # But lets keep in until after we've got all fields in place
+
+        parent_aggregation_query = list()
+
+        # We do not want parent types - these will be merged in the DF
+
+        parent_aggregation_query.append({'$match': {"ColRecordType": {"$in": PARENT_TYPES}}})
+        parent_aggregation_query.append({'$project': projection})
+
+        self.agg_parent_collection_name = '%s_parent' % self.collection_name
+
+        # Add the output collection the query
+        parent_aggregation_query.append({'$out': self.agg_parent_collection_name})
+
+        log.info("Building parent aggregated collection: %s", self.agg_parent_collection_name)
+
+        # TEMP: Put this back in
+        # result = db_collection.aggregate(parent_aggregation_query, allowDiskUse=True)
+        #
+        # # Ensure the aggregation process succeeded
+        # assert result['ok'] == 1.0
+
+        # And now build the main aggregation query we'll use with Monary
+        aggregation_query = list()
+
+        # We do not want parent types - these will be merged in the DF
+        match = {'$match': {"ColRecordType": {"$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]}}}
+
+        # If we have a date. we're only going to get specimens imported on that date
+        if self.date:
+            match['$match']['exportFileDate'] = self.date
+
+        # match['$match']['_id'] = {"$in": [480206, 433477]}
+
+        aggregation_query.append(match)
+
+        # TEMP: Limit
+        aggregation_query.append({'$limit': 1000})
 
         aggregation_query.append({'$project': projection})
 
@@ -399,7 +398,7 @@ class SpecimenDatasetToCKANTask(SpecimenDatasetTask, DatasetToCKANTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Test data3',
+            'name': 'Test data8',
             'description': 'Test data',
             'format': 'dwc'  # Darwin core
         },

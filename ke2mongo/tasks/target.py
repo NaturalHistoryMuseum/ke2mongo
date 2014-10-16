@@ -105,8 +105,8 @@ class CKANTarget(luigi.Target):
 
             # If this has geospatial fields, create geom columns
             if self.geospatial_fields:
-                log.info("Creating geometry columns for %s", self.resource_id)
-                self.geospatial_fields['resource_id'] = self.resource_id
+                log.info("Creating geometry columns for %s", resource_id)
+                self.geospatial_fields['resource_id'] = resource_id
                 self.ckan.action.create_geom_columns(**self.geospatial_fields)
 
             log.info("Created datastore resource %s", resource_id)
@@ -140,6 +140,7 @@ class CKANTarget(luigi.Target):
         return ckan_type
 
     def exists(self):
+        # Always run
         return False
 
     def write(self, df):
@@ -193,16 +194,4 @@ class CKANTarget(luigi.Target):
 
             datastore_params['records'] = validated_records
 
-        # print datastore_params['records'][0]
-
         self.ckan.action.datastore_upsert(**datastore_params)
-
-        # if self.datastore_exists():
-        #     self.ckan.action.datastore_upsert(**datastore_params)
-        # else:
-        #     self.ckan.action.datastore_create(**datastore_params)
-
-    # def datastore_exists(self):
-    #     sql = 'SELECT COUNT(*) as count FROM "{0}"'.format(self.resource_id)
-    #     result = self.ckan.action.datastore_search_sql(sql=sql)
-    #     return int(result['records'][0]['count']) > 0
