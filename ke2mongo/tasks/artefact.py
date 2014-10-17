@@ -5,28 +5,41 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
-import sys
-import os
-import luigi
-import random
-import time
-from monary import Monary
-import numpy as np
-import pandas as pd
-from ke2mongo.log import log
 from ke2mongo import config
-from ke2mongo.tasks.dataset import DatasetTask
-from ke2mongo.tasks import MULTIMEDIA_URL
-
+from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
 
 class ArtefactDatasetTask(DatasetTask):
 
+    # CKAN Dataset params
+    package = {
+        'name': 'artefacts2',
+        'notes': u'Cultural and historical artefacts from The Natural History Museum',
+        'title': "Artefacts",
+        'author': 'Natural History Museum',
+        'license_id': u'cc-by',
+        'resources': [],
+        'dataset_type': 'Cultural artefacts',
+        'owner_org': config.get('ckan', 'owner_org')
+    }
+
+    # And now save to the datastore
+    datastore = {
+        'resource': {
+            'name': 'Artefacts',
+            'description': 'Museum artefacts',
+            'format': 'csv'
+        },
+        'primary_key': 'Identifier'
+    }
+
     columns = [
         ('_id', '_id', 'int32'),
-        ('ArtName', 'name', 'string:100'),
-        ('ArtKind', 'kind', 'string:100'),
-        ('PalArtDescription', 'description', 'string:100'),
-        ('MulMultiMediaRef', 'multimedia', 'string:100')
+        ('irn', 'Identifier', 'string:100'),
+        ('ArtName', 'Name', 'string:100'),
+        ('ArtKind', 'Kind', 'string:100'),
+        ('PalArtDescription', 'Description', 'string:100'),
+        ('IdeCurrentScientificName', 'Scientific name', 'string:100'),
+        ('MulMultiMediaRef', 'Multimedia', 'string:100')
     ]
 
     record_type = 'Artefact'
@@ -39,39 +52,14 @@ class ArtefactDatasetTask(DatasetTask):
         @return: dataframe
         """
         # And update images to URLs
-        df['multimedia'] = df['multimedia'].apply(lambda x: '; '.join(MULTIMEDIA_URL % z.lstrip() for z in x.split(';') if z))
 
+        self.ensure_multimedia(m, df, 'Multimedia')
         return df
 
 
-# class ArtefactDatasetTask(DatasetTask):
-#     """
-#     Class for exporting exporting IndexLots data to CSV
-#     """
-#     name = 'Artefacts'
-#     description = 'Museum artefacts'
-#     format = 'csv'
-#
-#     package = {
-#         'name': u'artefacts5',
-#         'notes': u'Cultural and historical artefacts from The Natural History Museum',
-#         'title': "Artefacts",
-#         'author': 'Natural History Museum',
-#         'author_email': None,
-#         'license_id': u'cc-by',
-#         'maintainer': None,
-#         'maintainer_email': None,
-#         'resources': [],
-#         'dataset_type': 'Cultural artefacts',
-#         'owner_org': config.get('ckan', 'owner_org')
-#     }
-#
-#     full_text_blacklist = [
-#         'multimedia'
-#     ]
-#
-#
-#
-#     csv_class = ArtefactCSVTask
+class ArtefactDatasetCSVTask(ArtefactDatasetTask, DatasetCSVTask):
+    pass
 
 
+class ArtefactDatasetAPITask(ArtefactDatasetTask, DatasetAPITask):
+    pass

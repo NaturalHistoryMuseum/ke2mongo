@@ -52,85 +52,15 @@ class CSVTarget(luigi.LocalTarget):
                     log.critical('UTF8 Encoding error for record irn=%s', df_row.iloc[-1]['_id'])
 
 
-class CKANTarget(luigi.Target):
+class APITarget(luigi.Target):
 
-    def __init__(self, package, datastore, columns, geospatial_fields=None):
+    def __init__(self, resource_id, columns):
 
-        self.package = package
-        self.datastore = datastore
+        self.resource_id = resource_id
         self.columns = columns
-        self.geospatial_fields = geospatial_fields
 
-        # Get resource id - and create datastore if it doesn't exist
         # Set up connection to CKAN
         self.ckan = ckanapi.RemoteCKAN(config.get('ckan', 'site_url'), apikey=config.get('ckan', 'api_key'))
-
-    def get_or_create_datastore(self):
-
-        resource_id = None
-
-        try:
-            # If the package exists, retrieve the resource
-            ckan_package = self.ckan.action.package_show(id=self.package['name'])
-
-            # Does a resource of the same name already exist for this dataset?
-            # If it does, assign to resource_id
-            for resource in ckan_package['resources']:
-                if resource['name'] == self.datastore['resource']['name']:
-                    resource_id = resource['id']
-                    break
-
-        except ckanapi.NotFound:
-            log.info("Package %s not found - creating", self.package['name'])
-            # Create the package
-            ckan_package = self.ckan.action.package_create(**self.package)
-
-        # If we don't have the resource ID, create
-        if not resource_id:
-
-            log.info("Resource %s not found - creating", self.datastore['resource']['name'])
-
-            self.datastore['fields'] = [{'id': col, 'type': self.numpy_to_ckan_type(np_type)} for col, np_type in self.columns.iteritems()]
-            self.datastore['resource']['package_id'] = ckan_package['id']
-
-            # API call to create the datastore
-            resource_id = self.ckan.action.datastore_create(**self.datastore)['resource_id']
-
-            # If this has geospatial fields, create geom columns
-            if self.geospatial_fields:
-                log.info("Creating geometry columns for %s", resource_id)
-                self.geospatial_fields['resource_id'] = resource_id
-                self.ckan.action.create_geom_columns(**self.geospatial_fields)
-
-            log.info("Created datastore resource %s", resource_id)
-
-        return resource_id
-
-    @staticmethod
-    def numpy_to_ckan_type(pandas_type):
-        """
-        For a pandas field type, return s the corresponding ckan data type, to be used when creating datastore
-        init32 => integer
-        @param pandas_type: pandas data type
-        @return: ckan data type
-        """
-        type_num, type_arg, numpy_type = get_monary_numpy_type(pandas_type)
-
-        try:
-            if issubclass(numpy_type, np.signedinteger):
-                ckan_type = 'integer'
-            elif issubclass(numpy_type, np.floating):
-                ckan_type = 'float'
-            elif numpy_type is bool:
-                ckan_type = 'bool'
-            else:
-                # TODO: Add field type: citext
-                ckan_type = 'text'
-        except TypeError:
-            # Strings are not objects, so we'll get a TypeError
-            ckan_type = 'text'
-
-        return ckan_type
 
     def exists(self):
         # Always run
@@ -138,7 +68,6 @@ class CKANTarget(luigi.Target):
 
     def write(self, df):
 
-        self.resource_id = self.get_or_create_datastore()
         log.info("Saving records to CKAN resource %s", self.resource_id)
 
         for col, np_type in self.columns.iteritems():
@@ -163,7 +92,7 @@ class CKANTarget(luigi.Target):
         datastore_params = {
             'resource_id': self.resource_id,
             'records': records,
-            'primary_key': self.datastore['primary_key']
+            # 'primary_key': self.datastore['primary_key']
         }
 
         # Check that the data doesn't contain invalid chars

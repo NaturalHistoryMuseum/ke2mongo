@@ -22,7 +22,7 @@ from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
 from ke2mongo.tasks.specimen import *
 from ke2mongo.tasks.indexlot import *
-# from ke2mongo.tasks.artefact import *
+from ke2mongo.tasks.artefact import *
 # from ke2mongo.tasks.cron import CronTask
 
 if __name__ == "__main__":

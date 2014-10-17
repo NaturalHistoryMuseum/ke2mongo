@@ -8,25 +8,17 @@ python specimen.py SpecimenDatasetToCKANTask --local-scheduler --date 20140731
 python specimen.py SpecimenDatasetToCSVTask --local-scheduler --date 20140821
 
 """
-
-import os
-import sys
-import luigi
-import itertools
 import pandas as pd
-from pymongo import MongoClient
-
 import numpy as np
-from ke2mongo.tasks import PARENT_TYPES, PART_TYPES, MULTIMEDIA_URL, MULTIMEDIA_FORMATS
-from ke2mongo.tasks.dataset import DatasetTask, DatasetToCSVTask, DatasetToCKANTask
-from ke2mongo.tasks.target import CSVTarget, CKANTarget
+from pymongo import MongoClient
+from ke2mongo.tasks import PARENT_TYPES, COLLECTION_DATASET
+from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
-from ke2mongo.tasks.indexlot import IndexLotDatasetTask, IndexLotDatasetToCKANTask
+from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 from ke2mongo.log import log
-from collections import OrderedDict
 
-# TODO: CSV task should check field order
-# TODO: 
+# TODO: Add new fields
+# TODO: UPDATES!!!
 
 class SpecimenDatasetTask(DatasetTask):
 
@@ -218,6 +210,24 @@ class SpecimenDatasetTask(DatasetTask):
 
     query = {}  # Selecting data is moved to aggregation query
 
+    # CKAN Dataset params
+    package = COLLECTION_DATASET
+
+    # And now save to the datastore
+    datastore = {
+        'resource': {
+            'name': 'Test data9',
+            'description': 'Test data',
+            'format': 'dwc'  # Darwin core
+        },
+        'primary_key': 'Occurrence ID'
+    }
+
+    geospatial_fields = {
+        'latitude_field': 'Decimal latitude',
+        'longitude_field': 'Decimal longitude'
+    }
+
     def run(self):
 
         # Before running, build aggregation query
@@ -306,7 +316,7 @@ class SpecimenDatasetTask(DatasetTask):
         aggregation_query.append(match)
 
         # TEMP: Limit
-        aggregation_query.append({'$limit': 1000})
+        aggregation_query.append({'$limit': 10})
 
         aggregation_query.append({'$project': projection})
 
@@ -320,38 +330,6 @@ class SpecimenDatasetTask(DatasetTask):
         # Ensure the aggregation process succeeded
         assert result['ok'] == 1.0
 
-
-    @staticmethod
-    def ensure_multimedia(m, df):
-
-        # The multimedia field contains IRNS of all items - not just images
-        # So we need to look up the IRNs against the multimedia record to get the mime type
-        # And filter out non-image mimetypes we do not support
-
-        # Convert associatedMedia field to a list
-        df['Associated media'] = df['Associated media'].apply(lambda x: list(int(z.strip()) for z in x.split(';') if z.strip()))
-
-        def get_valid_multimedia(multimedia_irns):
-            """
-            Get a data frame of taxonomy records
-            @param m: Monary instance
-            @param irns: taxonomy IRNs to retrieve
-            @return:
-            """
-            q = {'_id': {'$in': multimedia_irns}, 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS}}
-            ('_id', '_taxonomy_irn', 'int32'),
-            query = m.query('keemu', 'emultimedia', q, ['_id'], ['int32'])
-            return query[0].view()
-
-        # Get a unique list of IRNS
-        unique_multimedia_irns = list(set(itertools.chain(*[irn for irn in df['Associated media'].values])))
-
-        # Get a list of multimedia irns with valid mimetypes
-        valid_multimedia = get_valid_multimedia(unique_multimedia_irns)
-
-        # And finally update the associatedMedia field, so formatting with the IRN with MULTIMEDIA_URL, if the IRN is in valid_multimedia
-        df['Associated media'] = df['Associated media'].apply(lambda irns: '; '.join(MULTIMEDIA_URL % irn for irn in irns if irn in valid_multimedia))
-
     def process_dataframe(self, m, df):
         """
         Process the dataframe, updating multimedia irns => URIs
@@ -360,7 +338,7 @@ class SpecimenDatasetTask(DatasetTask):
         @return: dataframe
         """
 
-        self.ensure_multimedia(m, df)
+        self.ensure_multimedia(m, df, 'Associated media')
 
         # Process part parents
         parent_irns = pd.unique(df._parentRef.values.ravel()).tolist()
@@ -370,7 +348,7 @@ class SpecimenDatasetTask(DatasetTask):
             parent_df = self.get_dataframe(m, self.agg_parent_collection_name, self.columns, parent_irns, '_id')
 
             # Ensure the parent multimedia images are usable
-            self.ensure_multimedia(m, parent_df)
+            self.ensure_multimedia(m, parent_df, 'Associated media')
 
             # Assign parentRef as the index to allow us to combine with parent_df
             df.index = df['_parentRef']
@@ -390,25 +368,9 @@ class SpecimenDatasetTask(DatasetTask):
         return df
 
 
-class SpecimenDatasetToCSVTask(SpecimenDatasetTask, DatasetToCSVTask):
+class SpecimenDatasetCSVTask(SpecimenDatasetTask, DatasetCSVTask):
     pass
 
 
-class SpecimenDatasetToCKANTask(SpecimenDatasetTask, DatasetToCKANTask):
-
-    package = IndexLotDatasetToCKANTask.package
-
-    # And now save to the datastore
-    datastore = {
-        'resource': {
-            'name': 'Test data9',
-            'description': 'Test data',
-            'format': 'dwc'  # Darwin core
-        },
-        'primary_key': 'Occurrence ID'
-    }
-
-    geospatial_fields = {
-        'latitude_field': 'Decimal latitude',
-        'longitude_field': 'Decimal longitude'
-    }
+class SpecimenDatasetAPITask(SpecimenDatasetTask, DatasetAPITask):
+    pass

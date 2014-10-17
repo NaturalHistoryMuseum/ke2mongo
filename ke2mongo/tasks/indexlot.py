@@ -5,28 +5,42 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
-import numpy as np
 import pandas as pd
 from collections import OrderedDict
-from ke2mongo import config
-from ke2mongo.tasks.dataset import DatasetTask, DatasetToCSVTask, DatasetToCKANTask
+from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
+from ke2mongo.tasks import COLLECTION_DATASET
 
 class IndexLotDatasetTask(DatasetTask):
 
     record_type = 'Index Lot'
 
+    # CKAN Dataset params
+    package = COLLECTION_DATASET
+
+    # And now save to the datastore
+    datastore = {
+        'resource': {
+            'name': 'indexlots2',
+            'description': 'Index lots',
+            'format': 'csv'
+        },
+        'primary_key': 'Catalogue number'
+    }
+
     columns = [
         ('_id', '_id', 'int32'),
-        ('_id', 'catalogue_number', 'int32'),
+        ('_id', 'Catalogue number', 'int32'),
         ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
-        ('EntIndMaterial', 'material', 'bool'),
-        ('EntIndType', 'is_type', 'bool'),
-        ('EntIndMedia', 'media', 'bool'),
-        ('EntIndKindOfMaterial', 'kind_of_material', 'string:100'),
-        ('EntIndKindOfMedia', 'kind_of_media', 'string:100'),
+        ('EntIndMaterial', 'Material', 'bool'),
+        ('EntIndType', 'Type', 'bool'),
+        ('EntIndMedia', 'Media', 'bool'),
+        ('EntIndKindOfMaterial', 'Kind of material', 'string:100'),
+        ('EntIndKindOfMedia', 'Kind of media', 'string:100'),
         # Material detail
-        ('EntIndCount', 'material_count', 'string:100'),
-        ('EntIndTypes', 'material_types', 'string:100'),
+        ('EntIndCount', 'Material count', 'string:100'),
+        ('EntIndTypes', 'Material types', 'string:100'),
+        # Separate Botany and Entomology
+        ('ColDepartment', 'Department', 'string:100'),
     ]
 
     # Additional columns to merge in from the taxonomy collection
@@ -43,20 +57,20 @@ class IndexLotDatasetTask(DatasetTask):
     # Additional columns to merge in from the taxonomy collection
     taxonomy_columns = [
         ('_id', '_taxonomy_irn', 'int32'),
-        ('ClaScientificNameBuilt', 'scientific_name', 'string:100'),
-        ('ClaKingdom', 'kingdom', 'string:60'),
-        ('ClaPhylum', 'phylum', 'string:100'),
-        ('ClaClass', 'class', 'string:100'),
-        ('ClaOrder', 'order', 'string:100'),
-        ('ClaSuborder', 'suborder', 'string:100'),
-        ('ClaSuperfamily', 'superfamily', 'string:100'),
-        ('ClaFamily', 'family', 'string:100'),
-        ('ClaSubfamily', 'subfamily', 'string:100'),
-        ('ClaGenus', 'genus', 'string:100'),
-        ('ClaSubgenus', 'subgenus', 'string:100'),
-        ('ClaSpecies', 'species', 'string:100'),
-        ('ClaSubspecies', 'subspecies', 'string:100'),
-        ('ClaRank', 'taxonomic_rank', 'string:10'),  # NB: CKAN uses rank internally
+        ('ClaScientificNameBuilt', 'Scientific name', 'string:100'),
+        ('ClaKingdom', 'Kingdom', 'string:60'),
+        ('ClaPhylum', 'Phylum', 'string:100'),
+        ('ClaClass', 'Class', 'string:100'),
+        ('ClaOrder', 'Order', 'string:100'),
+        ('ClaSuborder', 'Suborder', 'string:100'),
+        ('ClaSuperfamily', 'Superfamily', 'string:100'),
+        ('ClaFamily', 'Family', 'string:100'),
+        ('ClaSubfamily', 'Subfamily', 'string:100'),
+        ('ClaGenus', 'Genus', 'string:100'),
+        ('ClaSubgenus', 'Subgenus', 'string:100'),
+        ('ClaSpecies', 'Species', 'string:100'),
+        ('ClaSubspecies', 'Subspecies', 'string:100'),
+        ('ClaRank', 'Taxonomic rank', 'string:10'),  # NB: CKAN uses rank internally
     ]
 
     def process_dataframe(self, m, df):
@@ -98,30 +112,9 @@ class IndexLotDatasetTask(DatasetTask):
         return OrderedDict((col[1], col[2]) for col in self.columns + self.taxonomy_columns if self._is_output_field(col[1]))
 
 
-class IndexLotDatasetToCSVTask(IndexLotDatasetTask, DatasetToCSVTask):
+class IndexLotDatasetCSVTask(IndexLotDatasetTask, DatasetCSVTask):
     pass
 
 
-class IndexLotDatasetToCKANTask(IndexLotDatasetTask, DatasetToCKANTask):
-
-    package = {
-        'name': 'specimens-12352',
-        'notes': u'The Natural History Museum\'s collection',
-        'title': "NHM Collection",
-        'author': 'Natural History Museum',
-        'license_id': u'cc-by',
-        'resources': [],
-        'dataset_type': 'Specimen',
-        'spatial': '{"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}',
-        'owner_org': config.get('ckan', 'owner_org')
-    }
-
-    # And now save to the datastore
-    datastore = {
-        'resource': {
-            'name': 'Index lots',
-            'description': 'Index lots',
-            'format': 'csv'
-        },
-        'primary_key': 'catalogue_number'
-    }
+class IndexLotDatasetAPITask(IndexLotDatasetTask, DatasetAPITask):
+    pass
