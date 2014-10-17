@@ -15,4 +15,3 @@ class MongoCollectionIndexTask(MongoTask):
     Import Collection Index Export file into MongoDB
     """
     module = 'ecollectionindex'
-

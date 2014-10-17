@@ -4,8 +4,6 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
-Prior to
-
 """
 
 import sys
@@ -13,10 +11,11 @@ import os
 import luigi
 import datetime
 import abc
+from luigi.parameter import ParameterException
 from ke2mongo.tasks.ke import KEFileTask
 from ke2mongo.log import log
 from keparser import KEParser
-from keparser.parser import FLATTEN_ALL
+from keparser.parser import FLATTEN_NONE, FLATTEN_SINGLE, FLATTEN_ALL
 from ke2mongo import config
 from ke2mongo.lib.timeit import timeit
 from pymongo import MongoClient
@@ -60,9 +59,28 @@ class InvalidRecordException(Exception):
     pass
 
 
+class FlattenModeParameter(luigi.Parameter):
+    """Parameter whose value is one of FLATTEN_NONE, FLATTEN_SINGLE, FLATTEN_ALL"""
+
+    flatten_modes = [FLATTEN_NONE, FLATTEN_SINGLE, FLATTEN_ALL]
+
+    def parse(self, s):
+
+        s = int(s)
+
+        if not s in self.flatten_modes:
+            raise ParameterException('Flatten mode must be one of %s' % ' '.join([str(m) for m in self.flatten_modes]))
+
+        return s
+
+
 class MongoTask(luigi.Task):
 
     date = luigi.IntParameter()
+    # Added parameter to allow skipping the processing of records - this is so MW can look at the raw data in mongo
+    unprocessed = luigi.BooleanParameter(default=False, significant=False)
+    flatten_mode = FlattenModeParameter(default=FLATTEN_ALL, significant=False)
+
     database = config.get('mongo', 'database')
     keemu_schema_file = config.get('keemu', 'schema')
 
@@ -92,8 +110,7 @@ class MongoTask(luigi.Task):
     @timeit
     def run(self):
 
-        ke_data = KEParser(self.input().open('r'), schema_file=self.keemu_schema_file, input_file_path=self.input().path, flatten_mode=FLATTEN_ALL)
-
+        ke_data = KEParser(self.input().open('r'), schema_file=self.keemu_schema_file, input_file_path=self.input().path, flatten_mode=self.flatten_mode)
         self.collection = self.get_collection()
 
         # If we have any records in the collection, use bulk_update with mongo bulk upsert
@@ -106,7 +123,6 @@ class MongoTask(luigi.Task):
         self.mark_complete()
 
     def mark_complete(self):
-
 
         # Move the file to the archive directory (if specified)
         try:
@@ -126,6 +142,7 @@ class MongoTask(luigi.Task):
         count = 0
 
         for record in self.iterate_data(ke_data):
+
             # Find and replace doc - inserting if it doesn't exist
             bulk.find({'_id': record['_id']}).upsert().replace_one(record)
             count += 1
@@ -178,20 +195,28 @@ class MongoTask(luigi.Task):
             if status:
                 log.info(status)
 
+            # Use the IRN as _id
+            record['_id'] = record['irn']
+
             try:
-                record = self.process_record(record)
+                # Do not process if unprocessed flag is set
+                if not self.unprocessed:
+                    record = self.process_record(record)
+
             except InvalidRecordException:
                 continue
             else:
                 yield record
 
-    def process_record(self, data):
+    def process_record(self, record):
 
-        # Use the IRN as _id & remove original
-        data['_id'] = data['irn']
         # Keep the IRN but cast as string, so we can use it in $concat
-        data['irn'] = str(data['irn'])
-        return data
+        record['irn'] = str(record['irn'])
+
+        # Add the date of the export file
+        record['exportFileDate'] = self.date
+
+        return record
 
     def output(self):
         return MongoTarget(database=self.database, update_id=self.update_id())
@@ -199,3 +224,15 @@ class MongoTask(luigi.Task):
     def update_id(self):
         """This update id will be a unique identifier for this insert on this collection."""
         return self.task_id
+
+    def on_success(self):
+        """
+        On completion, add indexes
+        @return: None
+        """
+
+        self.collection = self.get_collection()
+
+        log.info("Adding exportFileDate index")
+
+        self.collection.ensure_index('exportFileDate')

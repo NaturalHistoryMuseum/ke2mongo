@@ -42,7 +42,13 @@ Updates prior to that point do not include records updated on the date the repor
 Further dev
 -----------
 
-At the moment this copies data via postgres copy function - it's quick but we could investigate into doing updates via the API
+Moving to API is working, but I need to:
+
+Add parts/parents
+Multimedia updates etc.,
+Update indexlots (and making sure collection updates are re-imported)
+Update artefacts
+
 
 
 
