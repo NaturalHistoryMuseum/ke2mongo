@@ -212,6 +212,10 @@ class DatasetTask(luigi.Task):
 
             query_fields, df_cols, field_types = zip(*self.columns)
 
+            # query_fields can have None, if there is no source field
+            query_fields = filter(None, query_fields)
+            print query_fields
+
             catalogue_blocks = m.block_query(self.mongo_db, self.collection_name, self.query, query_fields, field_types, block_size=block_size)
 
             for catalogue_block in catalogue_blocks:

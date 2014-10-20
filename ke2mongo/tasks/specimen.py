@@ -27,15 +27,13 @@ class SpecimenDatasetTask(DatasetTask):
         # ([KE EMu field], [new field], [field type])
 
         # Identifier
-        ('DarGlobalUniqueIdentifier', 'Occurrence ID', 'string:100'),
+        ('irn', 'Occurrence ID', 'string:100'),
 
         # Record level
         ('AdmDateModified', 'Modified', 'string:100'),
         # This isn't actually in DwC - but I'm going to use dcterms:created
         ('AdmDateInserted', 'Created', 'string:100'),
-        ('DarInstitutionCode', 'Institution code', 'string:100'),
-        ('DarCollectionCode', 'Collection code', 'string:100'),
-        ('DarBasisOfRecord', 'Basis of record', 'string:100'),
+        ('ColDepartment', 'Collection code', 'string:100'),
 
         # Taxonomy
         ('DarScientificName', 'Scientific name', 'string:100'),
@@ -202,13 +200,15 @@ class SpecimenDatasetTask(DatasetTask):
         # Internal
         ('RegRegistrationParentRef', '_parentRef', 'int32'),
         ('_id', '_id', 'int32'),
+        ('RegRegistrationNumber', '_regRegistrationNumber', 'string:100'),
 
         # Removed: We do not want notes, could contain anything
         # ('DarNotes', 'DarNotes', 'string:100'),
         # ('DarLatLongComments', 'latLongComments', 'string:100'),
     ]
 
-    query = {}  # Selecting data is moved to aggregation query
+    # TODO: Botany query
+    query = {"RegRegistrationNumber": {'$exists': 1}, "ColRecordType": {"$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]}}
 
     # CKAN Dataset params
     package = COLLECTION_DATASET
@@ -216,7 +216,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Test data9',
+            'name': 'Test data13',
             'description': 'Test data',
             'format': 'dwc'  # Darwin core
         },
@@ -228,107 +228,18 @@ class SpecimenDatasetTask(DatasetTask):
         'longitude_field': 'Decimal longitude'
     }
 
-    def run(self):
-
-        # Before running, build aggregation query
-        self.build_aggregation_query()
-        super(SpecimenDatasetTask, self).run()
-
-    def build_aggregation_query(self):
+    def get_output_columns(self):
         """
-        Build aggregation query
-        The specimen dataset is too complicated, and we need to use MongoDB's aggregation queries
-        Monary cannot handle aggregation queries however, so we'll build the aggregator, and then use {} for the query
-
-        @return: None
+        Override default get_output_columns and add in literal columns (not retrieved from mongo)
+        @return:
         """
-        mongo = MongoClient()
-        db_collection = mongo[self.mongo_db][self.collection_name]
 
-        # Update collection name to use agg_
-        # Monary will query against the collection name
-        self.collection_name = 'agg_%s' % self.collection_name
+        output_columns = super(SpecimenDatasetTask, self).get_output_columns()
 
-        # Build list of columns to select
-        projection = {col[0]: 1 for col in self.columns}
-
-        # We cannot rely on some DwC fields, as they are missing / incomplete for some records
-        # So we manually add them based on other fields
-
-        # If $DarCatalogNumber does not exist, we'll try use $RegRegistrationNumber
-        # BUGFIX 141016: Using RegRegistrationNumber rather than GeneralCatalogueNumber
-        # GeneralCatalogueNumber is not populated for bird part records & DarCatalogNumber has MinBmNumber
-        projection['DarCatalogNumber'] = {"$ifNull": ["$DarCatalogNumber", "$RegRegistrationNumber"]}
-        # We cannot rely on the DarGlobalUniqueIdentifier field, as parts do not have it, so build manually
-        projection['DarGlobalUniqueIdentifier'] = {"$concat": ["NHMUK:ecatalogue:", "$irn"]}
-
-        # As above, need to manually build DarCollectionCode and DarInstitutionCode
-        # These do need to be defined as columns, so the inheritance / new field name is used
-        # But we are over riding the default behaviour (just selecting the column)
-        projection['DarInstitutionCode'] = {"$literal": "NHMUK"}
-        projection['DarBasisOfRecord'] = {"$literal": "Specimen"}
-        # If an entom record collection code = BMNH(E), otherwise use PAL, MIN etc.,
-        projection['DarCollectionCode'] = {
-            "$cond": {
-                "if": {"$eq": ["$ColDepartment", "Entomology"]},
-                "then": "BMNH(E)",
-                "else": {"$toUpper": {"$substr": ["$ColDepartment", 0, 3]}}
-            }
-        }
-
-        # Build an aggregation query for parent records
-        # Uses the same projection, so we can easily merge into part records when we're processing the dataframe
-        # TBH, the aggregation query is so simple now dynamic properties are their own fields, this is probably unnecessary
-        # But lets keep in until after we've got all fields in place
-
-        parent_aggregation_query = list()
-
-        # We do not want parent types - these will be merged in the DF
-
-        parent_aggregation_query.append({'$match': {"ColRecordType": {"$in": PARENT_TYPES}}})
-        parent_aggregation_query.append({'$project': projection})
-
-        self.agg_parent_collection_name = '%s_parent' % self.collection_name
-
-        # Add the output collection the query
-        parent_aggregation_query.append({'$out': self.agg_parent_collection_name})
-
-        log.info("Building parent aggregated collection: %s", self.agg_parent_collection_name)
-
-        # TEMP: Put this back in
-        # result = db_collection.aggregate(parent_aggregation_query, allowDiskUse=True)
-        #
-        # # Ensure the aggregation process succeeded
-        # assert result['ok'] == 1.0
-
-        # And now build the main aggregation query we'll use with Monary
-        aggregation_query = list()
-
-        # We do not want parent types - these will be merged in the DF
-        match = {'$match': {"ColRecordType": {"$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]}}}
-
-        # If we have a date. we're only going to get specimens imported on that date
-        if self.date:
-            match['$match']['exportFileDate'] = self.date
-
-        # match['$match']['_id'] = {"$in": [480206, 433477]}
-
-        aggregation_query.append(match)
-
-        # TEMP: Limit
-        aggregation_query.append({'$limit': 10})
-
-        aggregation_query.append({'$project': projection})
-
-           # Add the output collection the query
-        aggregation_query.append({'$out': self.collection_name})
-
-        # Run the aggregation query
-        log.info("Building aggregated collection: %s", self.collection_name)
-        result = db_collection.aggregate(aggregation_query, allowDiskUse=True)
-
-        # Ensure the aggregation process succeeded
-        assert result['ok'] == 1.0
+        # Add the literal columns
+        output_columns['Institution code'] = 'string:100'
+        output_columns['Basis of record'] = 'string:100'
+        return output_columns
 
     def process_dataframe(self, m, df):
         """
@@ -338,24 +249,35 @@ class SpecimenDatasetTask(DatasetTask):
         @return: dataframe
         """
 
+        df['Occurrence ID'] = 'NHMUK:ecatalogue:' + df['Occurrence ID']
+        df['Institution code'] = 'NHMUK'
+        df['Basis of record'] = 'Specimen'
+
+        # Convert collection code to PAL, MIN etc.,
+        df['Collection code'] = df['Collection code'].str.upper().str[0:3]
+        # Entom record collection code = BMNH(E)
+        df['Collection code'][df['Collection code'] == 'ENT'] = "BMNH(E)"
+
+        # Ensure multimedia resources are suitable (jpeg rather than tiff etc.,)
         self.ensure_multimedia(m, df, 'Associated media')
+
+        # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df
+        df = df.applymap(lambda x: np.nan if isinstance(x, basestring) and x == '' else x)
+
+        df['Catalog number'].fillna(df['_regRegistrationNumber'], inplace=True)
 
         # Process part parents
         parent_irns = pd.unique(df._parentRef.values.ravel()).tolist()
 
         if parent_irns:
 
-            parent_df = self.get_dataframe(m, self.agg_parent_collection_name, self.columns, parent_irns, '_id')
+            parent_df = self.get_dataframe(m, 'ecatalogue', self.columns, parent_irns, '_id')
 
             # Ensure the parent multimedia images are usable
             self.ensure_multimedia(m, parent_df, 'Associated media')
 
             # Assign parentRef as the index to allow us to combine with parent_df
             df.index = df['_parentRef']
-
-            # Convert empty strings to NaNs
-            # Which allows us to use combine_first() to replace NaNs with value from parent df
-            df = df.applymap(lambda x: np.NaN if isinstance(x, basestring) and x == '' else x)
 
             # There is a annoying bug that coerces string columns to integers in combine_first
             # Hack: ensure there's always a string value that cannot be coerced in every column

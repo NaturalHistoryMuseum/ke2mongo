@@ -84,4 +84,8 @@ class MongoCatalogueTask(MongoTask):
 
         self.collection.ensure_index('ColRecordType')
 
+        # Add sumRegistrationNumber index
+        self.collection.ensure_index('sumRegistrationNumber')
+        self.collection.ensure_index('ColDepartment')
+
         super(MongoCatalogueTask, self).on_success()
