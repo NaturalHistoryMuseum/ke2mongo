@@ -199,9 +199,6 @@ class DatasetTask(luigi.Task):
     @timeit
     def run(self):
 
-        # # Default collection name - overridden by aggregation queries
-        # collection_name = self.collection_name
-
         # Number of records to retrieve (~200 breaks CSV)
         block_size = 100 if isinstance(self.output(), CSVTarget) else 5000
         count = 0
@@ -214,7 +211,6 @@ class DatasetTask(luigi.Task):
 
             # query_fields can have None, if there is no source field
             query_fields = filter(None, query_fields)
-            print query_fields
 
             catalogue_blocks = m.block_query(self.mongo_db, self.collection_name, self.query, query_fields, field_types, block_size=block_size)
 

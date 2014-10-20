@@ -8,6 +8,7 @@ python specimen.py SpecimenDatasetToCKANTask --local-scheduler --date 20140731
 python specimen.py SpecimenDatasetToCSVTask --local-scheduler --date 20140821
 
 """
+import re
 import pandas as pd
 import numpy as np
 from pymongo import MongoClient
@@ -207,9 +208,22 @@ class SpecimenDatasetTask(DatasetTask):
         # ('DarLatLongComments', 'latLongComments', 'string:100'),
     ]
 
-    # TODO: Botany query
-    query = {"RegRegistrationNumber": {'$exists': 1}, "ColRecordType": {"$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]}}
-
+    query = {
+        "ColRecordType": {
+            "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
+        },
+        # We only want Botany records if they have a catalogue number starting with BM
+        # And only for Entom, Min, Pal & Zoo depts.
+        "$or":
+            [
+                {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
+                {"ColDepartment":
+                    {
+                        "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
+                    }
+                }
+            ]
+    }
     # CKAN Dataset params
     package = COLLECTION_DATASET
 
@@ -248,8 +262,8 @@ class SpecimenDatasetTask(DatasetTask):
         @param df: dataframe
         @return: dataframe
         """
-
         df['Occurrence ID'] = 'NHMUK:ecatalogue:' + df['Occurrence ID']
+        # Added literal columns
         df['Institution code'] = 'NHMUK'
         df['Basis of record'] = 'Specimen'
 
