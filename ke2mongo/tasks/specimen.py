@@ -9,15 +9,13 @@ python specimen.py SpecimenDatasetToCSVTask --local-scheduler --date 20140821
 
 """
 import re
-import json
 import pandas as pd
 import numpy as np
-from pymongo import MongoClient
+from collections import OrderedDict
 from ke2mongo.tasks import PARENT_TYPES, COLLECTION_DATASET
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
-from ke2mongo.log import log
 
 # TODO: Add new fields
 # TODO: UPDATES!!!
@@ -30,7 +28,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Test data15',
+            'name': 'Test data19',
             'description': 'Test data',
             'format': 'dwc'  # Darwin core
         },
@@ -156,10 +154,11 @@ class SpecimenDatasetTask(DatasetTask):
         ('CatPreservative', 'Preservative', 'string:100'),
         ('ColKind', 'Collection kind', 'string:100'),
         ('EntPriCollectionName', 'Collection name', 'string:100'),
-        ('PartRefStr', 'Part refs', 'string:100'),
         ('PalAcqAccLotDonorFullName', 'Donor name', 'string:100'),
         ('DarPreparationType', 'Preparation type', 'string:100'),
         ('DarObservedWeight', 'Observed weight', 'string:100'),
+        ('EntLocExpeditionNameLocal', 'Expedition', 'string:100'),
+
         # DNA
         ('DnaExtractionMethod', 'Extraction method', 'string:100'),
         ('DnaReSuspendedIn', 'Resuspended in', 'string:100'),
@@ -219,6 +218,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Internal
         ('RegRegistrationParentRef', '_parentRef', 'int32'),
+        ('ColSiteRef', '_sites_irn', 'int32'),
         ('_id', '_id', 'int32'),
         # Used if DarCatalogueNumber is empty
         ('RegRegistrationNumber', '_regRegistrationNumber', 'string:100'),
@@ -236,21 +236,34 @@ class SpecimenDatasetTask(DatasetTask):
         # ('DarLatLongComments', 'latLongComments', 'string:100'),
     ]
 
+    # Additional columns to merge in from the taxonomy collection
+    sites_columns = [
+        ('_id', '_sites_irn', 'int32'),
+        ('LatDeriveCentroid', 'Centroid', 'bool'),
+        ('GeorefMaxErrorDist', 'Max error', 'int32'),
+        ('GeorefMaxErrorDistUnits', '_errorUnit', 'string:100'),
+
+    ]
+
+    # query = {
+    #     "ColRecordType": {
+    #         "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
+    #     },
+    #     # We only want Botany records if they have a catalogue number starting with BM
+    #     # And only for Entom, Min, Pal & Zoo depts.
+    #     "$or":
+    #         [
+    #             {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
+    #             {"ColDepartment":
+    #                 {
+    #                     "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
+    #                 }
+    #             }
+    #         ]
+    # }
+
     query = {
-        "ColRecordType": {
-            "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
-        },
-        # We only want Botany records if they have a catalogue number starting with BM
-        # And only for Entom, Min, Pal & Zoo depts.
-        "$or":
-            [
-                {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
-                {"ColDepartment":
-                    {
-                        "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
-                    }
-                }
-            ]
+        'EntLocExpeditionNameLocal': {'$exists': True}
     }
 
     def get_output_columns(self):
@@ -258,8 +271,7 @@ class SpecimenDatasetTask(DatasetTask):
         Override default get_output_columns and add in literal columns (not retrieved from mongo)
         @return:
         """
-
-        output_columns = super(SpecimenDatasetTask, self).get_output_columns()
+        output_columns = OrderedDict((col[1], col[2]) for col in self.columns + self.sites_columns if self._is_output_field(col[1]))
 
         # Add the literal columns
         output_columns['Institution code'] = 'string:100'
@@ -306,8 +318,6 @@ class SpecimenDatasetTask(DatasetTask):
         # Cultivated should only be set on Botany records - but is actually on everything
         df['Cultivated'][df['Collection code'] != 'BOT'] = np.nan
 
-        print df['Cultivated']
-
         # Process part parents
         parent_irns = pd.unique(df._parentRef.values.ravel()).tolist()
 
@@ -328,6 +338,14 @@ class SpecimenDatasetTask(DatasetTask):
             parent_df.loc[dummy_index] = ['-' for _ in parent_df]
             df = df.combine_first(parent_df)
             df = df.drop([dummy_index])
+
+        # Load extra sites info (if this a centroid and error radius + unit)
+        site_irns = pd.unique(df._sites_irn.values.ravel()).tolist()
+        sites_df = self.get_dataframe(m, 'esites', self.sites_columns, site_irns, '_sites_irn')
+
+        # Append the error unit to the max error value
+        sites_df['Max error'] = sites_df['Max error'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
+        df = pd.merge(df, sites_df, how='outer', left_on=['_sites_irn'], right_on=['_sites_irn'])
 
         return df
 
