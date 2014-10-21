@@ -228,6 +228,9 @@ class SpecimenDatasetTask(DatasetTask):
         ('EntIdeFiledAs', '_determinationFiledAs', 'string:100'),
         # If DarTypeStatus is empty, we'll use sumTypeStatus which has previous determinations
         ('sumTypeStatus', '_sumTypeStatus', 'string:100'),
+        # CITES specimens
+        ('cites', '_cites', 'bool'),
+
         # Removed: We do not want notes, could contain anything
         # ('DarNotes', 'DarNotes', 'string:100'),
         # ('DarLatLongComments', 'latLongComments', 'string:100'),
@@ -285,7 +288,11 @@ class SpecimenDatasetTask(DatasetTask):
         # Ensure multimedia resources are suitable (jpeg rather than tiff etc.,)
         self.ensure_multimedia(m, df, 'Associated media')
 
-        #
+        # For CITES species, we need to hide Lat/Lon and Locality data
+        for i in ['Locality', 'Decimal longitude', 'Decimal latitude']:
+            df[i][df['_cites'] == 'True'] = np.nan
+
+        # Assign determination name, type and field as to Determinations to show determination history
         df['Determinations'] = 'name=' + df['_determinationNames'].astype(str) + ';type=' + df['_determinationTypes'].astype(str) + ';filedAs=' + df['_determinationFiledAs'].astype(str)
 
         # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df

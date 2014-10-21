@@ -70,6 +70,8 @@ class MongoCatalogueTask(MongoTask):
             if i in data:
                 data[i] = str(data[i])
 
+        # TODO: Mark as CITES species
+
         return super(MongoCatalogueTask, self).process_record(data)
 
     def on_success(self):
