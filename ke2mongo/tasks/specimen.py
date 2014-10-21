@@ -9,6 +9,7 @@ python specimen.py SpecimenDatasetToCSVTask --local-scheduler --date 20140821
 
 """
 import re
+import json
 import pandas as pd
 import numpy as np
 from pymongo import MongoClient
@@ -22,6 +23,24 @@ from ke2mongo.log import log
 # TODO: UPDATES!!!
 
 class SpecimenDatasetTask(DatasetTask):
+
+    # CKAN Dataset params
+    package = COLLECTION_DATASET
+
+    # And now save to the datastore
+    datastore = {
+        'resource': {
+            'name': 'Test data14',
+            'description': 'Test data',
+            'format': 'dwc'  # Darwin core
+        },
+        'primary_key': 'Occurrence ID'
+    }
+
+    geospatial_fields = {
+        'latitude_field': 'Decimal latitude',
+        'longitude_field': 'Decimal longitude'
+    }
 
     columns = [
         # List of columns
@@ -201,8 +220,14 @@ class SpecimenDatasetTask(DatasetTask):
         # Internal
         ('RegRegistrationParentRef', '_parentRef', 'int32'),
         ('_id', '_id', 'int32'),
+        # Used if DarCatalogueNumber is empty
         ('RegRegistrationNumber', '_regRegistrationNumber', 'string:100'),
-
+        # Used to build previous determinations for Botany
+        ('DetTypeofType', '_determinationTypes', 'string:100'),
+        ('EntIdeScientificNameLocal', '_determinationNames', 'string:100'),
+        ('EntIdeFiledAs', '_determinationFiledAs', 'string:100'),
+        # If DarTypeStatus is empty, we'll use sumTypeStatus which has previous determinations
+        ('sumTypeStatus', '_sumTypeStatus', 'string:100'),
         # Removed: We do not want notes, could contain anything
         # ('DarNotes', 'DarNotes', 'string:100'),
         # ('DarLatLongComments', 'latLongComments', 'string:100'),
@@ -224,23 +249,36 @@ class SpecimenDatasetTask(DatasetTask):
                 }
             ]
     }
-    # CKAN Dataset params
-    package = COLLECTION_DATASET
 
-    # And now save to the datastore
-    datastore = {
-        'resource': {
-            'name': 'Test data13',
-            'description': 'Test data',
-            'format': 'dwc'  # Darwin core
-        },
-        'primary_key': 'Occurrence ID'
-    }
+    # query = {'_id': 3226595}
 
-    geospatial_fields = {
-        'latitude_field': 'Decimal latitude',
-        'longitude_field': 'Decimal longitude'
-    }
+    # query = {}
+
+    def run(self):
+
+        # Before running, build aggregation query
+        self.build_aggregation_query()
+        super(SpecimenDatasetTask, self).run()
+
+    def build_aggregation_query(self):
+
+        mongo = MongoClient()
+        db_collection = mongo[self.mongo_db][self.collection_name]
+
+        # Switch collection name
+        # self.collection_name = 'agg_%s' % self.collection_name
+
+        aggregation_query = list()
+
+        aggregation_query.append({'$match': self.query})
+        aggregation_query.append({'$out': 'hey'})
+        log.info("Building aggregated collection: %s", self.collection_name)
+
+        result = db_collection.aggregate(aggregation_query, allowDiskUse=True)
+
+        assert result['ok'] == 1.0
+
+        print aggregation_query
 
     def get_output_columns(self):
         """
@@ -253,6 +291,8 @@ class SpecimenDatasetTask(DatasetTask):
         # Add the literal columns
         output_columns['Institution code'] = 'string:100'
         output_columns['Basis of record'] = 'string:100'
+        output_columns['Determinations'] = 'string:200'
+
         return output_columns
 
     def process_dataframe(self, m, df):
@@ -275,10 +315,16 @@ class SpecimenDatasetTask(DatasetTask):
         # Ensure multimedia resources are suitable (jpeg rather than tiff etc.,)
         self.ensure_multimedia(m, df, 'Associated media')
 
+        #
+        df['Determinations'] = 'name=' + df['_determinationNames'].astype(str) + ';type=' + df['_determinationTypes'].astype(str) + ';filedAs=' + df['_determinationFiledAs'].astype(str)
+
         # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df
         df = df.applymap(lambda x: np.nan if isinstance(x, basestring) and x == '' else x)
 
         df['Catalog number'].fillna(df['_regRegistrationNumber'], inplace=True)
+
+        # Replace missing DarTypeStatus
+        df['Type status'].fillna(df['_sumTypeStatus'], inplace=True)
 
         # Process part parents
         parent_irns = pd.unique(df._parentRef.values.ravel()).tolist()
