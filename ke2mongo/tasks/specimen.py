@@ -115,7 +115,7 @@ class SpecimenDatasetTask(DatasetTask):
         ('EntIdeDateIdentified', 'Date identified', 'string:100'),
         ('DarIdentificationQualifier', 'Identification qualifier', 'string:100'),
         ('DarTypeStatus', 'Type status', 'string:100'),
-        # ('DarFieldNumber', 'Field number', 'string:100'),  Removed as mostly duplicates DarCollectorNumber (FW - feedback)
+        # ('DarFieldNumber', 'Field number', 'string:100'),  Removed as mostly duplicates DarCollectorNumber (JW - feedback)
         ('DarTimeOfDay', 'Event time', 'string:100'),
         ('DarDayCollected', 'Day', 'string:100'),
         ('DarMonthCollected', 'Month', 'string:100'),
