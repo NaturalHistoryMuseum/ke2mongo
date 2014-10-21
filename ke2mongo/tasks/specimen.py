@@ -250,36 +250,6 @@ class SpecimenDatasetTask(DatasetTask):
             ]
     }
 
-    # query = {'_id': 3226595}
-
-    # query = {}
-
-    def run(self):
-
-        # Before running, build aggregation query
-        self.build_aggregation_query()
-        super(SpecimenDatasetTask, self).run()
-
-    def build_aggregation_query(self):
-
-        mongo = MongoClient()
-        db_collection = mongo[self.mongo_db][self.collection_name]
-
-        # Switch collection name
-        # self.collection_name = 'agg_%s' % self.collection_name
-
-        aggregation_query = list()
-
-        aggregation_query.append({'$match': self.query})
-        aggregation_query.append({'$out': 'hey'})
-        log.info("Building aggregated collection: %s", self.collection_name)
-
-        result = db_collection.aggregate(aggregation_query, allowDiskUse=True)
-
-        assert result['ok'] == 1.0
-
-        print aggregation_query
-
     def get_output_columns(self):
         """
         Override default get_output_columns and add in literal columns (not retrieved from mongo)
