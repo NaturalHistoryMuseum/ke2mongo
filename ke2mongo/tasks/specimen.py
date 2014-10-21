@@ -30,7 +30,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Test data14',
+            'name': 'Test data15',
             'description': 'Test data',
             'format': 'dwc'  # Darwin core
         },
@@ -180,7 +180,7 @@ class SpecimenDatasetTask(DatasetTask):
         ('ColSiteDescription', 'Label locality', 'string:100'),  # JW asked for this to be renamed from Site Description => Label locality
         ('ColPlantDescription', 'Plant description', 'string:100'),
         ('FeaCultivated', 'Cultivated', 'string:100'),
-        ('FeaPlantForm', 'Plant form', 'string:100'),
+        # ('FeaPlantForm', 'Plant form', 'string:100'),  # JW asked for this to be removed
         # Paleo
         ('PalDesDescription', 'Catalogue description', 'string:100'),
         ('PalStrChronostratLocal', 'Chronostratigraphy', 'string:100'),
@@ -289,7 +289,7 @@ class SpecimenDatasetTask(DatasetTask):
         self.ensure_multimedia(m, df, 'Associated media')
 
         # For CITES species, we need to hide Lat/Lon and Locality data
-        for i in ['Locality', 'Label locality', 'Decimal longitude', 'Decimal latitude']:
+        for i in ['Locality', 'Label locality', 'Decimal longitude', 'Decimal latitude', 'Higher geography']:
             df[i][df['_cites'] == 'True'] = np.nan
 
         # Assign determination name, type and field as to Determinations to show determination history
@@ -302,6 +302,11 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Replace missing DarTypeStatus
         df['Type status'].fillna(df['_sumTypeStatus'], inplace=True)
+
+        # Cultivated should only be set on Botany records - but is actually on everything
+        df['Cultivated'][df['Collection code'] != 'BOT'] = np.nan
+
+        print df['Cultivated']
 
         # Process part parents
         parent_irns = pd.unique(df._parentRef.values.ravel()).tolist()
