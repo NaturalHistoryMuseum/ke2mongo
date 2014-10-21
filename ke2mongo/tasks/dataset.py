@@ -203,8 +203,6 @@ class DatasetTask(luigi.Task):
         block_size = 100 if isinstance(self.output(), CSVTarget) else 5000
         count = 0
 
-        import time
-
         with Monary() as m:
 
             log.info("Querying Monary")
@@ -214,18 +212,9 @@ class DatasetTask(luigi.Task):
             # query_fields can have None, if there is no source field
             query_fields = filter(None, query_fields)
 
-            t1 = time.time()
-
             catalogue_blocks = m.block_query(self.mongo_db, self.collection_name, self.query, query_fields, field_types, block_size=block_size)
 
-            t2 = time.time()
-
-            print 'block_query: %2.2f sec' % (t2-t1)
-
-
             for catalogue_block in catalogue_blocks:
-
-                t3 = time.time()
 
                 # Columns are indexed by key in the catalogue
                 catalogue_block = [arr.astype(np.str).filled('') if self._is_output_field(df_cols[i]) else arr for i, arr in enumerate(catalogue_block)]
@@ -249,12 +238,6 @@ class DatasetTask(luigi.Task):
                 row_count, col_count = df.shape
                 count += row_count
                 log.info("\t %s records", count)
-
-                t4 = time.time()
-
-                print 'dataframe: %2.2f sec' % (t4-t3)
-
-                print 'total: %2.2f sec' % (t4-t2)
 
     def process_dataframe(self, m, df):
         return df  # default impl
