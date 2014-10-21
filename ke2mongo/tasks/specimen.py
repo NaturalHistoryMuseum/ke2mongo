@@ -115,7 +115,7 @@ class SpecimenDatasetTask(DatasetTask):
         ('EntIdeDateIdentified', 'Date identified', 'string:100'),
         ('DarIdentificationQualifier', 'Identification qualifier', 'string:100'),
         ('DarTypeStatus', 'Type status', 'string:100'),
-        ('DarFieldNumber', 'Field number', 'string:100'),
+        # ('DarFieldNumber', 'Field number', 'string:100'),  Removed as mostly duplicates DarCollectorNumber (FW - feedback)
         ('DarTimeOfDay', 'Event time', 'string:100'),
         ('DarDayCollected', 'Day', 'string:100'),
         ('DarMonthCollected', 'Month', 'string:100'),
@@ -177,7 +177,7 @@ class SpecimenDatasetTask(DatasetTask):
         # Botany
         ('CollExsiccati', 'Exsiccati', 'string:100'),
         ('ColExsiccatiNumber', 'Exsiccati number', 'string:100'),
-        ('ColSiteDescription', 'Site description', 'string:100'),
+        ('ColSiteDescription', 'Label locality', 'string:100'),  # JW asked for this to be renamed from Site Description => Label locality
         ('ColPlantDescription', 'Plant description', 'string:100'),
         ('FeaCultivated', 'Cultivated', 'string:100'),
         ('FeaPlantForm', 'Plant form', 'string:100'),
@@ -289,7 +289,7 @@ class SpecimenDatasetTask(DatasetTask):
         self.ensure_multimedia(m, df, 'Associated media')
 
         # For CITES species, we need to hide Lat/Lon and Locality data
-        for i in ['Locality', 'Decimal longitude', 'Decimal latitude']:
+        for i in ['Locality', 'Label locality', 'Decimal longitude', 'Decimal latitude']:
             df[i][df['_cites'] == 'True'] = np.nan
 
         # Assign determination name, type and field as to Determinations to show determination history
