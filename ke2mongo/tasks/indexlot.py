@@ -28,7 +28,7 @@ class IndexLotDatasetTask(DatasetTask):
     }
 
     columns = [
-        ('_id', '_id', 'int32'),
+        # ('_id', '_id', 'int32'),
         ('_id', 'Catalogue number', 'int32'),
         ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
         ('EntIndMaterial', 'Material', 'bool'),
@@ -36,9 +36,15 @@ class IndexLotDatasetTask(DatasetTask):
         ('EntIndMedia', 'Media', 'bool'),
         ('EntIndKindOfMaterial', 'Kind of material', 'string:100'),
         ('EntIndKindOfMedia', 'Kind of media', 'string:100'),
+
         # Material detail
         ('EntIndCount', 'Material count', 'string:100'),
+        ('EntIndSex', 'Material sex', 'string:100'),
+        ('EntIndStage', 'Material stage', 'string:100'),
         ('EntIndTypes', 'Material types', 'string:100'),
+        ('EntIndPrimaryTypeNo', 'Material primary type no', 'string:100'),
+        ('EntIndRemarks', 'Material remarks', 'string:100'),
+
         # Separate Botany and Entomology
         ('ColDepartment', 'Department', 'string:100'),
     ]
