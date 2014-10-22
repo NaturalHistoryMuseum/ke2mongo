@@ -267,6 +267,10 @@ class SpecimenDatasetTask(DatasetTask):
             ]
     }
 
+    # query = {
+    #     '_id': {'$in': [614490, 614604, 614682, 614686, 614885, 614886, 614887, 614893, 615014, 615238, 615240, 615254, 615256, 615257, 615258, 615259, 615260, 615261, 615262, 615263, 615264, 615265, 615266, 615267, 615268, 615269, 615270, 615271, 707941, 707947, 707949, 707952, 707955, 1184655, 1184657, 1184661, 1184659, 1184663, 560912, 560920, 560925, 560933, 560936, 560938, 560939, 560942, 560944, 560946, 560956, 560960, 560964, 560967, 560976, 560989, 560999, 561009, 561012, 561013, 561028, 610304, 561026, 559752, 561465, 559529, 561639, 563225, 561834, 562201, 548655, 632437, 632443, 559558, 440529, 440545, 633048, 608784, 573129, 712426, 712424, 597697, 566135, 562426, 562429, 632056, 632065, 632066, 632067, 632068, 632073, 632076, 632079, 632080, 632082, 632083, 632092, 632112, 632113, 632114, 632115, 632117]}
+    # }
+
     def get_output_columns(self):
         """
         Override default get_output_columns and add in literal columns (not retrieved from mongo)
@@ -288,6 +292,9 @@ class SpecimenDatasetTask(DatasetTask):
         @param df: dataframe
         @return: dataframe
         """
+
+        irns = [int(i) for i in df['Occurrence ID']]
+
         df['Occurrence ID'] = 'NHMUK:ecatalogue:' + df['Occurrence ID']
         # Added literal columns
         df['Institution code'] = 'NHMUK'
@@ -298,10 +305,6 @@ class SpecimenDatasetTask(DatasetTask):
         # Entom record collection code = BMNH(E)
         df['Collection code'][df['Collection code'] == 'ENT'] = "BMNH(E)"
 
-        # For CITES species, we need to hide Lat/Lon and Locality data - and label images
-        for i in ['Locality', 'Label locality', 'Decimal longitude', 'Decimal latitude', 'Higher geography', 'Associated media']:
-            df[i][df['_cites'] == 'True'] = np.nan
-
         # Ensure multimedia resources are suitable (jpeg rather than tiff etc.,)
         self.ensure_multimedia(m, df, 'Associated media')
 
@@ -310,6 +313,10 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df
         df = df.applymap(lambda x: np.nan if isinstance(x, basestring) and x == '' else x)
+
+        # For CITES species, we need to hide Lat/Lon and Locality data - and label images
+        for i in ['Locality', 'Label locality', 'Decimal longitude', 'Decimal latitude', 'Higher geography', 'Associated media']:
+            df[i][df['_cites'] == 'True'] = np.nan
 
         df['Catalog number'].fillna(df['_regRegistrationNumber'], inplace=True)
 

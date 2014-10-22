@@ -253,6 +253,7 @@ class DatasetTask(luigi.Task):
         # Convert associatedMedia field to a list
         df[multimedia_field] = df[multimedia_field].apply(lambda x: list(int(z.strip()) for z in x.split(';') if z.strip()))
 
+
         def get_max_dimension(str_dimension):
             """
             Split the dimension string, and return the second highest value
@@ -366,7 +367,7 @@ class DatasetCSVTask(DatasetTask):
         log.info("Import CSV file with:")
         log.info("COPY \"{resource_id}\" (\"{cols}\") FROM '{path}' DELIMITER ',' CSV ENCODING 'UTF8'".format(
             resource_id=self.resource_id,
-            cols='","'.join(col[1] for col in self.get_output_columns()),
+            cols='","'.join(col for col in self.get_output_columns()),
             path=self.path
         ))
 
