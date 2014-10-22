@@ -28,7 +28,6 @@ class IndexLotDatasetTask(DatasetTask):
     }
 
     columns = [
-        # ('_id', '_id', 'int32'),
         ('_id', 'Catalogue number', 'int32'),
         ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
         ('EntIndMaterial', 'Material', 'bool'),
