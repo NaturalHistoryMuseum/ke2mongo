@@ -79,6 +79,10 @@ class IndexLotDatasetTask(DatasetTask):
         ('ClaRank', 'Taxonomic rank', 'string:10'),  # NB: CKAN uses rank internally
     ]
 
+    query = {
+        '_id': {'$exists': True}
+    }
+
     def process_dataframe(self, m, df):
         """
         Process the dataframe, adding in the taxonomy fields

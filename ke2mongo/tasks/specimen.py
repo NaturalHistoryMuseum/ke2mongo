@@ -14,8 +14,9 @@ import numpy as np
 from collections import OrderedDict
 from ke2mongo.tasks import PARENT_TYPES, COLLECTION_DATASET
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
+from ke2mongo.tasks.artefact import ArtefactDatasetTask
+from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 
-# TODO: Add new fields
 # TODO: UPDATES!!!
 
 class SpecimenDatasetTask(DatasetTask):
@@ -246,25 +247,21 @@ class SpecimenDatasetTask(DatasetTask):
         ('GeorefMaxErrorDistUnits', '_errorUnit', 'string:100'),
     ]
 
-    # query = {
-    #     "ColRecordType": {
-    #         "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
-    #     },
-    #     # We only want Botany records if they have a catalogue number starting with BM
-    #     # And only for Entom, Min, Pal & Zoo depts.
-    #     "$or":
-    #         [
-    #             {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
-    #             {"ColDepartment":
-    #                 {
-    #                     "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
-    #                 }
-    #             }
-    #         ]
-    # }
-
     query = {
-        'EntCatPreservation': {'$exists': True}
+        "ColRecordType": {
+            "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
+        },
+        # We only want Botany records if they have a catalogue number starting with BM
+        # And only for Entom, Min, Pal & Zoo depts.
+        "$or":
+            [
+                {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
+                {"ColDepartment":
+                    {
+                        "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
+                    }
+                }
+            ]
     }
 
     def get_output_columns(self):
