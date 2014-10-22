@@ -99,6 +99,12 @@ class IndexLotDatasetTask(DatasetTask):
         # the index lot record's EntIndIndexLotTaxonNameLocalRef is not updated with the new taxonomy
         # So we need to use collection index to retrieve the record taxonomy
 
+        # Convert booleans to yes / no
+        for field, field_type in self.get_output_columns().iteritems():
+            if field_type == 'bool':
+                df[field][df[field] == 'True'] = 'Yes'
+                df[field][df[field] == 'False'] = 'No'
+
         collection_index_irns = pd.unique(df._collection_index_irn.values.ravel()).tolist()
 
         collection_index_df = self.get_dataframe(m, 'ecollectionindex', self.collection_index_columns, collection_index_irns, '_collection_index_irn')
