@@ -85,10 +85,6 @@ class IndexLotDatasetTask(DatasetTask):
         ('ClaScientificNameBuilt', 'Currently accepted name', 'string:100'),
     ]
 
-    query = {
-        '_id': 2312088
-    }
-
     def process_dataframe(self, m, df):
         """
         Process the dataframe, adding in the taxonomy fields
