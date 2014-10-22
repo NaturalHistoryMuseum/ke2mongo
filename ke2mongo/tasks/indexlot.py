@@ -20,7 +20,7 @@ class IndexLotDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'indexlots2',
+            'name': 'indexlots4',
             'description': 'Index lots',
             'format': 'csv'
         },
@@ -58,12 +58,13 @@ class IndexLotDatasetTask(DatasetTask):
         # Not a problem, as indexlots are using ColTaxonomicNameRef for summary data etc.,
         # So ColTaxonomicNameRef is the correct field to use.
         ('ColTaxonomicNameRef', '_taxonomy_irn', 'int32'),
+        ('ColCurrentNameRef', '_current_name_irn', 'int32'),
     ]
 
     # Additional columns to merge in from the taxonomy collection
     taxonomy_columns = [
         ('_id', '_taxonomy_irn', 'int32'),
-        ('ClaScientificNameBuilt', 'Scientific name', 'string:100'),
+        ('ClaScientificNameBuilt', 'Original name', 'string:100'),
         ('ClaKingdom', 'Kingdom', 'string:60'),
         ('ClaPhylum', 'Phylum', 'string:100'),
         ('ClaClass', 'Class', 'string:100'),
@@ -79,8 +80,13 @@ class IndexLotDatasetTask(DatasetTask):
         ('ClaRank', 'Taxonomic rank', 'string:10'),  # NB: CKAN uses rank internally
     ]
 
+    current_name_columns = [
+        ('_id', '_current_name_irn', 'int32'),
+        ('ClaScientificNameBuilt', 'Currently accepted name', 'string:100'),
+    ]
+
     query = {
-        '_id': {'$exists': True}
+        '_id': 2312088
     }
 
     def process_dataframe(self, m, df):
@@ -113,13 +119,18 @@ class IndexLotDatasetTask(DatasetTask):
         # main dataframe keyed by collection index ID
         collection_index_df = pd.merge(collection_index_df, taxonomy_df, how='inner', left_on=['_taxonomy_irn'], right_on=['_taxonomy_irn'])
 
+        # Add current name - same process as the main taxonomy but using _current_name_irn source fields
+        current_name_irns = pd.unique(collection_index_df._current_name_irn.values.ravel()).tolist()
+        current_name_df = self.get_dataframe(m, 'etaxonomy', self.current_name_columns, current_name_irns, '_current_name_irn')
+        collection_index_df = pd.merge(collection_index_df, current_name_df, how='inner', left_on=['_current_name_irn'], right_on=['_current_name_irn'])
+
         # Merge results into main dataframe
         df = pd.merge(df, collection_index_df, how='outer', left_on=['_collection_index_irn'], right_on=['_collection_index_irn'])
 
         return df
 
     def get_output_columns(self):
-        return OrderedDict((col[1], col[2]) for col in self.columns + self.taxonomy_columns if self._is_output_field(col[1]))
+        return OrderedDict((col[1], col[2]) for col in self.columns + self.taxonomy_columns + self.current_name_columns if self._is_output_field(col[1]))
 
 
 class IndexLotDatasetCSVTask(IndexLotDatasetTask, DatasetCSVTask):
