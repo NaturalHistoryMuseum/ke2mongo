@@ -295,12 +295,12 @@ class SpecimenDatasetTask(DatasetTask):
         # Entom record collection code = BMNH(E)
         df['Collection code'][df['Collection code'] == 'ENT'] = "BMNH(E)"
 
+        # For CITES species, we need to hide Lat/Lon and Locality data - and label images
+        for i in ['Locality', 'Label locality', 'Decimal longitude', 'Decimal latitude', 'Higher geography', 'Associated media']:
+            df[i][df['_cites'] == 'True'] = np.nan
+
         # Ensure multimedia resources are suitable (jpeg rather than tiff etc.,)
         self.ensure_multimedia(m, df, 'Associated media')
-
-        # For CITES species, we need to hide Lat/Lon and Locality data
-        for i in ['Locality', 'Label locality', 'Decimal longitude', 'Decimal latitude', 'Higher geography']:
-            df[i][df['_cites'] == 'True'] = np.nan
 
         # Assign determination name, type and field as to Determinations to show determination history
         df['Determinations'] = 'name=' + df['_determinationNames'].astype(str) + ';type=' + df['_determinationTypes'].astype(str) + ';filedAs=' + df['_determinationFiledAs'].astype(str)
