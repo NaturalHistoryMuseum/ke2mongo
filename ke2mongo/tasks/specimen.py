@@ -27,7 +27,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Test data19',
+            'name': 'Test data20',
             'description': 'Test data',
             'format': 'dwc'  # Darwin core
         },
@@ -156,7 +156,10 @@ class SpecimenDatasetTask(DatasetTask):
         ('PalAcqAccLotDonorFullName', 'Donor name', 'string:100'),
         ('DarPreparationType', 'Preparation type', 'string:100'),
         ('DarObservedWeight', 'Observed weight', 'string:100'),
+
+        # Location
         ('EntLocExpeditionNameLocal', 'Expedition', 'string:100'),
+        ('sumViceCountry', 'Vice country', 'string:100'),
 
         # DNA
         ('DnaExtractionMethod', 'Extraction method', 'string:100'),
