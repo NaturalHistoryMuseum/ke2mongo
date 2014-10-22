@@ -234,7 +234,8 @@ class DatasetTask(luigi.Task):
                 df = self.process_dataframe(m, df)
 
                 # Output the dataframe
-                self.output().write(df)
+                # TEMP
+                # self.output().write(df)
 
                 row_count, col_count = df.shape
                 count += row_count
@@ -267,7 +268,12 @@ class DatasetTask(luigi.Task):
         # Get a list of dictionary of valid multimedia valid mimetypes
         # It's not enough to just check for the derived image heights - some of these are tiffs etc., and undeliverable
         cursor = MongoClient()['keemu']['emultimedia'].find(
-            {'_id': {'$in': unique_multimedia_irns}, 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS}},
+            {
+                '_id': {'$in': unique_multimedia_irns},
+                'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS},
+                'DocHeight': {'$exists': True},
+                'DocWidth': {'$exists': True}
+            },
             {'DocHeight': 1, 'DocWidth': 1}
         )
 
