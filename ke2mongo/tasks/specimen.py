@@ -14,8 +14,6 @@ import numpy as np
 from collections import OrderedDict
 from ke2mongo.tasks import PARENT_TYPES, COLLECTION_DATASET
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
-from ke2mongo.tasks.artefact import ArtefactDatasetTask
-from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 
 # TODO: Add new fields
 # TODO: UPDATES!!!
@@ -242,7 +240,6 @@ class SpecimenDatasetTask(DatasetTask):
         ('LatDeriveCentroid', 'Centroid', 'bool'),
         ('GeorefMaxErrorDist', 'Max error', 'int32'),
         ('GeorefMaxErrorDistUnits', '_errorUnit', 'string:100'),
-
     ]
 
     # query = {
@@ -263,7 +260,7 @@ class SpecimenDatasetTask(DatasetTask):
     # }
 
     query = {
-        'EntLocExpeditionNameLocal': {'$exists': True}
+        'MulMultiMediaRef': {'$exists': True}
     }
 
     def get_output_columns(self):

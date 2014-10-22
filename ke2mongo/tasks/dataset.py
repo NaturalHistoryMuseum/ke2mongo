@@ -25,7 +25,8 @@ from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.delete import DeleteTask
 from ke2mongo.lib.file import get_export_file_dates
 from ke2mongo.tasks.target import CSVTarget, APITarget
-from ke2mongo.tasks import  MULTIMEDIA_URL, MULTIMEDIA_FORMATS
+from ke2mongo.tasks import MULTIMEDIA_FORMATS
+from pymongo import MongoClient
 
 class DatasetTask(luigi.Task):
     """
@@ -252,26 +253,33 @@ class DatasetTask(luigi.Task):
         # Convert associatedMedia field to a list
         df[multimedia_field] = df[multimedia_field].apply(lambda x: list(int(z.strip()) for z in x.split(';') if z.strip()))
 
-        def get_valid_multimedia(multimedia_irns):
+        def get_max_dimension(str_dimension):
             """
-            Get a data frame of taxonomy records
-            @param m: Monary instance
-            @param irns: taxonomy IRNs to retrieve
-            @return:
+            Split the dimension string, and return the second highest value
             """
-            q = {'_id': {'$in': multimedia_irns}, 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS}}
-            ('_id', '_taxonomy_irn', 'int32'),
-            query = m.query('keemu', 'emultimedia', q, ['_id'], ['int32'])
-            return query[0].view()
+            dimensions = [int(x.strip()) for x in str_dimension.split(';')]
+            return sorted(dimensions,reverse=True)[1]
 
         # Get a unique list of IRNS
         unique_multimedia_irns = list(set(itertools.chain(*[irn for irn in df[multimedia_field].values])))
 
-        # Get a list of multimedia irns with valid mimetypes
-        valid_multimedia = get_valid_multimedia(unique_multimedia_irns)
+        # Get a list of dictionary of valid multimedia valid mimetypes
+        # It's not enough to just check for the derived image heights - some of these are tiffs etc., and undeliverable
+        cursor = MongoClient()['keemu']['emultimedia'].find(
+            {'_id': {'$in': unique_multimedia_irns}, 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS}},
+            {'DocHeight': 1, 'DocWidth': 1}
+        )
+
+        multimedia = {
+            r['_id']: 'http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php?irn={_id}&image=yes&width={width}&height={height}'.format(
+                _id=r['_id'],
+                width=get_max_dimension(r['DocWidth']),
+                height=get_max_dimension(r['DocHeight'])
+            ) for r in cursor
+        }
 
         # And finally update the associatedMedia field, so formatting with the IRN with MULTIMEDIA_URL, if the IRN is in valid_multimedia
-        df[multimedia_field] = df[multimedia_field].apply(lambda irns: '; '.join(MULTIMEDIA_URL % irn for irn in irns if irn in valid_multimedia))
+        df[multimedia_field] = df[multimedia_field].apply(lambda irns: '; '.join(multimedia[irn] for irn in irns if irn in multimedia))
 
     def get_dataframe(self, m, collection, columns, irns, key):
 

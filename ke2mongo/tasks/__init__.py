@@ -11,9 +11,6 @@ PARENT_TYPES = [
     'Bird Group Parent',
     'Mammal Group Parent',
 ]
-
-MULTIMEDIA_URL = 'http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php?irn=%s&image=yes&width=600'
-
 # http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php only supports jp2 and jpeg - not gif, tiff etc.,
 MULTIMEDIA_FORMATS = ['jp2', 'jpeg']
 
