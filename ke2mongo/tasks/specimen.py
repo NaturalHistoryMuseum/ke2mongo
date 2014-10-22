@@ -220,6 +220,10 @@ class SpecimenDatasetTask(DatasetTask):
         ('_id', '_id', 'int32'),
         # Used if DarCatalogueNumber is empty
         ('RegRegistrationNumber', '_regRegistrationNumber', 'string:100'),
+
+        # Used if CatPreservative is empty
+        ('EntCatPreservation', '_entCatPreservation', 'string:100'),
+
         # Used to build previous determinations for Botany
         ('DetTypeofType', '_determinationTypes', 'string:100'),
         ('EntIdeScientificNameLocal', '_determinationNames', 'string:100'),
@@ -260,7 +264,7 @@ class SpecimenDatasetTask(DatasetTask):
     # }
 
     query = {
-        'MulMultiMediaRef': {'$exists': True}
+        'EntCatPreservation': {'$exists': True}
     }
 
     def get_output_columns(self):
@@ -311,6 +315,9 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Replace missing DarTypeStatus
         df['Type status'].fillna(df['_sumTypeStatus'], inplace=True)
+
+        # Replace missing CatPreservative
+        df['Preservative'].fillna(df['_entCatPreservation'], inplace=True)
 
         # Cultivated should only be set on Botany records - but is actually on everything
         df['Cultivated'][df['Collection code'] != 'BOT'] = np.nan
