@@ -28,7 +28,6 @@ from ke2mongo.tasks.mongo import MongoTarget
 from ke2mongo.lib.file import get_export_file_dates
 
 
-
 class MongoBulkTask(luigi.Task):
     """
     This task requires all Mongo Tasks, and processes all of them for a particular date
@@ -42,15 +41,12 @@ class MongoBulkTask(luigi.Task):
 
     date = luigi.IntParameter()
 
+    # NB: Delete should be processed last: if a record is updated and then deleted, the record would be re-inserted
     bulks_tasks = [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, MongoDeleteTask]
-
 
     def requires(self):
         for task in self.bulks_tasks:
             yield task(self.date)
-
-        # yield MongoCollectionIndexTask(self.date), MongoCatalogueTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date), MongoSiteTask(self.date), MongoDeleteTask(self.date)
-
 
 class BulkException(Exception):
     """
