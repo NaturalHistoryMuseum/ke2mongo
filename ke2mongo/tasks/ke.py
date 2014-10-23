@@ -10,16 +10,6 @@ import os
 import luigi.postgres
 from ke2mongo import config
 from luigi.format import Gzip
-import codecs
-import gzip
-
-def encoding_error(e):
-    print '------- ERROR -------'
-    print e.encoding
-    print e.start
-    print e.object
-    print '------- ERROR -------'
-    return (u'-', e.start + 1)
 
 class KEFileTask(luigi.ExternalTask):
 
