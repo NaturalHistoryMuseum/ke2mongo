@@ -10,18 +10,21 @@ This is to ensure that an error in the exports - ie: they're not available on th
 is investigated
 
 """
-
+import re
 import luigi
 from ke2mongo.log import log
 from luigi import scheduler, worker
 from luigi.interface import setup_interface_logging
+from pymongo import MongoClient
+from collections import OrderedDict
+from ke2mongo import config
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
-
 from ke2mongo.tasks.mongo_site import MongoSiteTask
-from ke2mongo.tasks.delete import DeleteTask
+from ke2mongo.tasks.mongo_delete import MongoDeleteTask
+from ke2mongo.tasks.mongo import MongoTarget
 from ke2mongo.lib.file import get_export_file_dates
 
 
@@ -39,8 +42,14 @@ class MongoBulkTask(luigi.Task):
 
     date = luigi.IntParameter()
 
+    bulks_tasks = [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, MongoDeleteTask]
+
+
     def requires(self):
-        yield MongoCollectionIndexTask(self.date), MongoCatalogueTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date), MongoDeleteTask(self.date)
+        for task in self.bulks_tasks:
+            yield task(self.date)
+
+        # yield MongoCollectionIndexTask(self.date), MongoCatalogueTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date), MongoSiteTask(self.date), MongoDeleteTask(self.date)
 
 
 class BulkException(Exception):
@@ -67,14 +76,41 @@ class BulkWorker(worker.Worker):
 
 def main():
 
-    # Get a list of all export files to process
-    export_dates = get_export_file_dates()
+    # Get a list of all files processed
+    mongo_db = config.get('mongo', 'database')
+    cursor = MongoClient()[mongo_db][MongoTarget.marker_collection_name].find()
 
-    # Run setup_interface_logging to ensure luigi commands
-    setup_interface_logging()
+    re_update_id = re.compile('(Mongo[a-zA-Z]+)\(date=([0-9]+)\)')
+
+    # OrderedDict to store all of the update classes
+    updates = OrderedDict()
+
+    for record in cursor:
+        result = re_update_id.match(record['update_id'])
+        if result:
+            # NB: Not doing anything with class names
+            update_cls = result.group(1)
+            update_date = int(result.group(2))
+            try:
+                updates[update_date].append(update_cls)
+            except KeyError:
+                updates[update_date] = [update_cls]
+
+    # Make sure the updates have all mongo classes
+    bulk_tasks = [task.__name__ for task in MongoBulkTask.bulks_tasks]
+
+    for date, update_tasks in updates.iteritems():
+        # Assert that for every date we have all the bulk tasks
+        assert list(set(bulk_tasks) - set(update_tasks)) == [], 'There are missing mongo tasks for date %s' % date
+
+    # Get a list of all export files to process
+    export_dates = [d for d in get_export_file_dates() if d not in updates.keys()]
 
     # We do not want to bulk process the most recent
     export_dates.pop()
+
+    # Run setup_interface_logging to ensure luigi commands
+    setup_interface_logging()
 
     sch = scheduler.CentralPlannerScheduler()
 
