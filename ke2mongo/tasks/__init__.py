@@ -27,3 +27,4 @@ COLLECTION_DATASET = {
     'spatial': '{"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}',
     'owner_org': config.get('ckan', 'owner_org')
 }
+

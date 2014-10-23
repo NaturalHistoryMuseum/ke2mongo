@@ -13,17 +13,18 @@ import pandas as pd
 import abc
 import ckanapi
 import itertools
+from collections import OrderedDict
 from monary import Monary
 from monary.monary import get_monary_numpy_type
 from ke2mongo.log import log
 from ke2mongo.lib.timeit import timeit
 from ke2mongo import config
-from collections import OrderedDict
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
+from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
+from ke2mongo.tasks.mongo_site import MongoSiteTask
 from ke2mongo.tasks.delete import DeleteTask
-from ke2mongo.lib.file import get_export_file_dates
 from ke2mongo.tasks.target import CSVTarget, APITarget
 from ke2mongo.tasks import MULTIMEDIA_FORMATS
 from pymongo import MongoClient
@@ -40,6 +41,9 @@ class DatasetTask(luigi.Task):
 
     # MongoDB params
     collection_name = 'ecatalogue'
+
+    # Should the primary key be prefixed - eg NHMUK:ecatalogue
+    primary_key_prefix = None
 
     @abc.abstractproperty
     def columns(self):
@@ -90,6 +94,16 @@ class DatasetTask(luigi.Task):
         """
         return None
 
+    def get_primary_key_field(self):
+        """
+        Return the source primary key fields
+        @return:
+        """
+
+        for col in self.columns:
+            if col[1] == self.datastore['primary_key']:
+                return col
+
     def __init__(self, *args, **kwargs):
 
         # If a date parameter has been passed in, we'll just use that
@@ -109,7 +123,7 @@ class DatasetTask(luigi.Task):
 
         # Only require mongo tasks if data parameter is passed in - allows us to rerun for testing
         if self.date:
-            yield MongoCatalogueTask(self.date), DeleteTask(self.date), MongoTaxonomyTask(self.date),  MongoMultimediaTask(self.date), MongoMultimediaTask(self.date)
+            yield MongoCatalogueTask(self.date), MongoTaxonomyTask(self.date),  MongoMultimediaTask(self.date), MongoCollectionIndexTask(self.date), MongoSiteTask(self.date), DeleteTask(self.date)
 
     def get_or_create_resource(self):
         """
@@ -196,6 +210,8 @@ class DatasetTask(luigi.Task):
 
         # Number of records to retrieve (~200 breaks CSV)
         block_size = 100 if isinstance(self.output(), CSVTarget) else 5000
+        # TEMP
+        block_size = 100
         count = 0
 
         with Monary() as m:
@@ -235,7 +251,12 @@ class DatasetTask(luigi.Task):
                 log.info("\t %s records", count)
 
     def process_dataframe(self, m, df):
-        return df  # default impl
+
+        if self.primary_key_prefix:
+            primary_key = self.datastore['primary_key']
+            df[primary_key] = self.primary_key_prefix + df[primary_key]
+
+        return df
 
     @staticmethod
     def ensure_multimedia(m, df, multimedia_field):

@@ -11,20 +11,19 @@ is investigated
 
 """
 
-import sys
-import os
 import luigi
-import logging
 from ke2mongo.log import log
 from luigi import scheduler, worker
+from luigi.interface import setup_interface_logging
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
-from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
-from ke2mongo.tasks.main import MainTask
+
+from ke2mongo.tasks.mongo_site import MongoSiteTask
+from ke2mongo.tasks.delete import DeleteTask
 from ke2mongo.lib.file import get_export_file_dates
-from luigi.interface import setup_interface_logging
+
 
 
 class MongoBulkTask(luigi.Task):
@@ -41,19 +40,7 @@ class MongoBulkTask(luigi.Task):
     date = luigi.IntParameter()
 
     def requires(self):
-        yield MongoCollectionIndexTask(self.date), MongoBulkCatalogueTask(self.date) , MongoDeleteTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date)
-
-class MongoBulkCatalogueTask(MongoCatalogueTask):
-    """
-    After importing, MongoCatalogueTask adds indexes and updates child refs.
-    We do not want these to run during bulk imports, as it slows it down
-    So override the on_success to prevent this
-    """
-    def on_success(self):
-        # Do not pass go, do not collect 200
-        pass
-
-    # Update ID
+        yield MongoCollectionIndexTask(self.date), MongoCatalogueTask(self.date), MongoTaxonomyTask(self.date), MongoMultimediaTask(self.date), MongoDeleteTask(self.date)
 
 
 class BulkException(Exception):
@@ -90,7 +77,6 @@ def main():
     export_dates.pop()
 
     sch = scheduler.CentralPlannerScheduler()
-
 
     for export_date in export_dates:
         w = BulkWorker(scheduler=sch)

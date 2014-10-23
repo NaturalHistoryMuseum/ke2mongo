@@ -6,76 +6,71 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
 import luigi
-from ke2mongo.lib.timeit import timeit
-from keparser import KEParser
+import ckanapi
+from ke2mongo import config
 from ke2mongo.log import log
-from ke2mongo.tasks.mongo import MongoTask
+from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 
-class DeleteTask(MongoTask):
+class DeleteTask(MongoDeleteTask):
     """
-    Import KE Taxonomy Export file into MongoDB
+    Extends MongoDeleteTask to also delete from CKAN
     """
-    module = 'eaudit'
-    file_extension = 'deleted-export'
 
-    @timeit
-    def run(self):
+    # Use the same task family as MongoDeleteTask
+    # if MongoDeleteTask has run, we do not want this to run, and vice versa
+    task_family = MongoDeleteTask.task_family
 
-        # Build a dict of all modules and collections
-        # We then retrieve the appropriate collection from the records module name (AudTable)
-        collections = {}
-        for cls in MongoTask.__subclasses__():
-            collections[cls.module] = cls(None).get_collection()
+    # Set up CKAN API connection
+    ckan = ckanapi.RemoteCKAN(config.get('ckan', 'site_url'), apikey=config.get('ckan', 'api_key'))
 
-        ke_data = KEParser(self.input().open('r'), schema_file=self.keemu_schema_file, input_file_path=self.input().path)
+    def delete(self, collection, irn):
 
-        # To avoid circular imports, import the tasks we need to check here
-        # Dataset tasks are dependent on the DeleteTask
-        from ke2mongo.tasks.indexlot import IndexLotDatasetTask
-        from ke2mongo.tasks.artefact import ArtefactDatasetTask
-        from ke2mongo.tasks.specimen import SpecimenDatasetToCKANTask
+        # If this is an ecatalogue record, try and delete from CKAN
+        if collection.name == 'ecatalogue':
+            self.ckan_delete(collection, irn)
 
-        for record in self.iterate_data(ke_data):
+        super(DeleteTask, self).delete(collection, irn)
 
-            module = record.get('AudTable')
-            irn = record.get('AudKey')
+    def ckan_delete(self, collection, irn):
 
-            try:
-                collection = collections[module]
-            except KeyError:
-                log.debug('Skipping eaudit record for %s' % module)
-                # We do not have a collection for this module - skip to next record
-                continue
+        # Load record from MongoDB
+        log.info('Load MongoDB record %s' % irn)
 
-            # Load record from MongoDB
-            log.info('Load MongoDB: %s' % irn)
+        # Load the record from mongo
+        mongo_record = collection.find_one({'_id': int(irn)})
 
-            mongo_record = collection.find_one({'_id': int(irn)})
+        if mongo_record:
 
-            if mongo_record:
+            # To avoid circular imports, import the tasks we need to check here
+            # Dataset tasks are dependent on the DeleteTask
+            from ke2mongo.tasks.indexlot import IndexLotDatasetAPITask
+            from ke2mongo.tasks.artefact import ArtefactDatasetAPITask
+            from ke2mongo.tasks.specimen import SpecimenDatasetAPITask
 
-                # By default, use SpecimenDatasetToCKANTask
-                task_cls = SpecimenDatasetToCKANTask
+            # By default, use SpecimenDatasetAPITask
+            task_cls = SpecimenDatasetAPITask
 
-                # Override default if is Index Lot or Artefact
-                for t in [IndexLotDatasetTask, ArtefactDatasetTask]:
-                    if t.record_type == mongo_record['ColRecordType']:
-                        task_cls = t
-                        break
+            # Override default class if is Index Lot or Artefact
+            for t in [IndexLotDatasetAPITask, ArtefactDatasetAPITask]:
+                if t.record_type == mongo_record['ColRecordType']:
+                    task_cls = t
+                    break
 
-                print task_cls
+            # Initiate the task class so we can access values and methods
+            task = task_cls()
+            primary_key_field = task.get_primary_key_field()
+            primary_key = mongo_record[primary_key_field[0]]
 
-        #
-        #
-        #
-        #
-        #
-        #
-        #         log.debug('Deleting record %s(%s)' % (module, irn))
-        #         collection.remove({'_id': irn})
-        #
-        #     # TODO Delete
-        #
-        #
-        #
-        # self.mark_complete()
+            # If we have a primary key prefix, append it and ensure primary key is a string
+            if task.primary_key_prefix:
+                primary_key = task.primary_key_prefix + str(primary_key)
+
+            # Load the resource, so we can find the resource ID
+            resource = self.ckan.action.resource_show(id=task_cls.datastore['resource']['name'])
+
+            # And delete the record from the datastore
+            log.info('Deleting record from CKAN where %s=%s' % (primary_key_field[1], primary_key))
+            self.ckan.action.datastore_delete(id=resource['id'], filters={primary_key_field[1]: primary_key})
+
+if __name__ == "__main__":
+    luigi.run(main_task_cls=DeleteTask)

@@ -11,6 +11,7 @@ python specimen.py SpecimenDatasetToCSVTask --local-scheduler --date 20140821
 import re
 import pandas as pd
 import numpy as np
+import luigi
 from collections import OrderedDict
 from ke2mongo.tasks import PARENT_TYPES, COLLECTION_DATASET
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
@@ -27,12 +28,14 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Test data20',
+            'name': 'Test data24',
             'description': 'Test data',
             'format': 'dwc'  # Darwin core
         },
         'primary_key': 'Occurrence ID'
     }
+
+    primary_key_prefix = 'NHMUK:ecatalogue:'
 
     geospatial_fields = {
         'latitude_field': 'Decimal latitude',
@@ -268,8 +271,12 @@ class SpecimenDatasetTask(DatasetTask):
     }
 
     # query = {
-    #     '_id': {'$in': [614490, 614604, 614682, 614686, 614885, 614886, 614887, 614893, 615014, 615238, 615240, 615254, 615256, 615257, 615258, 615259, 615260, 615261, 615262, 615263, 615264, 615265, 615266, 615267, 615268, 615269, 615270, 615271, 707941, 707947, 707949, 707952, 707955, 1184655, 1184657, 1184661, 1184659, 1184663, 560912, 560920, 560925, 560933, 560936, 560938, 560939, 560942, 560944, 560946, 560956, 560960, 560964, 560967, 560976, 560989, 560999, 561009, 561012, 561013, 561028, 610304, 561026, 559752, 561465, 559529, 561639, 563225, 561834, 562201, 548655, 632437, 632443, 559558, 440529, 440545, 633048, 608784, 573129, 712426, 712424, 597697, 566135, 562426, 562429, 632056, 632065, 632066, 632067, 632068, 632073, 632076, 632079, 632080, 632082, 632083, 632092, 632112, 632113, 632114, 632115, 632117]}
+    #     '_id': {'$in':
+    #         [2415700, 3474716, 2252992, 640134, 640141, 2239557, 2239556, 2239558, 2239559, 2239560, 2241112, 2241113, 3474718, 2241217, 552180, 552882, 552233, 552248, 468575, 458879, 2239512, 2239514, 3474720, 2239515, 3474722, 2239517, 478265, 559836, 2241114, 505730, 529487, 529728, 499388, 499382, 499386, 3474724, 497880, 3474726, 559835, 2018671, 2141305, 2167145, 2172166, 2156586, 2089504, 2089484, 3474728, 3474730, 2156530, 2156539, 2157128, 2157145, 2157176, 2157193, 2157224, 2077679, 2082035, 2082046, 3474732, 2082053, 2082071, 2082079, 2082097, 2080596, 2151048, 2151316, 2151563, 2151582, 3474758, 2151784, 3474760, 2151923, 2152279, 2152407, 2153047, 2153393, 2153489, 3474762, 2150892, 2152922, 2153339, 2029476, 2029479, 2029480, 2029484, 2029537, 2029539, 2029545, 3474764, 2029548, 3474766, 2029552, 2029554, 2029477, 2029482, 2029483, 2158898, 2159049, 1778216, 2318313]
+    #      }
     # }
+
+
 
     def get_output_columns(self):
         """
@@ -293,9 +300,8 @@ class SpecimenDatasetTask(DatasetTask):
         @return: dataframe
         """
 
-        irns = [int(i) for i in df['Occurrence ID']]
+        df = super(SpecimenDatasetTask, self).process_dataframe(m, df)
 
-        df['Occurrence ID'] = 'NHMUK:ecatalogue:' + df['Occurrence ID']
         # Added literal columns
         df['Institution code'] = 'NHMUK'
         df['Basis of record'] = 'Specimen'
@@ -367,3 +373,7 @@ class SpecimenDatasetCSVTask(SpecimenDatasetTask, DatasetCSVTask):
 
 class SpecimenDatasetAPITask(SpecimenDatasetTask, DatasetAPITask):
     pass
+
+
+if __name__ == "__main__":
+    luigi.run()
