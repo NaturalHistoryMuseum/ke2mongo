@@ -209,7 +209,7 @@ class DatasetTask(luigi.Task):
     def run(self):
 
         # Number of records to retrieve (~200 breaks CSV)
-        block_size = 100 if isinstance(self.output(), CSVTarget) else 5000
+        block_size = 150 if isinstance(self.output(), CSVTarget) else 5000
         count = 0
 
         with Monary() as m:
@@ -336,9 +336,6 @@ class DatasetAPITask(DatasetTask):
     """
     def output(self):
         return APITarget(resource_id=self.resource_id, columns=self.get_output_columns())
-
-# If this works, all tasks will be CKAN tasks.
-# So move dataset creation to DatasetTask
 
 class DatasetCSVTask(DatasetTask):
     """
