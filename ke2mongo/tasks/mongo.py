@@ -25,6 +25,8 @@ from ConfigParser import NoOptionError
 
 class MongoTarget(luigi.Target):
 
+    marker_collection_name = luigi.configuration.get_config().get('postgres', 'marker-table', 'table_updates')
+
     def __init__(self, database, update_id):
 
         self.update_id = update_id
@@ -32,7 +34,7 @@ class MongoTarget(luigi.Target):
         self.client = MongoClient()
         self.db = self.client[database]
         # Use the postgres table name for the collection
-        self.marker_collection = self.get_collection(luigi.configuration.get_config().get('postgres', 'marker-table', 'table_updates'))
+        self.marker_collection = self.get_collection(self.marker_collection_name)
 
     def get_collection(self, collection):
         return self.db[collection]
