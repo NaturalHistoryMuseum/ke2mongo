@@ -256,8 +256,7 @@ class DatasetTask(luigi.Task):
 
         return df
 
-    @staticmethod
-    def ensure_multimedia(m, df, multimedia_field):
+    def ensure_multimedia(self, m, df, multimedia_field):
 
         # The multimedia field contains IRNS of all items - not just images
         # So we need to look up the IRNs against the multimedia record to get the mime type
@@ -265,7 +264,6 @@ class DatasetTask(luigi.Task):
 
         # Convert associatedMedia field to a list
         df[multimedia_field] = df[multimedia_field].apply(lambda x: list(int(z.strip()) for z in x.split(';') if z.strip()))
-
 
         def get_max_dimension(str_dimension):
             """
@@ -279,7 +277,7 @@ class DatasetTask(luigi.Task):
 
         # Get a list of dictionary of valid multimedia valid mimetypes
         # It's not enough to just check for the derived image heights - some of these are tiffs etc., and undeliverable
-        cursor = MongoClient()['keemu']['emultimedia'].find(
+        cursor = MongoClient()[self.mongo_db]['emultimedia'].find(
             {
                 '_id': {'$in': unique_multimedia_irns},
                 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS},
