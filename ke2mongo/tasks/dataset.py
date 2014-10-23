@@ -210,8 +210,6 @@ class DatasetTask(luigi.Task):
 
         # Number of records to retrieve (~200 breaks CSV)
         block_size = 100 if isinstance(self.output(), CSVTarget) else 5000
-        # TEMP
-        block_size = 100
         count = 0
 
         with Monary() as m:
