@@ -96,12 +96,6 @@ class DatasetTask(luigi.Task):
         # Otherwise, loop through the files and get all dates
         super(DatasetTask, self).__init__(*args, **kwargs)
 
-        export_file_dates = get_export_file_dates()
-        # If we have more than one file export date, it could be problem if one of the mongo import files
-        # So raise an exception, and ask the user to run manually
-        if len(export_file_dates) > 1:
-            raise IOError('There are multiple (%s) export files requiring processing. Please investigate and run bulk.py' % len(export_file_dates))
-
         # Create CKAN API instance
         self.ckan = ckanapi.RemoteCKAN(config.get('ckan', 'site_url'), apikey=config.get('ckan', 'api_key'))
 
@@ -234,8 +228,7 @@ class DatasetTask(luigi.Task):
                 df = self.process_dataframe(m, df)
 
                 # Output the dataframe
-                # TEMP
-                # self.output().write(df)
+                self.output().write(df)
 
                 row_count, col_count = df.shape
                 count += row_count
