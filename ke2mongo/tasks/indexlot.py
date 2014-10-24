@@ -20,7 +20,7 @@ class IndexLotDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'indexlots4',
+            'name': 'indexlots5',
             'description': 'Index lots',
             'format': 'csv'
         },

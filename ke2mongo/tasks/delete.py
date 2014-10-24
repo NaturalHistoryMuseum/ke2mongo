@@ -7,29 +7,78 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 import luigi
 import ckanapi
+from keparser import KEParser
 from ke2mongo import config
 from ke2mongo.log import log
-from ke2mongo.tasks.mongo_delete import MongoDeleteTask
+from ke2mongo.lib.timeit import timeit
+from ke2mongo.tasks.mongo import MongoTask
+from ke2mongo.targets.ke import KEFileTarget
 
-class DeleteTask(MongoDeleteTask):
+# Need all mongo tasks, as we dynamically retrieve the collections
+from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
+from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
+from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
+from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
+from ke2mongo.tasks.mongo_site import MongoSiteTask
+
+
+class DeleteTask(MongoTask):
     """
-    Extends MongoDeleteTask to also delete from CKAN
+    Delete Task for deleting from mongo and
     """
 
-    # Use the same task family as MongoDeleteTask
-    # if MongoDeleteTask has run, we do not want this to run, and vice versa
-    task_family = MongoDeleteTask.task_family
+    module = 'eaudit'
+    file_extension = 'deleted-export'
 
     # Set up CKAN API connection
     ckan = ckanapi.RemoteCKAN(config.get('ckan', 'site_url'), apikey=config.get('ckan', 'api_key'))
 
-    def delete(self, collection, irn):
+    def requires(self):
 
-        # If this is an ecatalogue record, try and delete from CKAN
-        if collection.name == 'ecatalogue':
-            self.ckan_delete(collection, irn)
+        # Need to require the parent mongo task - the KE file
+        ke_file_task = super(DeleteTask, self).requires()
+        # For delete to run, all other mongo tasks for same date must have already run
+        return [MongoCatalogueTask(self.date), MongoTaxonomyTask(self.date),  MongoMultimediaTask(self.date), MongoCollectionIndexTask(self.date), MongoSiteTask(self.date), ke_file_task]
 
-        super(DeleteTask, self).delete(collection, irn)
+
+    @timeit
+    def run(self):
+        # Build a dict of all modules and collections
+        # We then retrieve the appropriate collection from the records module name (AudTable)
+        collections = {}
+        for cls in MongoTask.__subclasses__():
+            collections[cls.module] = cls(None).get_collection()
+
+        # We have multiple requirements (& thus inputs)
+        # Loop through to find the ke file target
+        for i in self.input():
+            if isinstance(i, KEFileTarget):
+                ke_file_target = i
+                break
+
+        ke_data = KEParser(ke_file_target.open('r'), schema_file=self.keemu_schema_file, input_file_path=ke_file_target.path)
+
+        for record in self.iterate_data(ke_data):
+
+            module = record.get('AudTable')
+            irn = record.get('AudKey')
+            try:
+                collection = collections[module]
+            except KeyError:
+                log.debug('Skipping eaudit record for %s' % module)
+                # We do not have a collection for this module - skip to next record
+                continue
+            else:
+                log.info('Deleting record %s(%s)' % (module, irn))
+
+                # If this is an ecatalogue record, try and delete from CKAN
+                if collection.name == 'ecatalogue':
+                    self.ckan_delete(collection, irn)
+
+                # And then delete from mongoDB
+                collection.remove({'_id': irn})
+
+        self.mark_complete()
 
     def ckan_delete(self, collection, irn):
 

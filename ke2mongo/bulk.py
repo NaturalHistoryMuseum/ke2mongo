@@ -21,38 +21,16 @@ from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
 from ke2mongo.tasks.mongo_site import MongoSiteTask
-from ke2mongo.tasks.mongo_delete import MongoDeleteTask
+from ke2mongo.tasks.mongo_delete import DeleteTask
 from ke2mongo.tasks.mongo import MongoTarget
 from ke2mongo.lib.file import get_export_file_dates
 from ke2mongo.lib.mongo import mongo_client_db
-
-
-# class MongoBulkTask(luigi.Task):
-#     """
-#     This task requires all Mongo Tasks, and processes all of them for a particular date
-#     Therefore there will be one point of failure
-#
-#     The main CSV task will fail if there are multiple ke emu export files
-#     In which case, this task needs to be run with the command:
-#
-#     python bulk.py
-#     """
-#
-#     date = luigi.IntParameter()
-#
-#     # NB: Delete should be processed last: if a record is updated and then deleted, the record would be re-inserted
-#     bulks_tasks = [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, MongoDeleteTask]
-#
-#     def requires(self):
-#         for task in self.bulks_tasks:
-#             yield task(self.date)
 
 class BulkException(Exception):
     """
     Batch error exception
     """
     pass
-
 
 class BulkWorker(worker.Worker):
     """
@@ -80,6 +58,8 @@ def main():
     # OrderedDict to store all of the update classes
     updates = OrderedDict()
 
+
+
     for record in cursor:
         result = re_update_id.match(record['update_id'])
         if result:
@@ -91,7 +71,7 @@ def main():
                 updates[update_date] = [update_cls]
 
     # Make sure the updates have all mongo classes
-    bulk_tasks = [task.__name__ for task in MongoBulkTask.bulks_tasks]
+    bulk_tasks = [task.__name__ for task in [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, DeleteTask]]
 
     for date, update_tasks in updates.iteritems():
         # Assert that for every date we have all the bulk tasks
@@ -111,7 +91,8 @@ def main():
     for export_date in export_dates:
         w = BulkWorker(scheduler=sch)
         log.info('Processing date %s', export_date)
-        w.add(MongoBulkTask(date=export_date))
+        # We only need to call the delete task, as all other tasks are a requirement
+        w.add(DeleteTask(date=export_date))
         w.run()
         w.stop()
 

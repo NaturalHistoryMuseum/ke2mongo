@@ -38,7 +38,6 @@ class DatasetTask(luigi.Task):
     # Parameters
     # Date to process
     date = luigi.IntParameter(default=None)
-    mongo_db = mongo_client_db()
 
     # MongoDB params
     collection_name = 'ecatalogue'
@@ -213,7 +212,10 @@ class DatasetTask(luigi.Task):
         block_size = 150 if isinstance(self.output(), CSVTarget) else 5000
         count = 0
 
-        with Monary() as m:
+        host = config.get('mongo', 'host')
+        db = config.get('mongo', 'database')
+
+        with Monary(host) as m:
 
             log.info("Querying Monary")
 
@@ -222,7 +224,7 @@ class DatasetTask(luigi.Task):
             # query_fields can have None, if there is no source field
             query_fields = filter(None, query_fields)
 
-            catalogue_blocks = m.block_query(self.mongo_db, self.collection_name, self.query, query_fields, field_types, block_size=block_size)
+            catalogue_blocks = m.block_query(db, self.collection_name, self.query, query_fields, field_types, block_size=block_size)
 
             for catalogue_block in catalogue_blocks:
 
@@ -259,6 +261,8 @@ class DatasetTask(luigi.Task):
 
     def ensure_multimedia(self, m, df, multimedia_field):
 
+        mongo_client = mongo_client_db()
+
         # The multimedia field contains IRNS of all items - not just images
         # So we need to look up the IRNs against the multimedia record to get the mime type
         # And filter out non-image mimetypes we do not support
@@ -278,7 +282,7 @@ class DatasetTask(luigi.Task):
 
         # Get a list of dictionary of valid multimedia valid mimetypes
         # It's not enough to just check for the derived image heights - some of these are tiffs etc., and undeliverable
-        cursor = self.mongo_db['emultimedia'].find(
+        cursor = mongo_client['emultimedia'].find(
             {
                 '_id': {'$in': unique_multimedia_irns},
                 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS},
