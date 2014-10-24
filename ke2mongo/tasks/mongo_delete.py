@@ -6,6 +6,7 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
 import luigi
+from luigi.parameter import MissingParameterException
 from ke2mongo.lib.timeit import timeit
 from keparser import KEParser
 from ke2mongo.log import log
@@ -20,10 +21,28 @@ from ke2mongo.tasks.mongo_site import MongoSiteTask
 
 class MongoDeleteTask(MongoTask):
     """
-    Import KE Taxonomy Export file into MongoDB
+    Delete records from Mongo DB
+    This does not delete the corresponding records from CKAN dataset
+    This should only be used prior to rebuilding the entire dataset
+
+    To ensure it's not called in error, it must be called with flag force
+
+    python tasks/mongo_delete.py --date 20140821 --local-scheduler --force
+
     """
     module = 'eaudit'
     file_extension = 'deleted-export'
+
+    force = luigi.BooleanParameter()
+
+    def __init__(self, *args, **kwargs):
+
+        super(MongoDeleteTask, self).__init__(*args, **kwargs)
+
+        # If this class is run
+        if not self.force:
+            raise MissingParameterException('Warning: this class does not delete CKAN records. Use --force to run it.')
+
 
     @timeit
     def run(self):
@@ -51,6 +70,16 @@ class MongoDeleteTask(MongoTask):
                 self.delete(collection, irn)
 
         self.mark_complete()
+
+    def requires(self):
+        """
+        For mongo delete to run, all other mongo tasks for same date must have already run
+        @return:
+        """
+
+        # Only require mongo tasks if data parameter is passed in - allows us to rerun for testing
+        yield MongoCatalogueTask(self.date), MongoTaxonomyTask(self.date),  MongoMultimediaTask(self.date), MongoCollectionIndexTask(self.date), MongoSiteTask(self.date)
+
 
     def delete(self, collection, irn):
         """
