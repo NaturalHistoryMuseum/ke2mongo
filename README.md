@@ -39,15 +39,12 @@ A new dump was produced 20140814, containing all records.
 Updates prior to that point do not include records updated on the date the report runs.
 
 
-Further dev
------------
+TODO
+----
 
-Moving to API is working, but I need to:
+Updates! If we run bulk, need update to include them all!! Get last date from updates????
 
-Add parts/parents
-Multimedia updates etc.,
-Update indexlots (and making sure collection updates are re-imported)
-Update artefacts
+
 
 
 
