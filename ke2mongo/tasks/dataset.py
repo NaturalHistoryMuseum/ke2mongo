@@ -27,7 +27,7 @@ from ke2mongo.tasks.mongo_site import MongoSiteTask
 from ke2mongo.tasks.delete import DeleteTask
 from ke2mongo.tasks.target import CSVTarget, APITarget
 from ke2mongo.tasks import MULTIMEDIA_FORMATS
-from pymongo import MongoClient
+from ke2mongo.lib.mongo import mongo_client_db
 
 class DatasetTask(luigi.Task):
     """
@@ -37,7 +37,7 @@ class DatasetTask(luigi.Task):
     # Parameters
     # Date to process
     date = luigi.IntParameter(default=None)
-    mongo_db = config.get('mongo', 'database')
+    mongo_db = mongo_client_db()
 
     # MongoDB params
     collection_name = 'ecatalogue'
@@ -277,7 +277,7 @@ class DatasetTask(luigi.Task):
 
         # Get a list of dictionary of valid multimedia valid mimetypes
         # It's not enough to just check for the derived image heights - some of these are tiffs etc., and undeliverable
-        cursor = MongoClient()[self.mongo_db]['emultimedia'].find(
+        cursor = self.mongo_db['emultimedia'].find(
             {
                 '_id': {'$in': unique_multimedia_irns},
                 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS},

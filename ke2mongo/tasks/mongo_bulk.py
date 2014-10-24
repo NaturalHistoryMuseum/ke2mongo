@@ -15,7 +15,6 @@ import luigi
 from ke2mongo.log import log
 from luigi import scheduler, worker
 from luigi.interface import setup_interface_logging
-from pymongo import MongoClient
 from collections import OrderedDict
 from ke2mongo import config
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
@@ -26,6 +25,7 @@ from ke2mongo.tasks.mongo_site import MongoSiteTask
 from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 from ke2mongo.tasks.mongo import MongoTarget
 from ke2mongo.lib.file import get_export_file_dates
+from ke2mongo.lib.mongo import mongo_client_db
 
 
 class MongoBulkTask(luigi.Task):
@@ -73,8 +73,8 @@ class BulkWorker(worker.Worker):
 def main():
 
     # Get a list of all files processed
-    mongo_db = config.get('mongo', 'database')
-    cursor = MongoClient()[mongo_db][MongoTarget.marker_collection_name].find()
+    mongo_db = mongo_client_db()
+    cursor = mongo_db[MongoTarget.marker_collection_name].find()
 
     re_update_id = re.compile('(Mongo[a-zA-Z]+)\(date=([0-9]+)\)')
 
@@ -84,7 +84,6 @@ def main():
     for record in cursor:
         result = re_update_id.match(record['update_id'])
         if result:
-            # NB: Not doing anything with class names
             update_cls = result.group(1)
             update_date = int(result.group(2))
             try:

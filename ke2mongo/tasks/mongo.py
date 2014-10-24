@@ -18,7 +18,7 @@ from keparser import KEParser
 from keparser.parser import FLATTEN_NONE, FLATTEN_SINGLE, FLATTEN_ALL
 from ke2mongo import config
 from ke2mongo.lib.timeit import timeit
-from pymongo import MongoClient
+from ke2mongo.lib.mongo import mongo_client_db
 from pymongo.errors import InvalidOperation
 from ConfigParser import NoOptionError
 
@@ -31,8 +31,7 @@ class MongoTarget(luigi.Target):
 
         self.update_id = update_id
         # Set up a connection to the database
-        self.client = MongoClient()
-        self.db = self.client[database]
+        self.db = mongo_client_db(database)
         # Use the postgres table name for the collection
         self.marker_collection = self.get_collection(self.marker_collection_name)
 

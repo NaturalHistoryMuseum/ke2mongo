@@ -5,8 +5,7 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
-from pymongo import MongoClient
-from ke2mongo import config
+from ke2mongo.lib.mongo import mongo_client_db
 
 CITES_COLLECTION = 'cites'
 
@@ -21,8 +20,6 @@ def get_cites_species():
 
     @return: list
     """
-
-    mongo_client = MongoClient()
-    db = config.get('mongo', 'database')
-    cursor = mongo_client[db][CITES_COLLECTION].find({'full_name': {'$ne': None}}, {'full_name':1})
+    mongo_db = mongo_client_db()
+    cursor = mongo_db[CITES_COLLECTION].find({'full_name': {'$ne': None}}, {'full_name':1})
     return [r['full_name'] for r in cursor]

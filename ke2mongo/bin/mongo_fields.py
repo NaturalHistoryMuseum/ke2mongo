@@ -1,5 +1,5 @@
-import sys
-from pymongo import MongoClient
+
+from ke2mongo.lib.mongo import mongo_client_db
 
 #!/usr/bin/env python
 # encoding: utf-8
@@ -10,14 +10,10 @@ Created by Ben Scott on 2013-08-23.
 Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 """
 
-import sys
-import os
-
 def main():
     
     # Setup MongoDB
-    client = MongoClient()
-    mongo_db = client['keemu']
+    mongo_db = mongo_client_db()
     
     fields = [
         'DarLocality',
@@ -143,7 +139,5 @@ def main():
         results = mongo_db.ecatalogue.find({field: {'$exists': 1}})
         print '{0}:\t{1}\r'.format(field,  results.count())
 
-#
-
 if __name__ == '__main__':
-	main()
+    main()
