@@ -8,6 +8,7 @@ python run.py MongoCollectionIndexTask --local-scheduler --date 20140731
 
 """
 
+import luigi
 from ke2mongo.tasks.mongo import MongoTask
 
 class MongoCollectionIndexTask(MongoTask):
@@ -15,3 +16,6 @@ class MongoCollectionIndexTask(MongoTask):
     Import Collection Index Export file into MongoDB
     """
     module = 'ecollectionindex'
+
+if __name__ == "__main__":
+    luigi.run(main_task_cls=MongoCollectionIndexTask)

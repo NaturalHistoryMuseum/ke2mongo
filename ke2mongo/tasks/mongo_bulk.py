@@ -16,7 +16,6 @@ from ke2mongo.log import log
 from luigi import scheduler, worker
 from luigi.interface import setup_interface_logging
 from collections import OrderedDict
-from ke2mongo import config
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask

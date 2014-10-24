@@ -5,6 +5,7 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
+import luigi
 from ke2mongo.tasks.mongo import MongoTask
 
 class MongoTaxonomyTask(MongoTask):
@@ -24,3 +25,7 @@ class MongoTaxonomyTask(MongoTask):
             pass
 
         return super(MongoTaxonomyTask, self).process_record(data)
+
+
+if __name__ == "__main__":
+    luigi.run(main_task_cls=MongoTaxonomyTask)

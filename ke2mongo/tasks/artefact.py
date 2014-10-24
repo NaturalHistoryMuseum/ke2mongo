@@ -5,6 +5,7 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
+import luigi
 from ke2mongo import config
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
 
@@ -63,3 +64,7 @@ class ArtefactDatasetCSVTask(ArtefactDatasetTask, DatasetCSVTask):
 
 class ArtefactDatasetAPITask(ArtefactDatasetTask, DatasetAPITask):
     pass
+
+
+if __name__ == "__main__":
+    luigi.run()

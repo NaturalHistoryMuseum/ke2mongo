@@ -8,6 +8,7 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 """
 
+import luigi
 from ke2mongo.tasks.mongo import MongoTask, InvalidRecordException
 from ke2mongo.tasks import DATE_FORMAT
 from ke2mongo.log import log
@@ -91,3 +92,7 @@ class MongoCatalogueTask(MongoTask):
         self.collection.ensure_index('ColDepartment')
 
         super(MongoCatalogueTask, self).on_success()
+
+
+if __name__ == "__main__":
+    luigi.run(main_task_cls=MongoCatalogueTask)

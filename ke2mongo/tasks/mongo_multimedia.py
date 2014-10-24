@@ -5,6 +5,7 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
+import luigi
 from ke2mongo.tasks.mongo import MongoTask
 
 class MongoMultimediaTask(MongoTask):
@@ -21,3 +22,6 @@ class MongoMultimediaTask(MongoTask):
         """
         self.collection = self.get_collection()
         self.collection.ensure_index('MulMimeFormat')
+
+if __name__ == "__main__":
+    luigi.run(main_task_cls=MongoMultimediaTask)

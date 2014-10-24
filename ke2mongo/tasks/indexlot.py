@@ -4,7 +4,7 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
-
+import luigi
 import pandas as pd
 from collections import OrderedDict
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
@@ -140,3 +140,6 @@ class IndexLotDatasetCSVTask(IndexLotDatasetTask, DatasetCSVTask):
 
 class IndexLotDatasetAPITask(IndexLotDatasetTask, DatasetAPITask):
     pass
+
+if __name__ == "__main__":
+    luigi.run()

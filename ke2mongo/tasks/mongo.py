@@ -9,48 +9,17 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 import sys
 import os
 import luigi
-import datetime
 import abc
 from luigi.parameter import ParameterException
-from ke2mongo.tasks.ke import KEFileTask
-from ke2mongo.log import log
 from keparser import KEParser
 from keparser.parser import FLATTEN_NONE, FLATTEN_SINGLE, FLATTEN_ALL
+from ke2mongo.tasks.ke import KEFileTask
+from ke2mongo.log import log
 from ke2mongo import config
 from ke2mongo.lib.timeit import timeit
-from ke2mongo.lib.mongo import mongo_client_db
+from ke2mongo.targets.mongo import MongoTarget
 from pymongo.errors import InvalidOperation
 from ConfigParser import NoOptionError
-
-
-class MongoTarget(luigi.Target):
-
-    marker_collection_name = luigi.configuration.get_config().get('postgres', 'marker-table', 'table_updates')
-
-    def __init__(self, database, update_id):
-
-        self.update_id = update_id
-        # Set up a connection to the database
-        self.db = mongo_client_db(database)
-        # Use the postgres table name for the collection
-        self.marker_collection = self.get_collection(self.marker_collection_name)
-
-    def get_collection(self, collection):
-        return self.db[collection]
-
-    def exists(self):
-        """
-        Has this already been processed?
-        """
-        exists = self.marker_collection.find({'update_id': self.update_id}).count()
-        return bool(exists)
-
-    def touch(self):
-        """
-        Mark this update as complete.
-        """
-        self.marker_collection.insert({'update_id': self.update_id, 'inserted': datetime.datetime.now()})
-
 
 class InvalidRecordException(Exception):
     """

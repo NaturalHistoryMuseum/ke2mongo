@@ -25,7 +25,8 @@ from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
 from ke2mongo.tasks.mongo_site import MongoSiteTask
 from ke2mongo.tasks.delete import DeleteTask
-from ke2mongo.tasks.target import CSVTarget, APITarget
+from ke2mongo.targets.csv import CSVTarget
+from ke2mongo.targets.api import APITarget
 from ke2mongo.tasks import MULTIMEDIA_FORMATS
 from ke2mongo.lib.mongo import mongo_client_db
 

@@ -50,7 +50,7 @@ class MongoDeleteTask(MongoTask):
                 log.info('Deleting record %s(%s)' % (module, irn))
                 self.delete(collection, irn)
 
-        # self.mark_complete()
+        self.mark_complete()
 
     def delete(self, collection, irn):
         """
