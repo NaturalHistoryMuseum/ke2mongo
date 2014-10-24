@@ -27,25 +27,25 @@ from ke2mongo.lib.file import get_export_file_dates
 from ke2mongo.lib.mongo import mongo_client_db
 
 
-class MongoBulkTask(luigi.Task):
-    """
-    This task requires all Mongo Tasks, and processes all of them for a particular date
-    Therefore there will be one point of failure
-
-    The main CSV task will fail if there are multiple ke emu export files
-    In which case, this task needs to be run with the command:
-
-    python bulk.py
-    """
-
-    date = luigi.IntParameter()
-
-    # NB: Delete should be processed last: if a record is updated and then deleted, the record would be re-inserted
-    bulks_tasks = [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, MongoDeleteTask]
-
-    def requires(self):
-        for task in self.bulks_tasks:
-            yield task(self.date)
+# class MongoBulkTask(luigi.Task):
+#     """
+#     This task requires all Mongo Tasks, and processes all of them for a particular date
+#     Therefore there will be one point of failure
+#
+#     The main CSV task will fail if there are multiple ke emu export files
+#     In which case, this task needs to be run with the command:
+#
+#     python bulk.py
+#     """
+#
+#     date = luigi.IntParameter()
+#
+#     # NB: Delete should be processed last: if a record is updated and then deleted, the record would be re-inserted
+#     bulks_tasks = [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, MongoDeleteTask]
+#
+#     def requires(self):
+#         for task in self.bulks_tasks:
+#             yield task(self.date)
 
 class BulkException(Exception):
     """

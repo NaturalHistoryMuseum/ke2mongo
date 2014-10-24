@@ -124,7 +124,7 @@ class DatasetTask(luigi.Task):
 
         # Only require mongo tasks if data parameter is passed in - allows us to rerun for testing
         if self.date:
-            yield MongoCatalogueTask(self.date), MongoTaxonomyTask(self.date),  MongoMultimediaTask(self.date), MongoCollectionIndexTask(self.date), MongoSiteTask(self.date), DeleteTask(self.date)
+            yield DeleteTask(self.date)
 
     def get_or_create_resource(self):
         """
