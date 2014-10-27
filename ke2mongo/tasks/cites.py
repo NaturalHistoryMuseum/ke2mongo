@@ -32,4 +32,4 @@ class CitesTask(luigi.Task):
         log.info('Updated %s catalogue records as CITES', cites_records_cursor['nModified'])
 
 if __name__ == '__main__':
-    luigi.run()
+    luigi.run(main_task_cls=CitesTask)

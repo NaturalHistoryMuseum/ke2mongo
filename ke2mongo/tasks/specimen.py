@@ -18,8 +18,6 @@ from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 
-# TODO: UPDATES!!!
-
 class SpecimenDatasetTask(DatasetTask):
 
     # CKAN Dataset params

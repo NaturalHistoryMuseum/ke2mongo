@@ -22,4 +22,4 @@ def get_cites_species():
     """
     mongo_db = mongo_client_db()
     cursor = mongo_db[CITES_COLLECTION].find({'full_name': {'$ne': None}}, {'full_name':1})
-    return [r['full_name'] for r in cursor]
+    return [r['full_name'].encode('utf8') for r in cursor]

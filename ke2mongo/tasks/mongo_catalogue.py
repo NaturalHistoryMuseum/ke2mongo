@@ -9,6 +9,7 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
 import luigi
+from ke2mongo.lib.cites import get_cites_species
 from ke2mongo.tasks.mongo import MongoTask, InvalidRecordException
 from ke2mongo.tasks import DATE_FORMAT
 from ke2mongo.log import log
@@ -44,6 +45,8 @@ class MongoCatalogueTask(MongoTask):
         'Transient Lot'
     ]
 
+    cites_species = get_cites_species()
+
     def process_record(self, data):
 
         # Only import if it's one of the record types we want
@@ -71,7 +74,11 @@ class MongoCatalogueTask(MongoTask):
             if i in data:
                 data[i] = str(data[i])
 
-        # TODO: Mark as CITES species
+        # If record is a CITES species, mark cites = True
+        scientific_name = data.get('DarScientificName', None)
+
+        if scientific_name and scientific_name in self.cites_species:
+            data['cites'] = True
 
         return super(MongoCatalogueTask, self).process_record(data)
 
@@ -92,7 +99,6 @@ class MongoCatalogueTask(MongoTask):
         self.collection.ensure_index('ColDepartment')
 
         super(MongoCatalogueTask, self).on_success()
-
 
 if __name__ == "__main__":
     luigi.run(main_task_cls=MongoCatalogueTask)
