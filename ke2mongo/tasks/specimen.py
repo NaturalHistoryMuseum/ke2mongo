@@ -253,14 +253,23 @@ class SpecimenDatasetTask(DatasetTask):
         ('GeorefMaxErrorDistUnits', '_errorUnit', 'string:100'),
     ]
 
-    query = {
-        "ColRecordType": {
+    @property
+    def query(self):
+        """
+        Query object for selecting data from mongoDB
+        @return: dict
+        """
+
+        query = super(SpecimenDatasetTask, self).query
+
+        # Override the default ColRecordType
+        query['ColRecordType'] = {
             "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
-        },
+        }
+
         # We only want Botany records if they have a catalogue number starting with BM
         # And only for Entom, Min, Pal & Zoo depts.
-        "$or":
-            [
+        query['$or'] = [
                 {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
                 {"ColDepartment":
                     {
@@ -268,15 +277,8 @@ class SpecimenDatasetTask(DatasetTask):
                     }
                 }
             ]
-    }
 
-    # query = {
-    #     '_id': {'$in':
-    #         [2415700, 3474716, 2252992, 640134, 640141, 2239557, 2239556, 2239558, 2239559, 2239560, 2241112, 2241113, 3474718, 2241217, 552180, 552882, 552233, 552248, 468575, 458879, 2239512, 2239514, 3474720, 2239515, 3474722, 2239517, 478265, 559836, 2241114, 505730, 529487, 529728, 499388, 499382, 499386, 3474724, 497880, 3474726, 559835, 2018671, 2141305, 2167145, 2172166, 2156586, 2089504, 2089484, 3474728, 3474730, 2156530, 2156539, 2157128, 2157145, 2157176, 2157193, 2157224, 2077679, 2082035, 2082046, 3474732, 2082053, 2082071, 2082079, 2082097, 2080596, 2151048, 2151316, 2151563, 2151582, 3474758, 2151784, 3474760, 2151923, 2152279, 2152407, 2153047, 2153393, 2153489, 3474762, 2150892, 2152922, 2153339, 2029476, 2029479, 2029480, 2029484, 2029537, 2029539, 2029545, 3474764, 2029548, 3474766, 2029552, 2029554, 2029477, 2029482, 2029483, 2158898, 2159049, 1778216, 2318313]
-    #      }
-    # }
-
-
+        return query
 
     def get_output_columns(self):
         """

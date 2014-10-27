@@ -10,21 +10,17 @@ This is to ensure that an error in the exports - ie: they're not available on th
 is investigated
 
 """
-import re
-import luigi
 from ke2mongo.log import log
 from luigi import scheduler, worker
 from luigi.interface import setup_interface_logging
-from collections import OrderedDict
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
 from ke2mongo.tasks.mongo_site import MongoSiteTask
 from ke2mongo.tasks.mongo_delete import DeleteTask
-from ke2mongo.tasks.mongo import MongoTarget
 from ke2mongo.lib.file import get_export_file_dates
-from ke2mongo.lib.mongo import mongo_client_db
+from ke2mongo.lib.mongo import mongo_get_update_markers
 
 class BulkException(Exception):
     """
@@ -49,36 +45,17 @@ class BulkWorker(worker.Worker):
 
 def main():
 
-    # Get a list of all files processed
-    mongo_db = mongo_client_db()
-    cursor = mongo_db[MongoTarget.marker_collection_name].find()
-
-    re_update_id = re.compile('(Mongo[a-zA-Z]+)\(date=([0-9]+)\)')
-
-    # OrderedDict to store all of the update classes
-    updates = OrderedDict()
-
-
-
-    for record in cursor:
-        result = re_update_id.match(record['update_id'])
-        if result:
-            update_cls = result.group(1)
-            update_date = int(result.group(2))
-            try:
-                updates[update_date].append(update_cls)
-            except KeyError:
-                updates[update_date] = [update_cls]
+    update_markers = mongo_get_update_markers()
 
     # Make sure the updates have all mongo classes
     bulk_tasks = [task.__name__ for task in [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, DeleteTask]]
 
-    for date, update_tasks in updates.iteritems():
+    for date, update_marker in update_markers.iteritems():
         # Assert that for every date we have all the bulk tasks
-        assert list(set(bulk_tasks) - set(update_tasks)) == [], 'There are missing mongo tasks for date %s' % date
+        assert list(set(bulk_tasks) - set(update_marker)) == [], 'There are missing mongo tasks for date %s' % date
 
     # Get a list of all export files to process
-    export_dates = [d for d in get_export_file_dates() if d not in updates.keys()]
+    export_dates = [d for d in get_export_file_dates() if d not in update_markers.keys()]
 
     # We do not want to bulk process the most recent
     export_dates.pop()

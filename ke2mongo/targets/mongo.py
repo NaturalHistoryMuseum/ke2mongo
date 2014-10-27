@@ -7,11 +7,11 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 import luigi
 import datetime
-from ke2mongo.lib.mongo import mongo_client_db
+from ke2mongo.lib.mongo import mongo_client_db, mongo_get_marker_collection_name
 
 class MongoTarget(luigi.Target):
 
-    marker_collection_name = luigi.configuration.get_config().get('postgres', 'marker-table', 'table_updates')
+    marker_collection_name = mongo_get_marker_collection_name()
 
     def __init__(self, database, update_id):
 

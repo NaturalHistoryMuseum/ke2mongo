@@ -28,7 +28,8 @@ from ke2mongo.tasks.delete import DeleteTask
 from ke2mongo.targets.csv import CSVTarget
 from ke2mongo.targets.api import APITarget
 from ke2mongo.tasks import MULTIMEDIA_FORMATS
-from ke2mongo.lib.mongo import mongo_client_db
+from ke2mongo.lib.mongo import mongo_client_db, mongo_get_update_markers
+from ke2mongo.lib.file import get_export_file_dates
 
 class DatasetTask(luigi.Task):
     """
@@ -44,6 +45,9 @@ class DatasetTask(luigi.Task):
 
     # Should the primary key be prefixed - eg NHMUK:ecatalogue
     primary_key_prefix = None
+
+    # Default record type - used to select records in query
+    record_type = None
 
     @abc.abstractproperty
     def columns(self):
@@ -68,9 +72,15 @@ class DatasetTask(luigi.Task):
         @return: dict
         """
 
-        query = {"ColRecordType": self.record_type}
+        query = OrderedDict()
+
+        if self.record_type:
+            query["ColRecordType"] = self.record_type
 
         if self.date:
+            # Ensure we have processed all files for preceding dates
+            self.ensure_export_date(self.date)
+
             query['exportFileDate'] = self.date
 
         return query
@@ -116,10 +126,25 @@ class DatasetTask(luigi.Task):
         # Get or create the resource object
         self.resource_id = self.get_or_create_resource()
 
+    def ensure_export_date(self, date):
+        """
+        If cron fails to run for whatever reason, and then reruns the next week, it could be mised
+        So when calling this dataset, ensure that all preceding mongo exports have been processed
+        @param date: date to check
+        @return: None
+        """
+
+        def filter_dates(d):
+            return d < date
+
+        # Get a list of export files dates and marker dates, prior to the current date being processed
+        export_file_dates = filter(filter_dates, get_export_file_dates())
+        update_marker_dates = filter(filter_dates, mongo_get_update_markers().keys())
+
+        assert export_file_dates == update_marker_dates, 'Outstanding previous export file dates need to be processed first: %s' % list(set(export_file_dates) - set(update_marker_dates))
+
     def requires(self):
-        # Call all mongo tasks to import latest mongo data dumps
-        # If a file is missing, the process will terminate with an Exception
-        # These run in reverse order, so MongoCatalogueTask runs last
+        # DeleteTask depends upon all other mongo tasks
 
         # Only require mongo tasks if data parameter is passed in - allows us to rerun for testing
         if self.date:
