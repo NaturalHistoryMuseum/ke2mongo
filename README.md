@@ -43,6 +43,9 @@ TODO
 ----
 
 Updates! If we run bulk, need update to include them all!! Get last date from updates????
+Mark CITES on import
+Get running on server
+Test data
 
 
 
