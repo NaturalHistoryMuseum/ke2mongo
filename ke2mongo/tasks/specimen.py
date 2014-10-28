@@ -26,8 +26,8 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Test data24',
-            'description': 'Test data',
+            'name': 'Specimens',
+            'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
         'primary_key': 'Occurrence ID'
@@ -247,7 +247,7 @@ class SpecimenDatasetTask(DatasetTask):
     sites_columns = [
         ('_id', '_sites_irn', 'int32'),
         ('LatDeriveCentroid', 'Centroid', 'bool'),
-        ('GeorefMaxErrorDist', 'Max error', 'int32'),
+        ('GeorefMaxErrorDist', 'Max error', 'string:100'),
         ('GeorefMaxErrorDistUnits', '_errorUnit', 'string:100'),
     ]
 
