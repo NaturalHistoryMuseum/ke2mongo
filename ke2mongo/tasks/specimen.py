@@ -255,8 +255,12 @@ class SpecimenDatasetTask(DatasetTask):
     def query(self):
         """
         Query object for selecting data from mongoDB
+
+        To test encoding, use query = {'_id': 42866}
+
         @return: dict
         """
+
         query = super(SpecimenDatasetTask, self).query
 
         # Override the default ColRecordType
