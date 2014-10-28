@@ -23,7 +23,7 @@ def mongo_get_update_markers():
     marker_collection_name = mongo_get_marker_collection_name()
     cursor = mongo_db[marker_collection_name].find()
 
-    re_update_id = re.compile('(Mongo[a-zA-Z]+)\(date=([0-9]+)\)')
+    re_update_id = re.compile('([a-zA-Z]+)\(date=([0-9]+)\)')
 
     # OrderedDict to store all of the update classes
     update_markers = OrderedDict()

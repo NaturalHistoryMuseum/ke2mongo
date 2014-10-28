@@ -48,7 +48,7 @@ def main():
     update_markers = mongo_get_update_markers()
 
     # Make sure the updates have all mongo classes
-    bulk_tasks = [task.__name__ for task in [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, DeleteTask]]
+    bulk_tasks = [unicode(task.__name__) for task in [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, DeleteTask]]
 
     for date, update_marker in update_markers.iteritems():
         # Assert that for every date we have all the bulk tasks

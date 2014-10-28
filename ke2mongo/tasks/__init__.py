@@ -17,7 +17,7 @@ MULTIMEDIA_FORMATS = ['jp2', 'jpeg']
 DATE_FORMAT = 'YYYY-MM-DD'
 
 COLLECTION_DATASET = {
-    'name': 'specimens-x1',
+    'name': 'nhm-specimens-10',
     'notes': u'The Natural History Museum\'s collection',
     'title': "NHM Collection",
     'author': 'Natural History Museum',

@@ -69,8 +69,7 @@ class APITarget(luigi.Target):
                 try:
                     json.dumps(record).encode('ascii')
                 except UnicodeDecodeError:
-                    print 'Error encoding record'
-                    print record
+                    log.critical('Error encoding record: %s', ' '.join(['%s=%s' % (field, value) for field, value in record.iteritems() if value]))
                 else:
                     validated_records.append(record)
 
