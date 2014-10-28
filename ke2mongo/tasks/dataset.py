@@ -222,11 +222,10 @@ class DatasetTask(luigi.Task):
             elif numpy_type is bool:
                 ckan_type = 'bool'
             else:
-                # TODO: Add field type: citext
-                ckan_type = 'text'
+                ckan_type = 'citext'
         except TypeError:
             # Strings are not objects, so we'll get a TypeError
-            ckan_type = 'text'
+            ckan_type = 'citext'
 
         return ckan_type
 
