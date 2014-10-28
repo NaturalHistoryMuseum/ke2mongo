@@ -26,7 +26,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens',
+            'name': 'Specimens6',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -258,23 +258,27 @@ class SpecimenDatasetTask(DatasetTask):
         @return: dict
         """
 
-        query = super(SpecimenDatasetTask, self).query
+        # query = super(SpecimenDatasetTask, self).query
+        #
+        # # Override the default ColRecordType
+        # query['ColRecordType'] = {
+        #     "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
+        # }
+        #
+        # # We only want Botany records if they have a catalogue number starting with BM
+        # # And only for Entom, Min, Pal & Zoo depts.
+        # query['$or'] = [
+        #         {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
+        #         {"ColDepartment":
+        #             {
+        #                 "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
+        #             }
+        #         }
+        #     ]
 
-        # Override the default ColRecordType
-        query['ColRecordType'] = {
-            "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
-        }
+        query = {}
 
-        # We only want Botany records if they have a catalogue number starting with BM
-        # And only for Entom, Min, Pal & Zoo depts.
-        query['$or'] = [
-                {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
-                {"ColDepartment":
-                    {
-                        "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
-                    }
-                }
-            ]
+        query['_id'] = 428662
 
         return query
 
