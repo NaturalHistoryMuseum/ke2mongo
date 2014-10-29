@@ -104,6 +104,13 @@ class DatasetTask(luigi.Task):
         """
         return None
 
+    @abc.abstractproperty
+    def block_size(self):
+        """
+        Number of records to retrieve
+        """
+        return None
+
     def get_primary_key_field(self):
         """
         Return the source primary key fields
@@ -232,8 +239,6 @@ class DatasetTask(luigi.Task):
     @timeit
     def run(self):
 
-        # Number of records to retrieve (~200 breaks CSV)
-        block_size = 150 if isinstance(self.output(), CSVTarget) else 5000
         count = 0
 
         host = config.get('mongo', 'host')
@@ -248,7 +253,7 @@ class DatasetTask(luigi.Task):
             # query_fields can have None, if there is no source field
             query_fields = filter(None, query_fields)
 
-            catalogue_blocks = m.block_query(db, self.collection_name, self.query, query_fields, field_types, block_size=block_size)
+            catalogue_blocks = m.block_query(db, self.collection_name, self.query, query_fields, field_types, block_size=self.block_size)
 
             for catalogue_block in catalogue_blocks:
 
@@ -361,6 +366,9 @@ class DatasetAPITask(DatasetTask):
     """
     Write directly to CKAN API
     """
+
+    block_size = 5000
+
     def output(self):
         return APITarget(resource_id=self.resource_id, columns=self.get_output_columns())
 
@@ -368,6 +376,9 @@ class DatasetCSVTask(DatasetTask):
     """
     Output dataset to CSV
     """
+
+    block_size = 150  # ~200 breaks CSV
+
     @property
     def path(self):
         """
