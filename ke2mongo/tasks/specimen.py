@@ -71,9 +71,8 @@ class SpecimenDatasetTask(DatasetTask):
         ('DarInfraspecificRank', 'Taxon rank', 'string:100'),
 
         # Location
-        # The encoding of DarLocality is buggered - see ecatalogue.1804973
-        # So better to use the original field with the correct encoding
-        ('sumPreciseLocation', 'Locality', 'string:100'),
+        # Use nearest name place rather than precise locality https://github.com/NaturalHistoryMuseum/ke2mongo/issues/29
+        ('PalNearestNamedPlaceLocal', 'Locality', 'string:100'),
         ('DarStateProvince', 'State province', 'string:100'),
         ('DarCountry', 'Country', 'string:100'),
         ('DarContinent', 'Continent', 'string:100'),
@@ -84,8 +83,8 @@ class SpecimenDatasetTask(DatasetTask):
         ('DarWaterBody', 'Water body', 'string:100'),
         ('DarHigherGeography', 'Higher geography', 'string:100'),
         ('ColHabitatVerbatim', 'Habitat', 'string:100'),
-        ('DarDecimalLongitude', 'Decimal longitude', 'float32'),
-        ('DarDecimalLatitude', 'Decimal latitude', 'float32'),
+        ('DarDecimalLongitude', 'Decimal longitude', 'float64'),
+        ('DarDecimalLatitude', 'Decimal latitude', 'float64'),
         ('DarGeodeticDatum', 'Geodetic datum', 'string:100'),
         ('DarGeorefMethod', 'Georeference protocol', 'string:100'),
 
@@ -221,7 +220,8 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Internal
         ('RegRegistrationParentRef', '_parentRef', 'int32'),
-        ('ColSiteRef', '_sites_irn', 'int32'),
+        # TODO: Test sites, this wasn't using correct field
+        ('sumSiteRef', '_sites_irn', 'int32'),
         ('_id', '_id', 'int32'),
         # Used if DarCatalogueNumber is empty
         ('RegRegistrationNumber', '_regRegistrationNumber', 'string:100'),
@@ -235,6 +235,12 @@ class SpecimenDatasetTask(DatasetTask):
         ('EntIdeFiledAs', '_determinationFiledAs', 'string:100'),
         # If DarTypeStatus is empty, we'll use sumTypeStatus which has previous determinations
         ('sumTypeStatus', '_sumTypeStatus', 'string:100'),
+
+        # Locality if nearest named place is empty
+        # The encoding of DarLocality is buggered - see ecatalogue.1804973
+        # So better to use the original field with the correct encoding
+        ('sumPreciseLocation', '_preciseLocation', 'string:100'),
+
         # CITES specimens
         ('cites', '_cites', 'bool'),
 
@@ -261,23 +267,25 @@ class SpecimenDatasetTask(DatasetTask):
         @return: dict
         """
 
-        query = super(SpecimenDatasetTask, self).query
+        # query = super(SpecimenDatasetTask, self).query
+        #
+        # # Override the default ColRecordType
+        # query['ColRecordType'] = {
+        #     "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
+        # }
+        #
+        # # We only want Botany records if they have a catalogue number starting with BM
+        # # And only for Entom, Min, Pal & Zoo depts.
+        # query['$or'] = [
+        #         {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
+        #         {"ColDepartment":
+        #             {
+        #                 "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
+        #             }
+        #         }
+        #     ]
 
-        # Override the default ColRecordType
-        query['ColRecordType'] = {
-            "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
-        }
-
-        # We only want Botany records if they have a catalogue number starting with BM
-        # And only for Entom, Min, Pal & Zoo depts.
-        query['$or'] = [
-                {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
-                {"ColDepartment":
-                    {
-                        "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
-                    }
-                }
-            ]
+        query = {'_id': 1}
 
         return query
 
@@ -328,6 +336,9 @@ class SpecimenDatasetTask(DatasetTask):
             df[i][df['_cites'] == 'True'] = np.nan
 
         df['Catalog number'].fillna(df['_regRegistrationNumber'], inplace=True)
+
+        # If PalNearestNamedPlaceLocal is missing, use sumPreciseLocation
+        df['Locality'].fillna(df['_preciseLocation'], inplace=True)
 
         # Replace missing DarTypeStatus
         df['Type status'].fillna(df['_sumTypeStatus'], inplace=True)
