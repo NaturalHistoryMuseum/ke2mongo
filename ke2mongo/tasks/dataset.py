@@ -250,9 +250,6 @@ class DatasetTask(luigi.Task):
 
             query_fields, df_cols, field_types = zip(*self.columns)
 
-            # query_fields can have None, if there is no source field
-            query_fields = filter(None, query_fields)
-
             catalogue_blocks = m.block_query(db, self.collection_name, self.query, query_fields, field_types, block_size=self.block_size)
 
             for catalogue_block in catalogue_blocks:
@@ -367,7 +364,8 @@ class DatasetAPITask(DatasetTask):
     Write directly to CKAN API
     """
 
-    block_size = 5000
+    # TEMP - Should be 5000
+    block_size = 10
 
     def output(self):
         return APITarget(resource_id=self.resource_id, columns=self.get_output_columns())
