@@ -224,6 +224,7 @@ class SpecimenDatasetTask(DatasetTask):
         ('RegRegistrationParentRef', '_parentRef', 'int32'),
         ('sumSiteRef', '_siteRef', 'int32'),
         ('sumCollectionEventRef', '_collectionEventRef', 'int32'),
+        ('CardParasiteRef', '_cardParasiteRef', 'int32'),
         ('_id', '_id', 'int32'),
         # Used if DarCatalogueNumber is empty
         ('RegRegistrationNumber', '_regRegistrationNumber', 'string:100'),
@@ -293,7 +294,7 @@ class SpecimenDatasetTask(DatasetTask):
         #         }
         #     ]
 
-        query = {'sumSiteRef': {'$exists': True}}
+        query = {'CardParasiteRef': {'$exists': True}}
 
         # query = {'_id': 1751715}
 
@@ -382,16 +383,22 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Load extra sites info (if this a centroid and error radius + unit)
         site_irns = pd.unique(df._siteRef.values.ravel()).tolist()
-
         sites_df = self.get_dataframe(m, 'esites', self.sites_columns, site_irns, '_irn')
         # Append the error unit to the max error value
         sites_df['Max error'] = sites_df['Max error'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
         df = pd.merge(df, sites_df, how='outer', left_on=['_siteRef'], right_on=['_irn'])
 
+        # TODO: Add lat/lon literal
+
         # Load collection event data
         collection_event_irns = pd.unique(df._collectionEventRef.values.ravel()).tolist()
         collection_event_df = self.get_dataframe(m, 'ecollectionevents', self.collection_event_columns, collection_event_irns, '_irn')
         df = pd.merge(df, collection_event_df, how='outer', left_on=['_collectionEventRef'], right_on=['_irn'])
+
+        # Add parasite card
+        taxonomy_irns = pd.unique(df._cardParasiteRef.values.ravel()).tolist()
+
+        print taxonomy_irns
 
         return df
 
