@@ -27,7 +27,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens9',
+            'name': 'Specimens10',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -193,7 +193,7 @@ class SpecimenDatasetTask(DatasetTask):
         ('MinIdentificationAsRegistered', 'Identification as registered', 'string:100'),
         ('MinIdentificationDescription', 'Identification description', 'string:100'),
         ('MinPetOccurance', 'Occurrence', 'string:100'),
-        ('MinOreCommodity', 'Commodity', 'string:100'),
+        ('MinOreCommodity', 'Commodity', 'string:200'),
         ('MinOreDepositType', 'Deposit type', 'string:100'),
         ('MinTextureStructure', 'Texture', 'string:100'),
         ('MinIdentificationVariety', 'Identification variety', 'string:100'),
@@ -247,6 +247,9 @@ class SpecimenDatasetTask(DatasetTask):
         # CITES specimens
         ('cites', '_cites', 'bool'),
 
+        # Parasite cards use a different field for life stage
+        ('CardParasiteStage', '_parasite_stage', 'string:100'),
+
         # Removed: We do not want notes, could contain anything
         # ('DarNotes', 'DarNotes', 'string:100'),
         # ('DarLatLongComments', 'latLongComments', 'string:100'),
@@ -258,12 +261,30 @@ class SpecimenDatasetTask(DatasetTask):
         ('LatDeriveCentroid', 'Centroid', 'bool'),
         ('GeorefMaxErrorDist', 'Max error', 'string:100'),
         ('GeorefMaxErrorDistUnits', '_errorUnit', 'string:100'),
+        ('LatLongitude', 'Verbatim longitude', 'string:100'),
+        ('LatLatitude', 'Verbatim latitude', 'string:100'),
     ]
 
     # Additional columns to merge in from the taxonomy collection
     collection_event_columns = [
         ('_id', '_irn', 'int32'),
         ('ColParticipantLocal', 'Recorded by', 'string:100'),
+    ]
+
+    # Used to merge in data from parasite cards, which do not have taxonomic data
+    taxonomy_columns = [
+        ('_id', '_irn', 'int32'),
+        ('ClaScientificNameBuilt', 'Scientific name', 'string:100'),
+        ('ClaKingdom', 'Kingdom', 'string:60'),
+        ('ClaPhylum', 'Phylum', 'string:100'),
+        ('ClaClass', 'Class', 'string:100'),
+        ('ClaOrder', 'Order', 'string:100'),
+        ('ClaFamily', 'Family', 'string:100'),
+        ('ClaGenus', 'Genus', 'string:100'),
+        ('ClaSubgenus', 'Subgenus', 'string:100'),
+        ('ClaSpecies', 'Specific epithet', 'string:100'),
+        ('ClaSubspecies', 'Infraspecific epithet', 'string:100'),
+        ('ClaRank', 'Taxon rank', 'string:10'),  # NB: CKAN uses rank internally
     ]
 
     @property
@@ -294,9 +315,9 @@ class SpecimenDatasetTask(DatasetTask):
         #         }
         #     ]
 
-        query = {'CardParasiteRef': {'$exists': True}}
+        # query = {"ColRecordType" : "Parasite Card"}
 
-        # query = {'_id': 1751715}
+        query = {'_id': 3584}
 
         return query
 
@@ -321,7 +342,6 @@ class SpecimenDatasetTask(DatasetTask):
         @param df: dataframe
         @return: dataframe
         """
-
         df = super(SpecimenDatasetTask, self).process_dataframe(m, df)
 
         # Added literal columns
@@ -337,6 +357,7 @@ class SpecimenDatasetTask(DatasetTask):
         self.ensure_multimedia(m, df, 'Associated media')
 
         # Assign determination name, type and field as to Determinations to show determination history
+        # df['Determinations'] = 'name=' + df['_determinationNames'].astype(str) + ';type=' + df['_determinationTypes'].astype(str) + ';filedAs=' + df['_determinationFiledAs'].astype(str)
         df['Determinations'] = 'name=' + df['_determinationNames'].astype(str) + ';type=' + df['_determinationTypes'].astype(str) + ';filedAs=' + df['_determinationFiledAs'].astype(str)
 
         # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df
@@ -395,10 +416,15 @@ class SpecimenDatasetTask(DatasetTask):
         collection_event_df = self.get_dataframe(m, 'ecollectionevents', self.collection_event_columns, collection_event_irns, '_irn')
         df = pd.merge(df, collection_event_df, how='outer', left_on=['_collectionEventRef'], right_on=['_irn'])
 
+        # Add parasite life stage
+        df['Life stage'].fillna(df['_parasite_stage'], inplace=True)
+
         # Add parasite card
         taxonomy_irns = pd.unique(df._cardParasiteRef.values.ravel()).tolist()
+        taxonomy_df = self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, taxonomy_irns, '_irn')
+        df.index = df['_cardParasiteRef']
 
-        print taxonomy_irns
+        df = df.combine_first(taxonomy_df)
 
         return df
 
