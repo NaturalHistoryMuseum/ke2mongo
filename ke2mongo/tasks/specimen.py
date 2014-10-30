@@ -12,6 +12,7 @@ import re
 import pandas as pd
 import numpy as np
 import luigi
+import itertools
 from collections import OrderedDict
 from ke2mongo.tasks import PARENT_TYPES, COLLECTION_DATASET
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
@@ -26,7 +27,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens6',
+            'name': 'Specimens9',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -95,7 +96,8 @@ class SpecimenDatasetTask(DatasetTask):
         ('DarMaximumDepthInMeters', 'Maximum depth in meters', 'string:100'),
         ('DarCatalogNumber', 'Catalog number', 'string:100'),
         ('DarOtherCatalogNumbers', 'Other catalog numbers', 'string:100'),
-        ('DarCollector', 'Recorded by', 'string:100'),
+        # DarCollector doesn't have multiple collectors NHMUK:ecatalogue:1751715 - Switched to using ecollectionevents.ColParticipantLocal
+        # ('DarCollector', 'Recorded by', 'string:100'),
         ('DarCollectorNumber', 'Record number', 'string:100'),
         ('DarIndividualCount', 'Individual count', 'string:100'),
         # According to docs, ageClass has been superseded by lifeStage. We have both, but ageClass duplicates
@@ -220,8 +222,8 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Internal
         ('RegRegistrationParentRef', '_parentRef', 'int32'),
-        # TODO: Test sites, this wasn't using correct field
-        ('sumSiteRef', '_sites_irn', 'int32'),
+        ('sumSiteRef', '_siteRef', 'int32'),
+        ('sumCollectionEventRef', '_collectionEventRef', 'int32'),
         ('_id', '_id', 'int32'),
         # Used if DarCatalogueNumber is empty
         ('RegRegistrationNumber', '_regRegistrationNumber', 'string:100'),
@@ -249,12 +251,18 @@ class SpecimenDatasetTask(DatasetTask):
         # ('DarLatLongComments', 'latLongComments', 'string:100'),
     ]
 
-    # Additional columns to merge in from the taxonomy collection
+    # Additional columns to merge in from the sites collection
     sites_columns = [
-        ('_id', '_sites_irn', 'int32'),
+        ('_id', '_irn', 'int32'),
         ('LatDeriveCentroid', 'Centroid', 'bool'),
         ('GeorefMaxErrorDist', 'Max error', 'string:100'),
         ('GeorefMaxErrorDistUnits', '_errorUnit', 'string:100'),
+    ]
+
+    # Additional columns to merge in from the taxonomy collection
+    collection_event_columns = [
+        ('_id', '_irn', 'int32'),
+        ('ColParticipantLocal', 'Recorded by', 'string:100'),
     ]
 
     @property
@@ -285,7 +293,9 @@ class SpecimenDatasetTask(DatasetTask):
         #         }
         #     ]
 
-        query = {'_id': 1}
+        query = {'sumSiteRef': {'$exists': True}}
+
+        # query = {'_id': 1751715}
 
         return query
 
@@ -294,7 +304,7 @@ class SpecimenDatasetTask(DatasetTask):
         Override default get_output_columns and add in literal columns (not retrieved from mongo)
         @return:
         """
-        output_columns = OrderedDict((col[1], col[2]) for col in self.columns + self.sites_columns if self._is_output_field(col[1]))
+        output_columns = OrderedDict((col[1], col[2]) for col in itertools.chain(self.columns, self.sites_columns, self.collection_event_columns) if self._is_output_field(col[1]))
 
         # Add the literal columns
         output_columns['Institution code'] = 'string:100'
@@ -371,12 +381,17 @@ class SpecimenDatasetTask(DatasetTask):
             df = df.drop([dummy_index])
 
         # Load extra sites info (if this a centroid and error radius + unit)
-        site_irns = pd.unique(df._sites_irn.values.ravel()).tolist()
-        sites_df = self.get_dataframe(m, 'esites', self.sites_columns, site_irns, '_sites_irn')
+        site_irns = pd.unique(df._siteRef.values.ravel()).tolist()
 
+        sites_df = self.get_dataframe(m, 'esites', self.sites_columns, site_irns, '_irn')
         # Append the error unit to the max error value
         sites_df['Max error'] = sites_df['Max error'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
-        df = pd.merge(df, sites_df, how='outer', left_on=['_sites_irn'], right_on=['_sites_irn'])
+        df = pd.merge(df, sites_df, how='outer', left_on=['_siteRef'], right_on=['_irn'])
+
+        # Load collection event data
+        collection_event_irns = pd.unique(df._collectionEventRef.values.ravel()).tolist()
+        collection_event_df = self.get_dataframe(m, 'ecollectionevents', self.collection_event_columns, collection_event_irns, '_irn')
+        df = pd.merge(df, collection_event_df, how='outer', left_on=['_collectionEventRef'], right_on=['_irn'])
 
         return df
 
