@@ -389,7 +389,7 @@ class DatasetCSVTask(DatasetTask):
         if self.date:
             file_name += '-' + str(self.date)
 
-        return os.path.join('/tmp', file_name + '.csv')
+        return os.path.join(config.get('csv', 'output_dir'), file_name + '.csv')
 
     def output(self):
         """
