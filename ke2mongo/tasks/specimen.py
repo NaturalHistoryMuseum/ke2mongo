@@ -27,7 +27,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens10',
+            'name': 'Specimens12',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -46,7 +46,7 @@ class SpecimenDatasetTask(DatasetTask):
         # ([KE EMu field], [new field], [field type])
 
         # Identifier
-        ('irn', 'Occurrence ID', 'string:100'),
+        ('_id', 'Occurrence ID', 'int32'),
 
         # Record level
         ('AdmDateModified', 'Modified', 'string:100'),
@@ -300,26 +300,24 @@ class SpecimenDatasetTask(DatasetTask):
         query = super(SpecimenDatasetTask, self).query
 
         # Override the default ColRecordType
-        query['ColRecordType'] = {
-            "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
-        }
+        # query['ColRecordType'] = {
+        #     "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
+        # }
 
         # We only want Botany records if they have a catalogue number starting with BM
         # And only for Entom, Min, Pal & Zoo departments.
-        query['$or'] = [
-                {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
-                {"ColDepartment":
-                    {
-                        "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
-                    }
-                }
-            ]
+        # query['$or'] = [
+        #         {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
+        #         {"ColDepartment":
+        #             {
+        #                 "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
+        #             }
+        #         }
+        #     ]
 
-        # query = {"ColRecordType" : "Parasite Card"}
+        # query["ColDepartment"] = "Botany"
 
-        # query = {'_id': {'$in': [3598510]}}
-
-        # query['_id'] = 3598510
+        query['_id'] = 461859
 
         return query
 
@@ -415,25 +413,28 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Load extra sites info (if this a centroid and error radius + unit)
         site_irns = pd.unique(df._siteRef.values.ravel()).tolist()
-        sites_df = self.get_dataframe(m, 'esites', self.sites_columns, site_irns, '_irn')
-        # Append the error unit to the max error value
-        sites_df['Max error'] = sites_df['Max error'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
-        df = pd.merge(df, sites_df, how='outer', left_on=['_siteRef'], right_on=['_irn'])
+        if site_irns:
+            sites_df = self.get_dataframe(m, 'esites', self.sites_columns, site_irns, '_irn')
+            # Append the error unit to the max error value
+            sites_df['Max error'] = sites_df['Max error'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
+            df = pd.merge(df, sites_df, how='outer', left_on=['_siteRef'], right_on=['_irn'])
 
         # Load collection event data
         collection_event_irns = pd.unique(df._collectionEventRef.values.ravel()).tolist()
-        collection_event_df = self.get_dataframe(m, 'ecollectionevents', self.collection_event_columns, collection_event_irns, '_irn')
-        df = pd.merge(df, collection_event_df, how='outer', left_on=['_collectionEventRef'], right_on=['_irn'])
+
+        if collection_event_irns:
+            collection_event_df = self.get_dataframe(m, 'ecollectionevents', self.collection_event_columns, collection_event_irns, '_irn')
+            df = pd.merge(df, collection_event_df, how='outer', left_on=['_collectionEventRef'], right_on=['_irn'])
 
         # Add parasite life stage
         df['Life stage'].fillna(df['_parasite_stage'], inplace=True)
 
         # Add parasite card
-        taxonomy_irns = pd.unique(df._cardParasiteRef.values.ravel()).tolist()
-        taxonomy_df = self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, taxonomy_irns, '_irn')
-        df.index = df['_cardParasiteRef']
-
-        df = df.combine_first(taxonomy_df)
+        parasite_taxonomy_irns = pd.unique(df._cardParasiteRef.values.ravel()).tolist()
+        if parasite_taxonomy_irns:
+            parasite_df = self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, parasite_taxonomy_irns, '_irn')
+            df.index = df['_cardParasiteRef']
+            df = df.combine_first(parasite_df)
 
         return df
 
