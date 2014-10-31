@@ -317,7 +317,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # query = {"ColRecordType" : "Parasite Card"}
 
-        query = {'_id': 3584}
+        query = {'_id': {'$in': [1,2,3, 567, 123, 127187]}}
 
         return query
 
@@ -357,8 +357,17 @@ class SpecimenDatasetTask(DatasetTask):
         self.ensure_multimedia(m, df, 'Associated media')
 
         # Assign determination name, type and field as to Determinations to show determination history
-        # df['Determinations'] = 'name=' + df['_determinationNames'].astype(str) + ';type=' + df['_determinationTypes'].astype(str) + ';filedAs=' + df['_determinationFiledAs'].astype(str)
-        df['Determinations'] = 'name=' + df['_determinationNames'].astype(str) + ';type=' + df['_determinationTypes'].astype(str) + ';filedAs=' + df['_determinationFiledAs'].astype(str)
+        determinations = [
+            ('name', '_determinationNames'),
+            ('type', '_determinationTypes'),
+            ('filedAs', '_determinationFiledAs')
+        ]
+
+        # Loop through all the determination fields, adding the field name
+        for field_name, determination in determinations:
+            df[determination][df[determination] != ''] = field_name + '=' + df[determination]
+
+        df['Determinations'] = df['_determinationNames'].str.cat(df['_determinationTypes'].values.astype(str), sep='\n').str.cat(df['_determinationFiledAs'].values.astype(str), sep='\n')
 
         # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df
         df = df.applymap(lambda x: np.nan if isinstance(x, basestring) and x == '' else x)
@@ -408,8 +417,6 @@ class SpecimenDatasetTask(DatasetTask):
         # Append the error unit to the max error value
         sites_df['Max error'] = sites_df['Max error'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
         df = pd.merge(df, sites_df, how='outer', left_on=['_siteRef'], right_on=['_irn'])
-
-        # TODO: Add lat/lon literal
 
         # Load collection event data
         collection_event_irns = pd.unique(df._collectionEventRef.values.ravel()).tolist()
