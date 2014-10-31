@@ -46,7 +46,7 @@ class SpecimenDatasetTask(DatasetTask):
         # ([KE EMu field], [new field], [field type])
 
         # Identifier
-        ('_id', 'Occurrence ID', 'int32'),
+        ('irn', 'Occurrence ID', 'string:100'),
 
         # Record level
         ('AdmDateModified', 'Modified', 'string:100'),
@@ -300,24 +300,20 @@ class SpecimenDatasetTask(DatasetTask):
         query = super(SpecimenDatasetTask, self).query
 
         # Override the default ColRecordType
-        # query['ColRecordType'] = {
-        #     "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
-        # }
+        query['ColRecordType'] = {
+            "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
+        }
 
         # We only want Botany records if they have a catalogue number starting with BM
         # And only for Entom, Min, Pal & Zoo departments.
-        # query['$or'] = [
-        #         {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
-        #         {"ColDepartment":
-        #             {
-        #                 "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
-        #             }
-        #         }
-        #     ]
-
-        # query["ColDepartment"] = "Botany"
-
-        query['_id'] = 461859
+        query['$or'] = [
+                {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
+                {"ColDepartment":
+                    {
+                        "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
+                    }
+                }
+            ]
 
         return query
 
