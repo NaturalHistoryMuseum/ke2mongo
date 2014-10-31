@@ -417,7 +417,7 @@ class DatasetCSVTask(DatasetTask):
     def on_success(self):
 
         log.info("Import CSV file with:")
-        log.info("COPY \"{resource_id}\" (\"{cols}\") FROM '{path}' DELIMITER ',' CSV ENCODING 'UTF8'".format(
+        log.info("COPY \"{resource_id}\" (\"{cols}\") FROM '{path}' DELIMITER ',' CSV ENCODING 'UTF8';".format(
             resource_id=self.resource_id,
             cols='","'.join(col for col in self.get_output_columns()),
             path=self.path
