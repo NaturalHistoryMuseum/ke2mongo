@@ -282,7 +282,7 @@ class DatasetTask(luigi.Task):
 
         if self.primary_key_prefix:
             primary_key = self.datastore['primary_key']
-            df[primary_key] = self.primary_key_prefix + df[primary_key]
+            df[primary_key] = self.primary_key_prefix + df[primary_key].astype(str)
 
         return df
 
