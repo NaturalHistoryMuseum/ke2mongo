@@ -282,7 +282,7 @@ class DatasetTask(luigi.Task):
 
         if self.primary_key_prefix:
             primary_key = self.datastore['primary_key']
-            df[primary_key] = self.primary_key_prefix + df[primary_key].astype(str)
+            df[primary_key] = self.primary_key_prefix + df[primary_key]
 
         return df
 
@@ -376,7 +376,7 @@ class DatasetCSVTask(DatasetTask):
     Output dataset to CSV
     """
 
-    block_size = 150  # ~200 breaks CSV
+    block_size = 2500  # Seems to be most efficient
 
     @property
     def path(self):
