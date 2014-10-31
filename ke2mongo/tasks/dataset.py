@@ -27,7 +27,7 @@ from ke2mongo.tasks.mongo_site import MongoSiteTask
 from ke2mongo.tasks.delete import DeleteTask
 from ke2mongo.targets.csv import CSVTarget
 from ke2mongo.targets.api import APITarget
-from ke2mongo.tasks import MULTIMEDIA_FORMATS
+from ke2mongo.tasks import MULTIMEDIA_FORMATS, RECORD_STATUS
 from ke2mongo.lib.mongo import mongo_client_db, mongo_get_update_markers
 from ke2mongo.lib.file import get_export_file_dates
 
@@ -77,10 +77,11 @@ class DatasetTask(luigi.Task):
         if self.record_type:
             query["ColRecordType"] = self.record_type
 
+        query["SecRecordStatus"] = RECORD_STATUS
+
         if self.date:
             # Ensure we have processed all files for preceding dates
             self.ensure_export_date(self.date)
-
             query['exportFileDate'] = self.date
 
         return query

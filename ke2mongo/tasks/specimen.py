@@ -297,27 +297,29 @@ class SpecimenDatasetTask(DatasetTask):
         @return: dict
         """
 
-        # query = super(SpecimenDatasetTask, self).query
-        #
-        # # Override the default ColRecordType
-        # query['ColRecordType'] = {
-        #     "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
-        # }
-        #
-        # # We only want Botany records if they have a catalogue number starting with BM
-        # # And only for Entom, Min, Pal & Zoo depts.
-        # query['$or'] = [
-        #         {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
-        #         {"ColDepartment":
-        #             {
-        #                 "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
-        #             }
-        #         }
-        #     ]
+        query = super(SpecimenDatasetTask, self).query
+
+        # Override the default ColRecordType
+        query['ColRecordType'] = {
+            "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
+        }
+
+        # We only want Botany records if they have a catalogue number starting with BM
+        # And only for Entom, Min, Pal & Zoo departments.
+        query['$or'] = [
+                {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
+                {"ColDepartment":
+                    {
+                        "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
+                    }
+                }
+            ]
 
         # query = {"ColRecordType" : "Parasite Card"}
 
-        query = {'_id': {'$in': [1,2,3, 567, 123, 127187]}}
+        # query = {'_id': {'$in': [3598510]}}
+
+        # query['_id'] = 3598510
 
         return query
 

@@ -16,6 +16,8 @@ MULTIMEDIA_FORMATS = ['jp2', 'jpeg']
 
 DATE_FORMAT = 'YYYY-MM-DD'
 
+RECORD_STATUS = 'Active'
+
 COLLECTION_DATASET = {
     'name': 'nhm-specimens-test',
     'notes': u'The Natural History Museum\'s collection',

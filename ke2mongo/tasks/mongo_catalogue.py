@@ -94,6 +94,9 @@ class MongoCatalogueTask(MongoTask):
 
         self.collection.ensure_index('ColRecordType')
 
+        # Only include active records - not Stubs etc.,
+        self.collection.ensure_index('SecRecordStatus')
+
         # Add index on sumRegistrationNumber & ColDepartment -
         self.collection.ensure_index('sumRegistrationNumber')
         self.collection.ensure_index('ColDepartment')
