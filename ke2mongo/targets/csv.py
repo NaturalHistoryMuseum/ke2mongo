@@ -4,7 +4,7 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
-
+import json
 import luigi
 from ke2mongo.log import log
 
@@ -26,10 +26,13 @@ class CSVTarget(luigi.LocalTarget):
         chunksize = row_count + 1
 
         try:
-            df.to_csv(self.path, chunksize=chunksize, mode='a', columns=self.columns.keys(), index=False, header=False, encoding='utf-8')
+            # Test whether the data is encoding - we need to test for this here
+            # before calling to_csv which writes line by line - so lines preceding an error
+            # Will cause duplicate key constraints when imported into the DB
+            json.dumps(df.to_dict(outtype='records')).encode('ascii')
         except UnicodeDecodeError:
 
-            # Batch writing to CSV failed - rather than ditch the whole batch, loop through and write each individually, logging an error for failures
+            # Encoding failed - rather than ditch the whole batch, loop through and write each individually, logging an error for failures
             # Some of these failures are just corrupt records in KE EMu - for example record irn has
             # For example: DarFieldNumber:1=ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢
 
@@ -43,3 +46,7 @@ class CSVTarget(luigi.LocalTarget):
                 except UnicodeDecodeError:
                     # On failure, log an error with the _id of that row
                     log.critical('UTF8 Encoding error for record irn=%s', df_row.iloc[-1]['_id'])
+
+        else:
+            # Batch is good to write to CSV
+            df.to_csv(self.path, chunksize=chunksize, mode='a', columns=self.columns.keys(), index=False, header=False, encoding='utf-8')
