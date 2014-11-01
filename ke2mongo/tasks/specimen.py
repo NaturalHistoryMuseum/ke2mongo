@@ -27,7 +27,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens12',
+            'name': 'Specimens13',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -314,6 +314,8 @@ class SpecimenDatasetTask(DatasetTask):
                     }
                 }
             ]
+
+        # query['_id'] = 1
 
         return query
 
