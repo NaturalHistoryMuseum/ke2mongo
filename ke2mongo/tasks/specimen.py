@@ -315,7 +315,9 @@ class SpecimenDatasetTask(DatasetTask):
                 }
             ]
 
-        # query['_id'] = 1
+        # To test: Order by ID, and put into batches of 2 with site / without
+        # 1229
+        # query['_id'] = {'$in' : [4235726, 619589, 619588, 1229, 619587, 619586, 619590]}
 
         return query
 
@@ -342,6 +344,11 @@ class SpecimenDatasetTask(DatasetTask):
         """
         df = super(SpecimenDatasetTask, self).process_dataframe(m, df)
 
+        # Is getting the same value as before????? If missing????
+        # print df['Occurrence ID']
+        # print df['_siteRef']
+        # print df['_cites']
+
         # Added literal columns
         df['Institution code'] = 'NHMUK'
         df['Basis of record'] = 'Specimen'
@@ -352,7 +359,7 @@ class SpecimenDatasetTask(DatasetTask):
         df['Collection code'][df['Collection code'] == 'ENT'] = "BMNH(E)"
 
         # Ensure multimedia resources are suitable (jpeg rather than tiff etc.,)
-        self.ensure_multimedia(m, df, 'Associated media')
+        self.ensure_multimedia(df, 'Associated media')
 
         # Assign determination name, type and field as to Determinations to show determination history
         determinations = [
@@ -370,10 +377,6 @@ class SpecimenDatasetTask(DatasetTask):
         # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df
         df = df.applymap(lambda x: np.nan if isinstance(x, basestring) and x == '' else x)
 
-        # For CITES species, we need to hide Lat/Lon and Locality data - and label images
-        for i in ['Locality', 'Label locality', 'Decimal longitude', 'Decimal latitude', 'Higher geography', 'Associated media']:
-            df[i][df['_cites'] == 'True'] = np.nan
-
         df['Catalog number'].fillna(df['_regRegistrationNumber'], inplace=True)
 
         # If PalNearestNamedPlaceLocal is missing, use sumPreciseLocation
@@ -389,14 +392,14 @@ class SpecimenDatasetTask(DatasetTask):
         df['Cultivated'][df['Collection code'] != 'BOT'] = np.nan
 
         # Process part parents
-        parent_irns = pd.unique(df._parentRef.values.ravel()).tolist()
+        parent_irns = self._get_irns(df, '_parentRef')
 
         if parent_irns:
 
             parent_df = self.get_dataframe(m, 'ecatalogue', self.columns, parent_irns, '_id')
 
             # Ensure the parent multimedia images are usable
-            self.ensure_multimedia(m, parent_df, 'Associated media')
+            self.ensure_multimedia(parent_df, 'Associated media')
 
             # Assign parentRef as the index to allow us to combine with parent_df
             df.index = df['_parentRef']
@@ -410,29 +413,34 @@ class SpecimenDatasetTask(DatasetTask):
             df = df.drop([dummy_index])
 
         # Load extra sites info (if this a centroid and error radius + unit)
-        site_irns = pd.unique(df._siteRef.values.ravel()).tolist()
-        if site_irns:
-            sites_df = self.get_dataframe(m, 'esites', self.sites_columns, site_irns, '_irn')
-            # Append the error unit to the max error value
-            sites_df['Max error'] = sites_df['Max error'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
-            df = pd.merge(df, sites_df, how='outer', left_on=['_siteRef'], right_on=['_irn'])
+        site_irns = self._get_irns(df, '_siteRef')
+
+        sites_df = self.get_dataframe(m, 'esites', self.sites_columns, site_irns, '_irn')
+        # Append the error unit to the max error value
+        sites_df['Max error'] = sites_df['Max error'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
+        df = pd.merge(df, sites_df, how='outer', left_on=['_siteRef'], right_on=['_irn'])
+
+        # For CITES species, we need to hide Lat/Lon and Locality data - and label images
+        for i in ['Locality', 'Label locality', 'Decimal longitude', 'Decimal latitude', 'Verbatim longitude', 'Verbatim latitude', 'Centroid', 'Max error', 'Higher geography', 'Associated media']:
+            df[i][df['_cites'] == 'True'] = np.nan
 
         # Load collection event data
-        collection_event_irns = pd.unique(df._collectionEventRef.values.ravel()).tolist()
+        collection_event_irns = self._get_irns(df, '_collectionEventRef')
 
-        if collection_event_irns:
-            collection_event_df = self.get_dataframe(m, 'ecollectionevents', self.collection_event_columns, collection_event_irns, '_irn')
-            df = pd.merge(df, collection_event_df, how='outer', left_on=['_collectionEventRef'], right_on=['_irn'])
+        # if collection_event_irns:
+        collection_event_df = self.get_dataframe(m, 'ecollectionevents', self.collection_event_columns, collection_event_irns, '_irn')
+        df = pd.merge(df, collection_event_df, how='outer', left_on=['_collectionEventRef'], right_on=['_irn'])
 
         # Add parasite life stage
         df['Life stage'].fillna(df['_parasite_stage'], inplace=True)
 
         # Add parasite card
-        parasite_taxonomy_irns = pd.unique(df._cardParasiteRef.values.ravel()).tolist()
-        if parasite_taxonomy_irns:
-            parasite_df = self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, parasite_taxonomy_irns, '_irn')
-            df.index = df['_cardParasiteRef']
-            df = df.combine_first(parasite_df)
+        parasite_taxonomy_irns = self._get_irns(df, '_cardParasiteRef')
+
+        # if parasite_taxonomy_irns:
+        parasite_df = self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, parasite_taxonomy_irns, '_irn')
+        df.index = df['_cardParasiteRef']
+        df = df.combine_first(parasite_df)
 
         return df
 

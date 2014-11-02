@@ -54,7 +54,7 @@ class ArtefactDatasetTask(DatasetTask):
         """
         # And update images to URLs
 
-        self.ensure_multimedia(m, df, 'Multimedia')
+        self.ensure_multimedia(df, 'Multimedia')
         return df
 
 

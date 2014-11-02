@@ -245,6 +245,20 @@ class DatasetTask(luigi.Task):
         host = config.get('mongo', 'host')
         db = config.get('mongo', 'database')
 
+        def _fill_field(field_arr, field_type):
+            if field_type.startswith('string'):
+                field_arr = field_arr.astype(np.str).filled('')
+            elif field_type == 'bool':
+                field_arr = field_arr.astype(np.str).filled(None)
+            elif field_type.startswith('int'):
+                field_arr = field_arr.filled(0)
+            elif field_type.startswith('float'):
+                field_arr = field_arr.filled(np.NaN)
+            else:
+                raise Exception('Unknown field type %s' % field_type)
+
+            return field_arr
+
         with Monary(host) as m:
 
             log.info("Querying Monary")
@@ -255,8 +269,10 @@ class DatasetTask(luigi.Task):
 
             for catalogue_block in catalogue_blocks:
 
-                # Columns are indexed by key in the catalogue
-                catalogue_block = [arr.astype(np.str).filled('') if self._is_output_field(df_cols[i]) else arr for i, arr in enumerate(catalogue_block)]
+                # Bit of a hack: fill fields with a blank value (depending on type)
+                # So the masked value doesn't get used.  As the masked is shared between
+                # each block, if a field is empty it is getting populated by previous values
+                catalogue_block = [_fill_field(arr, field_types[i]) for i, arr in enumerate(catalogue_block)]
 
                 # Create a pandas data frame with block of records
                 # Columns use the name from the output columns - but must be in the same order as query_fields
@@ -266,8 +282,8 @@ class DatasetTask(luigi.Task):
                 # Loop through all the columns and ensure hidden integer fields are cast as int32
                 # For example, taxonomy_irn is used to join with taxonomy df
                 for i, df_col in enumerate(df_cols):
-                    if not self._is_output_field(df_col) and field_types[i] == 'int32':
-                        df[df_col] = df[df_col].astype('int32')
+                    if field_types[i].startswith('int'):
+                        df[df_col] = df[df_col].astype(field_types[i])
 
                 df = self.process_dataframe(m, df)
 
@@ -286,7 +302,17 @@ class DatasetTask(luigi.Task):
 
         return df
 
-    def ensure_multimedia(self, m, df, multimedia_field):
+    @staticmethod
+    def _get_irns(df, field_name):
+        """
+        Return a list of IRNs converted to integers, and not 0 ('0' as treated like string)
+        @param df:
+        @param field_name:
+        @return:
+        """
+        return pd.unique(df[field_name][df[field_name] != 0].astype('int32').values.ravel()).tolist()
+
+    def ensure_multimedia(self, df, multimedia_field):
 
         mongo_client = mongo_client_db()
 
@@ -330,7 +356,8 @@ class DatasetTask(luigi.Task):
         # And finally update the associatedMedia field, so formatting with the IRN with MULTIMEDIA_URL, if the IRN is in valid_multimedia
         df[multimedia_field] = df[multimedia_field].apply(lambda irns: '; '.join(multimedia[irn] for irn in irns if irn in multimedia))
 
-    def get_dataframe(self, m, collection, columns, irns, key):
+    @staticmethod
+    def get_dataframe(m, collection, columns, irns, key):
 
         query_fields, df_cols, field_types = zip(*columns)
         assert key in df_cols, 'Merge dataframe key must be present in dataframe columns'
@@ -364,9 +391,7 @@ class DatasetAPITask(DatasetTask):
     """
     Write directly to CKAN API
     """
-
-    # TEMP - Should be 5000
-    block_size = 10
+    block_size = 5000
 
     def output(self):
         return APITarget(resource_id=self.resource_id, columns=self.get_output_columns())
@@ -376,7 +401,7 @@ class DatasetCSVTask(DatasetTask):
     Output dataset to CSV
     """
 
-    block_size = 2500  # Seems to be most efficient
+    block_size = 2500  # 2500 Seems to be most efficient
 
     @property
     def path(self):
