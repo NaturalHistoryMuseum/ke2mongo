@@ -27,7 +27,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens17',
+            'name': 'Specimens18',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -212,8 +212,8 @@ class SpecimenDatasetTask(DatasetTask):
         ('MinMetGroup', 'Meteorite group', 'string:100'),
         ('MinMetChondriteAchondrite', 'Chondrite achondrite', 'string:100'),
         ('MinMetClass', 'Meteorite class', 'string:100'),
-        ('MinMetPetType', 'Pet type', 'string:100'),
-        ('MinMetPetSubtype', 'Pet sub type', 'string:100'),
+        ('MinMetPetType', 'Petrology type', 'string:100'),
+        ('MinMetPetSubtype', 'Petrology subtype', 'string:100'),
         ('MinMetRecoveryFindFall', 'Recovery', 'string:100'),
         ('MinMetRecoveryDate', 'Recovery date', 'string:100'),
         ('MinMetRecoveryWeight', 'Recovery weight', 'string:100'),
@@ -425,7 +425,9 @@ class SpecimenDatasetTask(DatasetTask):
 
         sites_df = self.get_dataframe(m, 'esites', self.sites_columns, site_irns, '_irn')
         # Append the error unit to the max error value
-        sites_df['Max error'] = sites_df['Max error'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
+        # Error unit can be populated even when Max error is not, so need to check max error first
+        sites_df['Max error'][sites_df['Max error'] != ''] = sites_df['Max error'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
+
         df = pd.merge(df, sites_df, how='outer', left_on=['_siteRef'], right_on=['_irn'])
 
         # For CITES species, we need to hide Lat/Lon and Locality data - and label images
