@@ -27,7 +27,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens13',
+            'name': 'Specimens17',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -317,7 +317,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # To test: Order by ID, and put into batches of 2 with site / without
         # 1229
-        # query['_id'] = {'$in' : [4235726, 619589, 619588, 1229, 619587, 619586, 619590]}
+        # query['_id'] = {'$in' : [484022, 1]}
 
         return query
 
@@ -372,6 +372,9 @@ class SpecimenDatasetTask(DatasetTask):
         for field_name, determination in determinations:
             df[determination][df[determination] != ''] = field_name + '=' + df[determination]
 
+        # TODO: Missing collector!!
+        # http://10.11.12.13:5000/dataset/nhm-specimens-test/resource/56628466-44e3-4a53-b6f9-84f7e44c010f/record/18703
+
         df['Determinations'] = df['_determinationNames'].str.cat(df['_determinationTypes'].values.astype(str), sep='\n').str.cat(df['_determinationFiledAs'].values.astype(str), sep='\n')
 
         # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df
@@ -390,6 +393,11 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Cultivated should only be set on Botany records - but is actually on everything
         df['Cultivated'][df['Collection code'] != 'BOT'] = np.nan
+
+        # df['Decimal longitude'][df['Decimal longitude'] == 'nan'] = np.NaN
+
+        df['Decimal longitude'] = df['Decimal longitude'].astype('float64')
+        df['Decimal latitude'] = df['Decimal latitude'].astype('float64')
 
         # Process part parents
         parent_irns = self._get_irns(df, '_parentRef')
@@ -429,9 +437,11 @@ class SpecimenDatasetTask(DatasetTask):
 
         # if collection_event_irns:
         collection_event_df = self.get_dataframe(m, 'ecollectionevents', self.collection_event_columns, collection_event_irns, '_irn')
+        # print collection_event_df
         df = pd.merge(df, collection_event_df, how='outer', left_on=['_collectionEventRef'], right_on=['_irn'])
 
         # Add parasite life stage
+        # Parasite cards use a different field for life stage
         df['Life stage'].fillna(df['_parasite_stage'], inplace=True)
 
         # Add parasite card
