@@ -27,7 +27,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens18',
+            'name': 'Specimens17',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -317,7 +317,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # To test: Order by ID, and put into batches of 2 with site / without
         # 1229
-        # query['_id'] = {'$in' : [484022, 1]}
+        query['_id'] = {'$in' : [2328486, 1990681, 4784401, 111317, 1155]}
 
         return query
 
@@ -363,19 +363,16 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Assign determination name, type and field as to Determinations to show determination history
         determinations = [
-            ('name', '_determinationNames'),
-            ('type', '_determinationTypes'),
-            ('filedAs', '_determinationFiledAs')
+            ('Name', '_determinationNames'),
+            ('Type', '_determinationTypes'),
+            ('Filed as', '_determinationFiledAs')
         ]
 
         # Loop through all the determination fields, adding the field name
         for field_name, determination in determinations:
             df[determination][df[determination] != ''] = field_name + '=' + df[determination]
 
-        # TODO: Missing collector!!
-        # http://10.11.12.13:5000/dataset/nhm-specimens-test/resource/56628466-44e3-4a53-b6f9-84f7e44c010f/record/18703
-
-        df['Determinations'] = df['_determinationNames'].str.cat(df['_determinationTypes'].values.astype(str), sep='\n').str.cat(df['_determinationFiledAs'].values.astype(str), sep='\n')
+        df['Determinations'] = df['_determinationNames'].str.cat(df['_determinationTypes'].values.astype(str), sep='|').str.cat(df['_determinationFiledAs'].values.astype(str), sep='|')
 
         # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df
         df = df.applymap(lambda x: np.nan if isinstance(x, basestring) and x == '' else x)
@@ -393,11 +390,6 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Cultivated should only be set on Botany records - but is actually on everything
         df['Cultivated'][df['Collection code'] != 'BOT'] = np.nan
-
-        # df['Decimal longitude'][df['Decimal longitude'] == 'nan'] = np.NaN
-
-        df['Decimal longitude'] = df['Decimal longitude'].astype('float64')
-        df['Decimal latitude'] = df['Decimal latitude'].astype('float64')
 
         # Process part parents
         parent_irns = self._get_irns(df, '_parentRef')
@@ -420,6 +412,10 @@ class SpecimenDatasetTask(DatasetTask):
             df = df.combine_first(parent_df)
             df = df.drop([dummy_index])
 
+        # Ensure our geo fields are floats
+        df['Decimal longitude'] = df['Decimal longitude'].astype('float64')
+        df['Decimal latitude'] = df['Decimal latitude'].astype('float64')
+
         # Load extra sites info (if this a centroid and error radius + unit)
         site_irns = self._get_irns(df, '_siteRef')
 
@@ -432,7 +428,11 @@ class SpecimenDatasetTask(DatasetTask):
 
         # For CITES species, we need to hide Lat/Lon and Locality data - and label images
         for i in ['Locality', 'Label locality', 'Decimal longitude', 'Decimal latitude', 'Verbatim longitude', 'Verbatim latitude', 'Centroid', 'Max error', 'Higher geography', 'Associated media']:
-            df[i][df['_cites'] == 'True'] = np.nan
+            df[i][df['_cites'] == 'True'] = np.NaN
+
+        # Some records are being assigned a Centroid even if they have no lat/lon fields.
+        # Ensure it's NaN is latitude is null
+        df['Centroid'][df['Decimal latitude'].isnull()] = np.NaN
 
         # Load collection event data
         collection_event_irns = self._get_irns(df, '_collectionEventRef')
