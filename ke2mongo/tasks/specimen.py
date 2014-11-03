@@ -317,7 +317,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # To test: Order by ID, and put into batches of 2 with site / without
         # 1229
-        query['_id'] = {'$in' : [2328486, 1990681, 4784401, 111317, 1155]}
+        # query['_id'] = {'$in' : [2328486, 1990681, 4784401, 111317, 1155]}
 
         return query
 
