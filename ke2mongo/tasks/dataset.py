@@ -44,7 +44,7 @@ class DatasetTask(luigi.Task):
     collection_name = 'ecatalogue'
 
     # Should the primary key be prefixed - eg NHMUK:ecatalogue
-    primary_key_prefix = None
+    primary_key_prefix = 'NHMUK:ecatalogue:'
 
     # Default record type - used to select records in query
     record_type = None

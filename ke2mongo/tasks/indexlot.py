@@ -5,6 +5,7 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 import luigi
+import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
@@ -20,7 +21,7 @@ class IndexLotDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'indexlots5',
+            'name': 'indexlots6',
             'description': 'Index lots',
             'format': 'csv'
         },
@@ -28,7 +29,7 @@ class IndexLotDatasetTask(DatasetTask):
     }
 
     columns = [
-        ('_id', 'Catalogue number', 'int32'),
+        ('irn', 'Catalogue number', 'string:100'),
         ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
         ('EntIndMaterial', 'Material', 'bool'),
         ('EntIndType', 'Type', 'bool'),
@@ -76,7 +77,7 @@ class IndexLotDatasetTask(DatasetTask):
         ('ClaSubgenus', 'Subgenus', 'string:100'),
         ('ClaSpecies', 'Species', 'string:100'),
         ('ClaSubspecies', 'Subspecies', 'string:100'),
-        ('ClaRank', 'Taxonomic rank', 'string:10'),  # NB: CKAN uses rank internally
+        ('ClaRank', 'Taxonomic rank', 'string:20'),  # NB: CKAN uses rank internally
     ]
 
     current_name_columns = [
@@ -98,11 +99,15 @@ class IndexLotDatasetTask(DatasetTask):
         # the index lot record's EntIndIndexLotTaxonNameLocalRef is not updated with the new taxonomy
         # So we need to use collection index to retrieve the record taxonomy
 
+        df = super(IndexLotDatasetTask, self).process_dataframe(m, df)
+
         # Convert booleans to yes / no
-        for field, field_type in self.get_output_columns().iteritems():
+        # need to use original columns definition, as
+        for (_, field, field_type) in self.columns:
             if field_type == 'bool':
                 df[field][df[field] == 'True'] = 'Yes'
                 df[field][df[field] == 'False'] = 'No'
+                df[field][df[field] == 'N/A'] = ''
 
         collection_index_irns = pd.unique(df._collection_index_irn.values.ravel()).tolist()
 
@@ -131,7 +136,11 @@ class IndexLotDatasetTask(DatasetTask):
         return df
 
     def get_output_columns(self):
-        return OrderedDict((col[1], col[2]) for col in self.columns + self.taxonomy_columns + self.current_name_columns if self._is_output_field(col[1]))
+        """
+        Get a list of output columns, with bool converted to string:3 (so can be converted to Yes/No)
+        @return:
+        """
+        return OrderedDict((col[1], 'string:3' if col[2] == 'bool' else col[2]) for col in self.columns + self.taxonomy_columns + self.current_name_columns if self._is_output_field(col[1]))
 
 
 class IndexLotDatasetCSVTask(IndexLotDatasetTask, DatasetCSVTask):

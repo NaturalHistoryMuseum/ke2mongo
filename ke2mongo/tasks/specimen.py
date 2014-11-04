@@ -28,14 +28,12 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens18-3',
+            'name': 'Specimens',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
         'primary_key': 'Occurrence ID'
     }
-
-    primary_key_prefix = 'NHMUK:ecatalogue:'
 
     geospatial_fields = {
         'latitude_field': 'Decimal latitude',
