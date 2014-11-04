@@ -14,6 +14,7 @@ import numpy as np
 import luigi
 import itertools
 from collections import OrderedDict
+from ke2mongo import config
 from ke2mongo.tasks import PARENT_TYPES, COLLECTION_DATASET
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
@@ -416,7 +417,7 @@ class SpecimenDatasetTask(DatasetTask):
             # Get all records with the same parent
             q['RegRegistrationParentRef'] = {'$in': parent_irns}
 
-            monary_query = m.query('keemu', 'ecatalogue', q, ['RegRegistrationParentRef', '_id'], ['int32'] * 2)
+            monary_query = m.query(config.get('mongo', 'database'), 'ecatalogue', q, ['RegRegistrationParentRef', '_id'], ['int32'] * 2)
             part_df = pd.DataFrame(np.matrix(monary_query).transpose(), columns=['RegRegistrationParentRef', '_id'])
 
             #  Add primary key prefix
