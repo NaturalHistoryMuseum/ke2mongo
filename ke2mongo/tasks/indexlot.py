@@ -21,7 +21,7 @@ class IndexLotDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'indexlots6',
+            'name': 'indexlots',
             'description': 'Index lots',
             'format': 'csv'
         },
@@ -34,6 +34,7 @@ class IndexLotDatasetTask(DatasetTask):
         ('EntIndMaterial', 'Material', 'bool'),
         ('EntIndType', 'Type', 'bool'),
         ('EntIndMedia', 'Media', 'bool'),
+        ('EntIndBritish', 'British', 'bool'),
         ('EntIndKindOfMaterial', 'Kind of material', 'string:100'),
         ('EntIndKindOfMedia', 'Kind of media', 'string:100'),
 
@@ -43,10 +44,13 @@ class IndexLotDatasetTask(DatasetTask):
         ('EntIndStage', 'Material stage', 'string:100'),
         ('EntIndTypes', 'Material types', 'string:100'),
         ('EntIndPrimaryTypeNo', 'Material primary type no', 'string:100'),
-        ('EntIndRemarks', 'Material remarks', 'string:100'),
 
         # Separate Botany and Entomology
         ('ColDepartment', 'Department', 'string:100'),
+
+        # Audit info
+        ('AdmDateModified', 'Modified', 'string:100'),
+        ('AdmDateInserted', 'Created', 'string:100'),
     ]
 
     # Additional columns to merge in from the taxonomy collection

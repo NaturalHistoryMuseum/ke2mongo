@@ -19,7 +19,7 @@ DATE_FORMAT = 'YYYY-MM-DD'
 RECORD_STATUS = 'Active'
 
 COLLECTION_DATASET = {
-    'name': 'nhm-specimens-final',
+    'name': 'nhm-collection',
     'notes': u'The Natural History Museum\'s collection',
     'title': "NHM Collection",
     'author': 'Natural History Museum',
