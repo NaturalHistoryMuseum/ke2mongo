@@ -101,6 +101,9 @@ class MongoCatalogueTask(MongoTask):
         self.collection.ensure_index('sumRegistrationNumber')
         self.collection.ensure_index('ColDepartment')
 
+        # Add index on RegRegistrationParentRef - select records with the same parent
+        self.collection.ensure_index('RegRegistrationParentRef')
+
         super(MongoCatalogueTask, self).on_success()
 
 if __name__ == "__main__":

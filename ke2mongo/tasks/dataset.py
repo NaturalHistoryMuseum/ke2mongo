@@ -303,7 +303,7 @@ class DatasetTask(luigi.Task):
         return df
 
     @staticmethod
-    def _get_irns(df, field_name):
+    def _get_unique_irns(df, field_name):
         """
         Return a list of IRNs converted to integers, and not 0 ('0' as treated like string)
         @param df:
@@ -437,6 +437,10 @@ class DatasetCSVTask(DatasetTask):
         # Create a list of all (non-internal - _id) datastore fields we'd expect in the CSV
         datastore_fields = [field['id'] for field in datastore['fields'] if field['id'] != '_id']
         columns = [col for col in self.get_output_columns().keys()]
+
+        print datastore_fields
+        print columns
+
         assert datastore_fields == columns, 'Current datastore fields do not match CSV fields'
 
     def on_success(self):

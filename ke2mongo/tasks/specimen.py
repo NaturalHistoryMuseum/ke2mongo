@@ -27,7 +27,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens17',
+            'name': 'Specimens18-3',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -139,7 +139,8 @@ class SpecimenDatasetTask(DatasetTask):
         ('DarBed', 'Bed', 'string:100'),
 
         # Resource relationship
-        ('DarRelatedCatalogItem', 'Related resource id', 'string:100'),
+        # ('DarRelatedCatalogItem', 'Related resource id', 'string:100'), Only 34 records have this field populated
+        # So it's better to build automatically from part / parent records
 
         # Multimedia
         ('MulMultiMediaRef', 'Associated media', 'string:100'),
@@ -287,6 +288,17 @@ class SpecimenDatasetTask(DatasetTask):
         ('ClaRank', 'Taxon rank', 'string:10'),  # NB: CKAN uses rank internally
     ]
 
+    # Columns not selected from the database
+    # In the format (field_name, field_type, default_value)
+    literal_columns = [
+        ('Institution code', 'string:100', 'NHMUK'),
+        ('Basis of record', 'string:100', 'Specimen'),
+        ('Determinations', 'string:100', np.NaN),
+        # This is set dynamically if this is a part record (with parent Ref)
+        ('Related resource ID', 'string:100', np.NaN),
+        ('Relationship of resource', 'string:100', np.NaN)
+    ]
+
     @property
     def query(self):
         """
@@ -317,7 +329,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # To test: Order by ID, and put into batches of 2 with site / without
         # 1229
-        # query['_id'] = {'$in' : [2328486, 1990681, 4784401, 111317, 1155]}
+        # query['_id'] = {'$in': [1, 4009, 3723, 733]}
 
         return query
 
@@ -329,9 +341,8 @@ class SpecimenDatasetTask(DatasetTask):
         output_columns = OrderedDict((col[1], col[2]) for col in itertools.chain(self.columns, self.sites_columns, self.collection_event_columns) if self._is_output_field(col[1]))
 
         # Add the literal columns
-        output_columns['Institution code'] = 'string:100'
-        output_columns['Basis of record'] = 'string:100'
-        output_columns['Determinations'] = 'string:200'
+        for (field_name, field_type, _) in self.literal_columns:
+            output_columns[field_name] = field_type
 
         return output_columns
 
@@ -344,14 +355,9 @@ class SpecimenDatasetTask(DatasetTask):
         """
         df = super(SpecimenDatasetTask, self).process_dataframe(m, df)
 
-        # Is getting the same value as before????? If missing????
-        # print df['Occurrence ID']
-        # print df['_siteRef']
-        # print df['_cites']
-
         # Added literal columns
-        df['Institution code'] = 'NHMUK'
-        df['Basis of record'] = 'Specimen'
+        for (field_name, _, default_value) in self.literal_columns:
+            df[field_name] = default_value
 
         # Convert collection code to PAL, MIN etc.,
         df['Collection code'] = df['Collection code'].str.upper().str[0:3]
@@ -392,9 +398,37 @@ class SpecimenDatasetTask(DatasetTask):
         df['Cultivated'][df['Collection code'] != 'BOT'] = np.nan
 
         # Process part parents
-        parent_irns = self._get_irns(df, '_parentRef')
+        parent_irns = self._get_unique_irns(df, '_parentRef')
 
         if parent_irns:
+
+            # We want to get all parts associated to one parent record, so we can provide them as associated records
+            # So select all records matching the parent IRN
+
+            # Use the same query, so we filter out any unwanted records
+            # But use a copy just in case, as we'll be changing it
+            q = dict(self.query)
+
+            # Delete _id if it's set - need this for testing
+            if '_id' in q:
+                del q['_id']
+
+            # Get all records with the same parent
+            q['RegRegistrationParentRef'] = {'$in': parent_irns}
+
+            monary_query = m.query('keemu', 'ecatalogue', q, ['RegRegistrationParentRef', '_id'], ['int32'] * 2)
+            part_df = pd.DataFrame(np.matrix(monary_query).transpose(), columns=['RegRegistrationParentRef', '_id'])
+
+            #  Add primary key prefix
+            part_df['_id'] = self.primary_key_prefix + part_df['_id'].astype(np.str)
+
+            # Group by parent ref
+            parts = part_df.groupby('RegRegistrationParentRef')['_id'].apply(lambda x: "%s" % ';'.join(x))
+
+            # And update the main date frame with the group parts, merged on _parentRef
+            df['Related resource ID'] = df.apply(lambda row: parts[row['_parentRef']] if row['_parentRef'] in parts else np.NaN, axis=1)
+
+            df['Relationship of resource'][df['Related resource ID'].notnull()] = 'Parts'
 
             parent_df = self.get_dataframe(m, 'ecatalogue', self.columns, parent_irns, '_id')
 
@@ -417,7 +451,7 @@ class SpecimenDatasetTask(DatasetTask):
         df['Decimal latitude'] = df['Decimal latitude'].astype('float64')
 
         # Load extra sites info (if this a centroid and error radius + unit)
-        site_irns = self._get_irns(df, '_siteRef')
+        site_irns = self._get_unique_irns(df, '_siteRef')
 
         sites_df = self.get_dataframe(m, 'esites', self.sites_columns, site_irns, '_irn')
         # Append the error unit to the max error value
@@ -435,7 +469,7 @@ class SpecimenDatasetTask(DatasetTask):
         df['Centroid'][df['Decimal latitude'].isnull()] = np.NaN
 
         # Load collection event data
-        collection_event_irns = self._get_irns(df, '_collectionEventRef')
+        collection_event_irns = self._get_unique_irns(df, '_collectionEventRef')
 
         # if collection_event_irns:
         collection_event_df = self.get_dataframe(m, 'ecollectionevents', self.collection_event_columns, collection_event_irns, '_irn')
@@ -447,7 +481,7 @@ class SpecimenDatasetTask(DatasetTask):
         df['Life stage'].fillna(df['_parasite_stage'], inplace=True)
 
         # Add parasite card
-        parasite_taxonomy_irns = self._get_irns(df, '_cardParasiteRef')
+        parasite_taxonomy_irns = self._get_unique_irns(df, '_cardParasiteRef')
 
         # if parasite_taxonomy_irns:
         parasite_df = self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, parasite_taxonomy_irns, '_irn')
