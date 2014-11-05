@@ -28,7 +28,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens2',
+            'name': 'Specimens3',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -320,9 +320,8 @@ class SpecimenDatasetTask(DatasetTask):
                 }
             ]
 
-        # To test: Order by ID, and put into batches of 2 with site / without
-        # 1229
-        query['_id'] = {'$in': [1]}
+        # Test query
+        # query['_id'] = {'$in': [1]}
 
         return query
 
