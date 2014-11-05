@@ -245,15 +245,10 @@ class DatasetTask(luigi.Task):
         @param collection:
         @return: list of fields
         """
-
         collection_columns = {}
 
         for (source_field, destination_field, field_type) in self.columns:
-            try:
-                field_collection, field_name = source_field.split('.')
-            except ValueError:
-                print source_field
-                raise
+            field_collection, field_name = source_field.split('.')
 
             try:
                 collection_columns[field_collection].append((field_name, destination_field, field_type))
@@ -466,9 +461,6 @@ class DatasetCSVTask(DatasetTask):
         # Create a list of all (non-internal - _id) datastore fields we'd expect in the CSV
         datastore_fields = [field['id'] for field in datastore['fields'] if field['id'] != '_id']
         columns = [col for col in self.get_output_columns().keys()]
-
-        print datastore_fields
-        print columns
 
         assert datastore_fields == columns, 'Current datastore fields do not match CSV fields'
 
