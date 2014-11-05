@@ -28,7 +28,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens3',
+            'name': 'Specimens5',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -43,6 +43,7 @@ class SpecimenDatasetTask(DatasetTask):
     columns = [
         # List of columns
         # ([KE EMu field], [new field], [field type])
+        ('ecatalogue._id', '_id', 'int32'),  # Used for logging
         ('ecatalogue.DarCatalogNumber', 'Catalog number', 'string:100'),
         # Taxonomy
         ('ecatalogue.DarScientificName', 'Scientific name', 'string:100'),
@@ -321,6 +322,7 @@ class SpecimenDatasetTask(DatasetTask):
             ]
 
         # Test query
+        # query['RegRegistrationParentRef'] = {"$exists": 1}
         # query['_id'] = {'$in': [1]}
 
         return query
@@ -418,10 +420,9 @@ class SpecimenDatasetTask(DatasetTask):
 
             # And update the main date frame with the group parts, merged on _parentRef
             df['Related resource ID'] = df.apply(lambda row: parts[row['_parentRef']] if row['_parentRef'] in parts else np.NaN, axis=1)
-
             df['Relationship of resource'][df['Related resource ID'].notnull()] = 'Parts'
 
-            parent_df = self.get_dataframe(m, 'ecatalogue', self.columns, parent_irns, '_id')
+            parent_df = self.get_dataframe(m, 'ecatalogue', self.get_collection_columns('ecatalogue'), parent_irns, '_id')
 
             # Ensure the parent multimedia images are usable
             self.ensure_multimedia(parent_df, 'Associated media')
