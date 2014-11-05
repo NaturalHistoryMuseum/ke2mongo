@@ -26,7 +26,7 @@ class ArtefactDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Artefacts',
+            'name': 'Artefacts2',
             'description': 'Museum artefacts',
             'format': 'csv'
         },
@@ -34,13 +34,12 @@ class ArtefactDatasetTask(DatasetTask):
     }
 
     columns = [
-        ('_id', '_id', 'int32'),
-        ('irn', 'Identifier', 'string:100'),
-        ('ArtName', 'Name', 'string:100'),
-        ('ArtKind', 'Kind', 'string:100'),
-        ('PalArtDescription', 'Description', 'string:100'),
-        ('IdeCurrentScientificName', 'Scientific name', 'string:100'),
-        ('MulMultiMediaRef', 'Multimedia', 'string:100')
+        ('ecatalogue.irn', 'Identifier', 'string:100'),
+        ('ecatalogue.ArtName', 'Name', 'string:100'),
+        ('ecatalogue.ArtKind', 'Kind', 'string:100'),
+        ('ecatalogue.PalArtDescription', 'Description', 'string:100'),
+        ('ecatalogue.IdeCurrentScientificName', 'Scientific name', 'string:100'),
+        ('ecatalogue.MulMultiMediaRef', 'Multimedia', 'string:100')
     ]
 
     record_type = 'Artefact'

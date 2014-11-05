@@ -31,17 +31,10 @@ class APITarget(luigi.Target):
 
         log.info("Saving records to CKAN resource %s", self.resource_id)
 
+        # Ensure any float fields with value 0.0 are actually None
         for col, np_type in self.columns.iteritems():
             if np_type.startswith('float'):
-                # Ensure any float fields with value 0.0 are actually None
                 df[col][df[col] == 0.0] = np.NaN
-            elif np_type.startswith('bool'):
-                # And make sure '' in boolean fields are also None
-                # df[col][df[col] == ''] = np.NaN
-                # print df[col].dtype
-                #
-                # TODO: This is no longer working, I think because they are already converted to NaN
-                pass
 
         # Loop through all the dataframe columns, removing internal ones (fields starting with _)
         for col in df:

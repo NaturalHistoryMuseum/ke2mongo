@@ -21,7 +21,7 @@ class IndexLotDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'indexlots',
+            'name': 'indexlots1',
             'description': 'Index lots',
             'format': 'csv'
         },
@@ -29,64 +29,47 @@ class IndexLotDatasetTask(DatasetTask):
     }
 
     columns = [
-        ('irn', 'Catalogue number', 'string:100'),
-        ('EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
-        ('EntIndMaterial', 'Material', 'bool'),
-        ('EntIndType', 'Type', 'bool'),
-        ('EntIndMedia', 'Media', 'bool'),
-        ('EntIndBritish', 'British', 'bool'),
-        ('EntIndKindOfMaterial', 'Kind of material', 'string:100'),
-        ('EntIndKindOfMedia', 'Kind of media', 'string:100'),
+        ('etaxonomy2._id', '_current_name_irn', 'int32'),
+        ('etaxonomy2.ClaScientificNameBuilt', 'Currently accepted name', 'string:100'),
+
+        ('etaxonomy._id', '_taxonomy_irn', 'int32'),
+        ('etaxonomy.ClaScientificNameBuilt', 'Original name', 'string:100'),
+        ('etaxonomy.ClaKingdom', 'Kingdom', 'string:60'),
+        ('etaxonomy.ClaPhylum', 'Phylum', 'string:100'),
+        ('etaxonomy.ClaClass', 'Class', 'string:100'),
+        ('etaxonomy.ClaOrder', 'Order', 'string:100'),
+        ('etaxonomy.ClaSuborder', 'Suborder', 'string:100'),
+        ('etaxonomy.ClaSuperfamily', 'Superfamily', 'string:100'),
+        ('etaxonomy.ClaFamily', 'Family', 'string:100'),
+        ('etaxonomy.ClaSubfamily', 'Subfamily', 'string:100'),
+        ('etaxonomy.ClaGenus', 'Genus', 'string:100'),
+        ('etaxonomy.ClaSubgenus', 'Subgenus', 'string:100'),
+        ('etaxonomy.ClaSpecies', 'Species', 'string:100'),
+        ('etaxonomy.ClaSubspecies', 'Subspecies', 'string:100'),
+        ('etaxonomy.ClaRank', 'Taxonomic rank', 'string:20'),  # NB: CKAN uses rank internally
+
+        ('ecatalogue.irn', 'Catalogue number', 'string:100'),
+        ('ecatalogue.EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
+        ('ecatalogue.EntIndMaterial', 'Material', 'bool'),
+        ('ecatalogue.EntIndType', 'Type', 'bool'),
+        ('ecatalogue.EntIndMedia', 'Media', 'bool'),
+        ('ecatalogue.EntIndBritish', 'British', 'bool'),
+        ('ecatalogue.EntIndKindOfMaterial', 'Kind of material', 'string:100'),
+        ('ecatalogue.EntIndKindOfMedia', 'Kind of media', 'string:100'),
 
         # Material detail
-        ('EntIndCount', 'Material count', 'string:100'),
-        ('EntIndSex', 'Material sex', 'string:100'),
-        ('EntIndStage', 'Material stage', 'string:100'),
-        ('EntIndTypes', 'Material types', 'string:100'),
-        ('EntIndPrimaryTypeNo', 'Material primary type no', 'string:100'),
+        ('ecatalogue.EntIndCount', 'Material count', 'string:100'),
+        ('ecatalogue.EntIndSex', 'Material sex', 'string:100'),
+        ('ecatalogue.EntIndStage', 'Material stage', 'string:100'),
+        ('ecatalogue.EntIndTypes', 'Material types', 'string:100'),
+        ('ecatalogue.EntIndPrimaryTypeNo', 'Material primary type no', 'string:100'),
 
         # Separate Botany and Entomology
-        ('ColDepartment', 'Department', 'string:100'),
+        ('ecatalogue.ColDepartment', 'Department', 'string:100'),
 
         # Audit info
-        ('AdmDateModified', 'Modified', 'string:100'),
-        ('AdmDateInserted', 'Created', 'string:100'),
-    ]
-
-    # Additional columns to merge in from the taxonomy collection
-    collection_index_columns = [
-        ('_id', '_collection_index_irn', 'int32'),
-        # BUG FIX BS 140811
-        # ColCurrentNameRef Is not being updated correctly - see record 899984
-        # ColCurrentNameRef = 964105
-        # Not a problem, as indexlots are using ColTaxonomicNameRef for summary data etc.,
-        # So ColTaxonomicNameRef is the correct field to use.
-        ('ColTaxonomicNameRef', '_taxonomy_irn', 'int32'),
-        ('ColCurrentNameRef', '_current_name_irn', 'int32'),
-    ]
-
-    # Additional columns to merge in from the taxonomy collection
-    taxonomy_columns = [
-        ('_id', '_taxonomy_irn', 'int32'),
-        ('ClaScientificNameBuilt', 'Original name', 'string:100'),
-        ('ClaKingdom', 'Kingdom', 'string:60'),
-        ('ClaPhylum', 'Phylum', 'string:100'),
-        ('ClaClass', 'Class', 'string:100'),
-        ('ClaOrder', 'Order', 'string:100'),
-        ('ClaSuborder', 'Suborder', 'string:100'),
-        ('ClaSuperfamily', 'Superfamily', 'string:100'),
-        ('ClaFamily', 'Family', 'string:100'),
-        ('ClaSubfamily', 'Subfamily', 'string:100'),
-        ('ClaGenus', 'Genus', 'string:100'),
-        ('ClaSubgenus', 'Subgenus', 'string:100'),
-        ('ClaSpecies', 'Species', 'string:100'),
-        ('ClaSubspecies', 'Subspecies', 'string:100'),
-        ('ClaRank', 'Taxonomic rank', 'string:20'),  # NB: CKAN uses rank internally
-    ]
-
-    current_name_columns = [
-        ('_id', '_current_name_irn', 'int32'),
-        ('ClaScientificNameBuilt', 'Currently accepted name', 'string:100'),
+        ('ecatalogue.AdmDateModified', 'Modified', 'string:100'),
+        ('ecatalogue.AdmDateInserted', 'Created', 'string:100'),
     ]
 
     def process_dataframe(self, m, df):
@@ -105,33 +88,45 @@ class IndexLotDatasetTask(DatasetTask):
 
         df = super(IndexLotDatasetTask, self).process_dataframe(m, df)
 
-        # Convert booleans to yes / no
-        # need to use original columns definition, as
-        for (_, field, field_type) in self.columns:
+        # Convert booleans to yes / no for all columns in the main collection
+        for (_, field, field_type) in self.get_collection_columns(self.collection_name):
             if field_type == 'bool':
                 df[field][df[field] == 'True'] = 'Yes'
                 df[field][df[field] == 'False'] = 'No'
                 df[field][df[field] == 'N/A'] = ''
 
-        collection_index_irns = pd.unique(df._collection_index_irn.values.ravel()).tolist()
+        # BUG FIX BS 140811
+        # ColCurrentNameRef Is not being updated correctly - see record 899984
+        # ColCurrentNameRef = 964105
+        # Not a problem, as indexlots are using ColTaxonomicNameRef for summary data etc.,
+        # So ColTaxonomicNameRef is the correct field to use.
+        collection_index_columns = [
+            ('_id', '_collection_index_irn', 'int32'),
+            ('ColTaxonomicNameRef', '_taxonomy_irn', 'int32'),
+            ('ColCurrentNameRef', '_current_name_irn', 'int32'),
+        ]
 
-        collection_index_df = self.get_dataframe(m, 'ecollectionindex', self.collection_index_columns, collection_index_irns, '_collection_index_irn')
+        collection_index_irns = self._get_unique_irns(df, '_collection_index_irn')
+        collection_index_df = self.get_dataframe(m, 'ecollectionindex', collection_index_columns, collection_index_irns, '_collection_index_irn')
+
+        # Get all collection columns
+        collection_columns = self.get_collection_columns()
 
         # And get the taxonomy for these collection
-        taxonomy_irns = pd.unique(collection_index_df._taxonomy_irn.values.ravel()).tolist()
+        taxonomy_irns = self._get_unique_irns(collection_index_df, '_taxonomy_irn')
 
         # The query to pre-load all taxonomy objects takes ~96 seconds
         # It is much faster to load taxonomy objects on the fly, for the current block
         # collection_index_irns = pd.unique(df._collection_index_irn.values.ravel()).tolist()
-        taxonomy_df = self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, taxonomy_irns, '_taxonomy_irn')
+        taxonomy_df = self.get_dataframe(m, 'etaxonomy', collection_columns['etaxonomy'], taxonomy_irns, '_taxonomy_irn')
 
         # Merge the taxonomy into the collection index dataframe - we need to do this so we can merge into
         # main dataframe keyed by collection index ID
         collection_index_df = pd.merge(collection_index_df, taxonomy_df, how='inner', left_on=['_taxonomy_irn'], right_on=['_taxonomy_irn'])
 
         # Add current name - same process as the main taxonomy but using _current_name_irn source fields
-        current_name_irns = pd.unique(collection_index_df._current_name_irn.values.ravel()).tolist()
-        current_name_df = self.get_dataframe(m, 'etaxonomy', self.current_name_columns, current_name_irns, '_current_name_irn')
+        current_name_irns = self._get_unique_irns(collection_index_df, '_current_name_irn')
+        current_name_df = self.get_dataframe(m, 'etaxonomy', collection_columns['etaxonomy2'], current_name_irns, '_current_name_irn')
         collection_index_df = pd.merge(collection_index_df, current_name_df, how='inner', left_on=['_current_name_irn'], right_on=['_current_name_irn'])
 
         # Merge results into main dataframe
@@ -144,7 +139,7 @@ class IndexLotDatasetTask(DatasetTask):
         Get a list of output columns, with bool converted to string:3 (so can be converted to Yes/No)
         @return:
         """
-        return OrderedDict((col[1], 'string:3' if col[2] == 'bool' else col[2]) for col in self.columns + self.taxonomy_columns + self.current_name_columns if self._is_output_field(col[1]))
+        return OrderedDict((col[1], 'string:3' if col[2] == 'bool' else col[2]) for col in self.columns if self._is_output_field(col[1]))
 
 
 class IndexLotDatasetCSVTask(IndexLotDatasetTask, DatasetCSVTask):

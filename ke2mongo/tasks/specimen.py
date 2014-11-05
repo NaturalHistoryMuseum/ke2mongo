@@ -28,7 +28,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens',
+            'name': 'Specimens2',
             'description': 'Specimens',
             'format': 'dwc'  # Darwin core
         },
@@ -43,236 +43,230 @@ class SpecimenDatasetTask(DatasetTask):
     columns = [
         # List of columns
         # ([KE EMu field], [new field], [field type])
-
-        # Identifier
-        ('irn', 'Occurrence ID', 'string:100'),
-
-        # Record level
-        ('AdmDateModified', 'Modified', 'string:100'),
-        # This isn't actually in DwC - but I'm going to use dcterms:created
-        ('AdmDateInserted', 'Created', 'string:100'),
-        ('ColDepartment', 'Collection code', 'string:100'),
-
+        ('ecatalogue.DarCatalogNumber', 'Catalog number', 'string:100'),
         # Taxonomy
-        ('DarScientificName', 'Scientific name', 'string:100'),
+        ('ecatalogue.DarScientificName', 'Scientific name', 'string:100'),
         # Rather than using the two darwin core fields DarScientificNameAuthorYear and ScientificNameAuthor
         # It's easier to just use IdeFiledAsAuthors which has them both concatenated
-        ('IdeFiledAsAuthors', 'Scientific name authorship', 'string:100'),
-        ('DarKingdom', 'Kingdom', 'string:100'),
-        ('DarPhylum', 'Phylum', 'string:100'),
-        ('DarClass', 'Class', 'string:100'),
-        ('DarOrder', 'Order', 'string:100'),
-        ('DarFamily', 'Family', 'string:100'),
-        ('DarGenus', 'Genus', 'string:100'),
-        ('DarSubgenus', 'Subgenus', 'string:100'),
-        ('DarSpecies', 'Specific epithet', 'string:100'),
-        ('DarSubspecies', 'Infraspecific epithet', 'string:100'),
-        ('DarHigherTaxon', 'Higher classification', 'string:100'),
-        ('DarInfraspecificRank', 'Taxon rank', 'string:100'),
+        ('ecatalogue.IdeFiledAsAuthors', 'Scientific name authorship', 'string:100'),
+        ('ecatalogue.DarTypeStatus', 'Type status', 'string:100'),
+        # Use nearest name place rather than precise locality https://github.com/NaturalHistoryMuseum/ke2mongo/issues/29
+        ('ecatalogue.PalNearestNamedPlaceLocal', 'Locality', 'string:100'),
+        ('ecatalogue.DarCountry', 'Country', 'string:100'),
+        ('ecatalogue.DarWaterBody', 'Water body', 'string:100'),
+        ('ecatalogue.EntLocExpeditionNameLocal', 'Expedition', 'string:100'),
+        ('ecollectionevents.ColParticipantLocal', 'Recorded by', 'string:100'),
+        ('ecatalogue.ColDepartment', 'Collection code', 'string:100'),
+
+        ('ecatalogue.DarKingdom', 'Kingdom', 'string:100'),
+        ('ecatalogue.DarPhylum', 'Phylum', 'string:100'),
+        ('ecatalogue.DarClass', 'Class', 'string:100'),
+        ('ecatalogue.DarOrder', 'Order', 'string:100'),
+        ('ecatalogue.DarFamily', 'Family', 'string:100'),
+        ('ecatalogue.DarGenus', 'Genus', 'string:100'),
+        ('ecatalogue.DarSubgenus', 'Subgenus', 'string:100'),
+        ('ecatalogue.DarSpecies', 'Specific epithet', 'string:100'),
+        ('ecatalogue.DarSubspecies', 'Infraspecific epithet', 'string:100'),
+        ('ecatalogue.DarHigherTaxon', 'Higher classification', 'string:100'),
+        ('ecatalogue.DarInfraspecificRank', 'Taxon rank', 'string:100'),
 
         # Location
-        # Use nearest name place rather than precise locality https://github.com/NaturalHistoryMuseum/ke2mongo/issues/29
-        ('PalNearestNamedPlaceLocal', 'Locality', 'string:100'),
-        ('DarStateProvince', 'State province', 'string:100'),
-        ('DarCountry', 'Country', 'string:100'),
-        ('DarContinent', 'Continent', 'string:100'),
-        ('DarIsland', 'Island', 'string:100'),
-        ('DarIslandGroup', 'Island group', 'string:100'),
+        ('ecatalogue.DarStateProvince', 'State province', 'string:100'),
+        ('ecatalogue.DarContinent', 'Continent', 'string:100'),
+        ('ecatalogue.DarIsland', 'Island', 'string:100'),
+        ('ecatalogue.DarIslandGroup', 'Island group', 'string:100'),
         # Removed: continentOcean is not in current DwC standard, replaced by waterBody and continent
-        # ('DarContinentOcean', 'continentOcean', 'string:100'),
-        ('DarWaterBody', 'Water body', 'string:100'),
-        ('DarHigherGeography', 'Higher geography', 'string:100'),
-        ('ColHabitatVerbatim', 'Habitat', 'string:100'),
-        ('DarDecimalLongitude', 'Decimal longitude', 'float64'),
-        ('DarDecimalLatitude', 'Decimal latitude', 'float64'),
-        ('DarGeodeticDatum', 'Geodetic datum', 'string:100'),
-        ('DarGeorefMethod', 'Georeference protocol', 'string:100'),
+        # ('ecatalogue.DarContinentOcean', 'continentOcean', 'string:100'),
+        ('ecatalogue.DarHigherGeography', 'Higher geography', 'string:100'),
+        ('ecatalogue.ColHabitatVerbatim', 'Habitat', 'string:100'),
+        ('ecatalogue.DarDecimalLongitude', 'Decimal longitude', 'float64'),
+        ('ecatalogue.DarDecimalLatitude', 'Decimal latitude', 'float64'),
+        ('ecatalogue.DarGeodeticDatum', 'Geodetic datum', 'string:100'),
+        ('ecatalogue.DarGeorefMethod', 'Georeference protocol', 'string:100'),
+
+        ('esites.LatDeriveCentroid', 'Centroid', 'bool'),
+        ('esites.GeorefMaxErrorDist', 'Max error', 'string:100'),
+        ('esites.GeorefMaxErrorDistUnits', '_errorUnit', 'string:100'),
+        ('esites.LatLongitude', 'Verbatim longitude', 'string:100'),
+        ('esites.LatLatitude', 'Verbatim latitude', 'string:100'),
 
         # Occurrence
-        ('DarMinimumElevationInMeters', 'Minimum elevation in meters', 'string:100'),
-        ('DarMaximumElevationInMeters', 'Maximum elevation in meters', 'string:100'),
-        ('DarMinimumDepthInMeters', 'Minimum depth in meters', 'string:100'),
-        ('DarMaximumDepthInMeters', 'Maximum depth in meters', 'string:100'),
-        ('DarCatalogNumber', 'Catalog number', 'string:100'),
-        ('DarOtherCatalogNumbers', 'Other catalog numbers', 'string:100'),
+        ('ecatalogue.DarMinimumElevationInMeters', 'Minimum elevation in meters', 'string:100'),
+        ('ecatalogue.DarMaximumElevationInMeters', 'Maximum elevation in meters', 'string:100'),
+        ('ecatalogue.DarMinimumDepthInMeters', 'Minimum depth in meters', 'string:100'),
+        ('ecatalogue.DarMaximumDepthInMeters', 'Maximum depth in meters', 'string:100'),
+        ('ecatalogue.DarOtherCatalogNumbers', 'Other catalog numbers', 'string:100'),
         # DarCollector doesn't have multiple collectors NHMUK:ecatalogue:1751715 - Switched to using ecollectionevents.ColParticipantLocal
-        # ('DarCollector', 'Recorded by', 'string:100'),
-        ('DarCollectorNumber', 'Record number', 'string:100'),
-        ('DarIndividualCount', 'Individual count', 'string:100'),
+        # ('ecatalogue.DarCollector', 'Recorded by', 'string:100'),
+        ('ecatalogue.DarCollectorNumber', 'Record number', 'string:100'),
+        ('ecatalogue.DarIndividualCount', 'Individual count', 'string:100'),
         # According to docs, ageClass has been superseded by lifeStage. We have both, but ageClass duplicates
         # And for the ~200 it has extra data, the data isn't good
-        # ('DarAgeClass', 'ageClass', 'string:100'),
-        ('DarLifeStage', 'Life stage', 'string:100'),
-        ('DarSex', 'Sex', 'string:100'),
-        ('DarPreparations', 'Preparations', 'string:100'),
+        # ('ecatalogue.DarAgeClass', 'ageClass', 'string:100'),
+        ('ecatalogue.DarLifeStage', 'Life stage', 'string:100'),
+        ('ecatalogue.DarSex', 'Sex', 'string:100'),
+        ('ecatalogue.DarPreparations', 'Preparations', 'string:100'),
 
         # Identification
-        ('DarIdentifiedBy', 'Identified by', 'string:100'),
+        ('ecatalogue.DarIdentifiedBy', 'Identified by', 'string:100'),
         # KE Emu has 3 fields for identification date: DarDayIdentified, DarMonthIdentified and DarYearIdentified
         # But EntIdeDateIdentified holds them all - which is what we want for dateIdentified
-        ('EntIdeDateIdentified', 'Date identified', 'string:100'),
-        ('DarIdentificationQualifier', 'Identification qualifier', 'string:100'),
-        ('DarTypeStatus', 'Type status', 'string:100'),
-        # ('DarFieldNumber', 'Field number', 'string:100'),  Removed as mostly duplicates DarCollectorNumber (JW - feedback)
-        ('DarTimeOfDay', 'Event time', 'string:100'),
-        ('DarDayCollected', 'Day', 'string:100'),
-        ('DarMonthCollected', 'Month', 'string:100'),
-        ('DarYearCollected', 'Year', 'string:100'),
+        ('ecatalogue.EntIdeDateIdentified', 'Date identified', 'string:100'),
+        ('ecatalogue.DarIdentificationQualifier', 'Identification qualifier', 'string:100'),
+        # ('ecatalogue.DarFieldNumber', 'Field number', 'string:100'),  Removed as mostly duplicates DarCollectorNumber (JW - feedback)
+        ('ecatalogue.DarTimeOfDay', 'Event time', 'string:100'),
+        ('ecatalogue.DarDayCollected', 'Day', 'string:100'),
+        ('ecatalogue.DarMonthCollected', 'Month', 'string:100'),
+        ('ecatalogue.DarYearCollected', 'Year', 'string:100'),
 
         # Geo
-        ('DarEarliestEon', 'Earliest eon or lowest eonothem', 'string:100'),
-        ('DarLatestEon', 'Latest eon or highest eonothem', 'string:100'),
-        ('DarEarliestEra', 'Earliest era or lowest erathem', 'string:100'),
-        ('DarLatestEra', 'Latest era or highest erathem', 'string:100'),
-        ('DarEarliestPeriod', 'Earliest period or lowest system', 'string:100'),
-        ('DarLatestPeriod', 'Latest period or highest system', 'string:100'),
-        ('DarEarliestEpoch', 'Earliest epoch or lowest series', 'string:100'),
-        ('DarLatestEpoch', 'Latest epoch or highest series', 'string:100'),
-        ('DarEarliestAge', 'Earliest age or lowest stage', 'string:100'),
-        ('DarLatestAge', 'Latest age or highest stage', 'string:100'),
-        ('DarLowestBiostrat', 'Lowest biostratigraphic zone', 'string:100'),
-        ('DarHighestBiostrat', 'Highest biostratigraphic zone', 'string:100'),
-        ('DarGroup', 'Group', 'string:100'),
-        ('DarFormation', 'Formation', 'string:100'),
-        ('DarMember', 'Member', 'string:100'),
-        ('DarBed', 'Bed', 'string:100'),
+        ('ecatalogue.DarEarliestEon', 'Earliest eon or lowest eonothem', 'string:100'),
+        ('ecatalogue.DarLatestEon', 'Latest eon or highest eonothem', 'string:100'),
+        ('ecatalogue.DarEarliestEra', 'Earliest era or lowest erathem', 'string:100'),
+        ('ecatalogue.DarLatestEra', 'Latest era or highest erathem', 'string:100'),
+        ('ecatalogue.DarEarliestPeriod', 'Earliest period or lowest system', 'string:100'),
+        ('ecatalogue.DarLatestPeriod', 'Latest period or highest system', 'string:100'),
+        ('ecatalogue.DarEarliestEpoch', 'Earliest epoch or lowest series', 'string:100'),
+        ('ecatalogue.DarLatestEpoch', 'Latest epoch or highest series', 'string:100'),
+        ('ecatalogue.DarEarliestAge', 'Earliest age or lowest stage', 'string:100'),
+        ('ecatalogue.DarLatestAge', 'Latest age or highest stage', 'string:100'),
+        ('ecatalogue.DarLowestBiostrat', 'Lowest biostratigraphic zone', 'string:100'),
+        ('ecatalogue.DarHighestBiostrat', 'Highest biostratigraphic zone', 'string:100'),
+        ('ecatalogue.DarGroup', 'Group', 'string:100'),
+        ('ecatalogue.DarFormation', 'Formation', 'string:100'),
+        ('ecatalogue.DarMember', 'Member', 'string:100'),
+        ('ecatalogue.DarBed', 'Bed', 'string:100'),
 
         # Resource relationship
-        # ('DarRelatedCatalogItem', 'Related resource id', 'string:100'), Only 34 records have this field populated
+        # ('ecatalogue.DarRelatedCatalogItem', 'Related resource id', 'string:100'), Only 34 records have this field populated
         # So it's better to build automatically from part / parent records
 
         # Multimedia
-        ('MulMultiMediaRef', 'Associated media', 'string:100'),
+        ('ecatalogue.MulMultiMediaRef', 'Associated media', 'string:100'),
 
         # Dynamic properties
         # These fields do not map to DwC, but are still very useful
-        ('ColRecordType', 'Record type', 'string:100'),
-        ('ColSubDepartment', 'Sub department', 'string:100'),
-        ('PrtType', 'Part type', 'string:100'),
-        ('RegCode', 'Registration code', 'string:100'),
-        ('CatKindOfObject', 'Kind of object', 'string:100'),
-        ('CatKindOfCollection', 'Kind of collection', 'string:100'),
-        ('CatPreservative', 'Preservative', 'string:100'),
-        ('ColKind', 'Collection kind', 'string:100'),
-        ('EntPriCollectionName', 'Collection name', 'string:100'),
-        ('PalAcqAccLotDonorFullName', 'Donor name', 'string:100'),
-        ('DarPreparationType', 'Preparation type', 'string:100'),
-        ('DarObservedWeight', 'Observed weight', 'string:100'),
+        ('ecatalogue.ColRecordType', 'Record type', 'string:100'),
+        ('ecatalogue.ColSubDepartment', 'Sub department', 'string:100'),
+        ('ecatalogue.PrtType', 'Part type', 'string:100'),
+        ('ecatalogue.RegCode', 'Registration code', 'string:100'),
+        ('ecatalogue.CatKindOfObject', 'Kind of object', 'string:100'),
+        ('ecatalogue.CatKindOfCollection', 'Kind of collection', 'string:100'),
+        ('ecatalogue.CatPreservative', 'Preservative', 'string:100'),
+        ('ecatalogue.ColKind', 'Collection kind', 'string:100'),
+        ('ecatalogue.EntPriCollectionName', 'Collection name', 'string:100'),
+        ('ecatalogue.PalAcqAccLotDonorFullName', 'Donor name', 'string:100'),
+        ('ecatalogue.DarPreparationType', 'Preparation type', 'string:100'),
+        ('ecatalogue.DarObservedWeight', 'Observed weight', 'string:100'),
 
         # Location
-        ('EntLocExpeditionNameLocal', 'Expedition', 'string:100'),
-        ('sumViceCountry', 'Vice country', 'string:100'),
+        ('ecatalogue.sumViceCountry', 'Vice country', 'string:100'),
 
         # DNA
-        ('DnaExtractionMethod', 'Extraction method', 'string:100'),
-        ('DnaReSuspendedIn', 'Resuspended in', 'string:100'),
-        ('DnaTotalVolume', 'Total volume', 'string:100'),
+        ('ecatalogue.DnaExtractionMethod', 'Extraction method', 'string:100'),
+        ('ecatalogue.DnaReSuspendedIn', 'Resuspended in', 'string:100'),
+        ('ecatalogue.DnaTotalVolume', 'Total volume', 'string:100'),
         # Parasite card
-        ('CardBarcode', 'Barcode', 'string:100'),
+        ('ecatalogue.CardBarcode', 'Barcode', 'string:100'),
         # Egg
-        ('EggClutchSize', 'Clutch size', 'string:100'),
-        ('EggSetMark', 'Set mark', 'string:100'),
+        ('ecatalogue.EggClutchSize', 'Clutch size', 'string:100'),
+        ('ecatalogue.EggSetMark', 'Set mark', 'string:100'),
         # Nest
-        ('NesShape', 'Nest shape', 'string:100'),
-        ('NesSite', 'Nest site', 'string:100'),
+        ('ecatalogue.NesShape', 'Nest shape', 'string:100'),
+        ('ecatalogue.NesSite', 'Nest site', 'string:100'),
         # Silica gel
-        ('SilPopulationCode', 'Population code', 'string:100'),
+        ('ecatalogue.SilPopulationCode', 'Population code', 'string:100'),
         # Botany
-        ('CollExsiccati', 'Exsiccati', 'string:100'),
-        ('ColExsiccatiNumber', 'Exsiccati number', 'string:100'),
-        ('ColSiteDescription', 'Label locality', 'string:100'),  # JW asked for this to be renamed from Site Description => Label locality
-        ('ColPlantDescription', 'Plant description', 'string:100'),
-        ('FeaCultivated', 'Cultivated', 'string:100'),
-        # ('FeaPlantForm', 'Plant form', 'string:100'),  # JW asked for this to be removed
+        ('ecatalogue.CollExsiccati', 'Exsiccati', 'string:100'),
+        ('ecatalogue.ColExsiccatiNumber', 'Exsiccati number', 'string:100'),
+        ('ecatalogue.ColSiteDescription', 'Label locality', 'string:100'),  # JW asked for this to be renamed from Site Description => Label locality
+        ('ecatalogue.ColPlantDescription', 'Plant description', 'string:100'),
+        ('ecatalogue.FeaCultivated', 'Cultivated', 'string:100'),
+        # ('ecatalogue.FeaPlantForm', 'Plant form', 'string:100'),  # JW asked for this to be removed
         # Paleo
-        ('PalDesDescription', 'Catalogue description', 'string:100'),
-        ('PalStrChronostratLocal', 'Chronostratigraphy', 'string:100'),
-        ('PalStrLithostratLocal', 'Lithostratigraphy', 'string:100'),
+        ('ecatalogue.PalDesDescription', 'Catalogue description', 'string:100'),
+        ('ecatalogue.PalStrChronostratLocal', 'Chronostratigraphy', 'string:100'),
+        ('ecatalogue.PalStrLithostratLocal', 'Lithostratigraphy', 'string:100'),
         # Mineralogy
-        ('MinDateRegistered', 'Date registered', 'string:100'),
-        ('MinIdentificationAsRegistered', 'Identification as registered', 'string:100'),
-        ('MinIdentificationDescription', 'Identification description', 'string:100'),
-        ('MinPetOccurance', 'Occurrence', 'string:100'),
-        ('MinOreCommodity', 'Commodity', 'string:200'),
-        ('MinOreDepositType', 'Deposit type', 'string:100'),
-        ('MinTextureStructure', 'Texture', 'string:100'),
-        ('MinIdentificationVariety', 'Identification variety', 'string:100'),
-        ('MinIdentificationOther', 'Identification other', 'string:100'),
-        ('MinHostRock', 'Host rock', 'string:100'),
-        ('MinAgeDataAge', 'Age', 'string:100'),
-        ('MinAgeDataType', 'Age type', 'string:100'),
+        ('ecatalogue.MinDateRegistered', 'Date registered', 'string:100'),
+        ('ecatalogue.MinIdentificationAsRegistered', 'Identification as registered', 'string:100'),
+        ('ecatalogue.MinIdentificationDescription', 'Identification description', 'string:100'),
+        ('ecatalogue.MinPetOccurance', 'Occurrence', 'string:100'),
+        ('ecatalogue.MinOreCommodity', 'Commodity', 'string:200'),
+        ('ecatalogue.MinOreDepositType', 'Deposit type', 'string:100'),
+        ('ecatalogue.MinTextureStructure', 'Texture', 'string:100'),
+        ('ecatalogue.MinIdentificationVariety', 'Identification variety', 'string:100'),
+        ('ecatalogue.MinIdentificationOther', 'Identification other', 'string:100'),
+        ('ecatalogue.MinHostRock', 'Host rock', 'string:100'),
+        ('ecatalogue.MinAgeDataAge', 'Age', 'string:100'),
+        ('ecatalogue.MinAgeDataType', 'Age type', 'string:100'),
         # Mineralogy location
-        ('MinNhmTectonicProvinceLocal', 'Tectonic province', 'string:100'),
-        ('MinNhmStandardMineLocal', 'Mine', 'string:100'),
-        ('MinNhmMiningDistrictLocal', 'Mining district', 'string:100'),
-        ('MinNhmComplexLocal', 'Mineral complex', 'string:100'),
-        ('MinNhmRegionLocal', 'Geology region', 'string:100'),
+        ('ecatalogue.MinNhmTectonicProvinceLocal', 'Tectonic province', 'string:100'),
+        ('ecatalogue.MinNhmStandardMineLocal', 'Mine', 'string:100'),
+        ('ecatalogue.MinNhmMiningDistrictLocal', 'Mining district', 'string:100'),
+        ('ecatalogue.MinNhmComplexLocal', 'Mineral complex', 'string:100'),
+        ('ecatalogue.MinNhmRegionLocal', 'Geology region', 'string:100'),
         # Meteorite
-        ('MinMetType', 'Meteorite type', 'string:100'),
-        ('MinMetGroup', 'Meteorite group', 'string:100'),
-        ('MinMetChondriteAchondrite', 'Chondrite achondrite', 'string:100'),
-        ('MinMetClass', 'Meteorite class', 'string:100'),
-        ('MinMetPetType', 'Petrology type', 'string:100'),
-        ('MinMetPetSubtype', 'Petrology subtype', 'string:100'),
-        ('MinMetRecoveryFindFall', 'Recovery', 'string:100'),
-        ('MinMetRecoveryDate', 'Recovery date', 'string:100'),
-        ('MinMetRecoveryWeight', 'Recovery weight', 'string:100'),
-        ('MinMetWeightAsRegistered', 'Registered weight', 'string:100'),
-        ('MinMetWeightAsRegisteredUnit', 'Registered weight unit', 'string:100'),
+        ('ecatalogue.MinMetType', 'Meteorite type', 'string:100'),
+        ('ecatalogue.MinMetGroup', 'Meteorite group', 'string:100'),
+        ('ecatalogue.MinMetChondriteAchondrite', 'Chondrite achondrite', 'string:100'),
+        ('ecatalogue.MinMetClass', 'Meteorite class', 'string:100'),
+        ('ecatalogue.MinMetPetType', 'Petrology type', 'string:100'),
+        ('ecatalogue.MinMetPetSubtype', 'Petrology subtype', 'string:100'),
+        ('ecatalogue.MinMetRecoveryFindFall', 'Recovery', 'string:100'),
+        ('ecatalogue.MinMetRecoveryDate', 'Recovery date', 'string:100'),
+        ('ecatalogue.MinMetRecoveryWeight', 'Recovery weight', 'string:100'),
+        ('ecatalogue.MinMetWeightAsRegistered', 'Registered weight', 'string:100'),
+        ('ecatalogue.MinMetWeightAsRegisteredUnit', 'Registered weight unit', 'string:100'),
+
+        # Identifier
+        ('ecatalogue.irn', 'Occurrence ID', 'string:100'),
+        # Record level
+        ('ecatalogue.AdmDateModified', 'Modified', 'string:100'),
+        # This isn't actually in DwC - but I'm going to use dcterms:created
+        ('ecatalogue.AdmDateInserted', 'Created', 'string:100'),
 
         # Internal
-        ('RegRegistrationParentRef', '_parentRef', 'int32'),
-        ('sumSiteRef', '_siteRef', 'int32'),
-        ('sumCollectionEventRef', '_collectionEventRef', 'int32'),
-        ('CardParasiteRef', '_cardParasiteRef', 'int32'),
-        ('_id', '_id', 'int32'),
+        ('ecatalogue.RegRegistrationParentRef', '_parentRef', 'int32'),
+        ('ecatalogue.sumSiteRef', '_siteRef', 'int32'),
+        ('ecatalogue.sumCollectionEventRef', '_collectionEventRef', 'int32'),
+        ('ecatalogue.CardParasiteRef', '_cardParasiteRef', 'int32'),
         # Used if DarCatalogueNumber is empty
-        ('RegRegistrationNumber', '_regRegistrationNumber', 'string:100'),
+        ('ecatalogue.RegRegistrationNumber', '_regRegistrationNumber', 'string:100'),
 
         # Used if CatPreservative is empty
-        ('EntCatPreservation', '_entCatPreservation', 'string:100'),
+        ('ecatalogue.EntCatPreservation', '_entCatPreservation', 'string:100'),
 
         # Used to build previous determinations for Botany
-        ('DetTypeofType', '_determinationTypes', 'string:100'),
-        ('EntIdeScientificNameLocal', '_determinationNames', 'string:100'),
-        ('EntIdeFiledAs', '_determinationFiledAs', 'string:100'),
+        ('ecatalogue.DetTypeofType', '_determinationTypes', 'string:100'),
+        ('ecatalogue.EntIdeScientificNameLocal', '_determinationNames', 'string:100'),
+        ('ecatalogue.EntIdeFiledAs', '_determinationFiledAs', 'string:100'),
         # If DarTypeStatus is empty, we'll use sumTypeStatus which has previous determinations
-        ('sumTypeStatus', '_sumTypeStatus', 'string:100'),
+        ('ecatalogue.sumTypeStatus', '_sumTypeStatus', 'string:100'),
 
         # Locality if nearest named place is empty
         # The encoding of DarLocality is buggered - see ecatalogue.1804973
         # So better to use the original field with the correct encoding
-        ('sumPreciseLocation', '_preciseLocation', 'string:100'),
+        ('ecatalogue.sumPreciseLocation', '_preciseLocation', 'string:100'),
 
         # CITES specimens
-        ('cites', '_cites', 'bool'),
+        ('ecatalogue.cites', '_cites', 'bool'),
 
         # Parasite cards use a different field for life stage
-        ('CardParasiteStage', '_parasite_stage', 'string:100'),
+        ('ecatalogue.CardParasiteStage', '_parasite_stage', 'string:100'),
+
+        # Join keys
+        ('ecollectionevents._id', '_ecollectionevents_irn', 'int32'),
+        ('esites._id', '_esites_irn', 'int32'),
 
         # Removed: We do not want notes, could contain anything
-        # ('DarNotes', 'DarNotes', 'string:100'),
-        # ('DarLatLongComments', 'latLongComments', 'string:100'),
-    ]
+        # ('ecatalogue.DarNotes', 'DarNotes', 'string:100'),
+        # ('ecatalogue.DarLatLongComments', 'latLongComments', 'string:100'),
 
-    # Additional columns to merge in from the sites collection
-    sites_columns = [
-        ('_id', '_irn', 'int32'),
-        ('LatDeriveCentroid', 'Centroid', 'bool'),
-        ('GeorefMaxErrorDist', 'Max error', 'string:100'),
-        ('GeorefMaxErrorDistUnits', '_errorUnit', 'string:100'),
-        ('LatLongitude', 'Verbatim longitude', 'string:100'),
-        ('LatLatitude', 'Verbatim latitude', 'string:100'),
-    ]
-
-    # Additional columns to merge in from the taxonomy collection
-    collection_event_columns = [
-        ('_id', '_irn', 'int32'),
-        ('ColParticipantLocal', 'Recorded by', 'string:100'),
     ]
 
     # Used to merge in data from parasite cards, which do not have taxonomic data
-    taxonomy_columns = [
+    parasite_taxonomy_fields = [
         ('_id', '_irn', 'int32'),
         ('ClaScientificNameBuilt', 'Scientific name', 'string:100'),
         ('ClaKingdom', 'Kingdom', 'string:60'),
@@ -328,7 +322,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # To test: Order by ID, and put into batches of 2 with site / without
         # 1229
-        # query['_id'] = {'$in': [1, 4009, 3723, 733]}
+        query['_id'] = {'$in': [1]}
 
         return query
 
@@ -337,7 +331,7 @@ class SpecimenDatasetTask(DatasetTask):
         Override default get_output_columns and add in literal columns (not retrieved from mongo)
         @return:
         """
-        output_columns = OrderedDict((col[1], col[2]) for col in itertools.chain(self.columns, self.sites_columns, self.collection_event_columns) if self._is_output_field(col[1]))
+        output_columns = super(SpecimenDatasetTask, self).get_output_columns()
 
         # Add the literal columns
         for (field_name, field_type, _) in self.literal_columns:
@@ -400,7 +394,6 @@ class SpecimenDatasetTask(DatasetTask):
         parent_irns = self._get_unique_irns(df, '_parentRef')
 
         if parent_irns:
-
             # We want to get all parts associated to one parent record, so we can provide them as associated records
             # So select all records matching the parent IRN
 
@@ -449,15 +442,18 @@ class SpecimenDatasetTask(DatasetTask):
         df['Decimal longitude'] = df['Decimal longitude'].astype('float64')
         df['Decimal latitude'] = df['Decimal latitude'].astype('float64')
 
+        # Get all collection columns
+        collection_columns = self.get_collection_columns()
+
         # Load extra sites info (if this a centroid and error radius + unit)
         site_irns = self._get_unique_irns(df, '_siteRef')
 
-        sites_df = self.get_dataframe(m, 'esites', self.sites_columns, site_irns, '_irn')
+        sites_df = self.get_dataframe(m, 'esites', collection_columns['esites'], site_irns, '_esites_irn')
         # Append the error unit to the max error value
         # Error unit can be populated even when Max error is not, so need to check max error first
         sites_df['Max error'][sites_df['Max error'] != ''] = sites_df['Max error'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
 
-        df = pd.merge(df, sites_df, how='outer', left_on=['_siteRef'], right_on=['_irn'])
+        df = pd.merge(df, sites_df, how='outer', left_on=['_siteRef'], right_on=['_esites_irn'])
 
         # For CITES species, we need to hide Lat/Lon and Locality data - and label images
         for i in ['Locality', 'Label locality', 'Decimal longitude', 'Decimal latitude', 'Verbatim longitude', 'Verbatim latitude', 'Centroid', 'Max error', 'Higher geography', 'Associated media']:
@@ -471,9 +467,9 @@ class SpecimenDatasetTask(DatasetTask):
         collection_event_irns = self._get_unique_irns(df, '_collectionEventRef')
 
         # if collection_event_irns:
-        collection_event_df = self.get_dataframe(m, 'ecollectionevents', self.collection_event_columns, collection_event_irns, '_irn')
+        collection_event_df = self.get_dataframe(m, 'ecollectionevents', collection_columns['ecollectionevents'], collection_event_irns, '_ecollectionevents_irn')
         # print collection_event_df
-        df = pd.merge(df, collection_event_df, how='outer', left_on=['_collectionEventRef'], right_on=['_irn'])
+        df = pd.merge(df, collection_event_df, how='outer', left_on=['_collectionEventRef'], right_on=['_ecollectionevents_irn'])
 
         # Add parasite life stage
         # Parasite cards use a different field for life stage
@@ -482,13 +478,12 @@ class SpecimenDatasetTask(DatasetTask):
         # Add parasite card
         parasite_taxonomy_irns = self._get_unique_irns(df, '_cardParasiteRef')
 
-        # if parasite_taxonomy_irns:
-        parasite_df = self.get_dataframe(m, 'etaxonomy', self.taxonomy_columns, parasite_taxonomy_irns, '_irn')
-        df.index = df['_cardParasiteRef']
-        df = df.combine_first(parasite_df)
+        if parasite_taxonomy_irns:
+            parasite_df = self.get_dataframe(m, 'etaxonomy', self.parasite_taxonomy_fields, parasite_taxonomy_irns, '_irn')
+            df.index = df['_cardParasiteRef']
+            df = df.combine_first(parasite_df)
 
         return df
-
 
 class SpecimenDatasetCSVTask(SpecimenDatasetTask, DatasetCSVTask):
     pass

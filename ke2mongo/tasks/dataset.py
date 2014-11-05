@@ -237,6 +237,34 @@ class DatasetTask(luigi.Task):
 
         return ckan_type
 
+
+    def get_collection_columns(self, collection=None):
+        """
+        Parse columns into dictionary keyed by collection name
+        And return all fields for a particular collection
+        @param collection:
+        @return: list of fields
+        """
+
+        collection_columns = {}
+
+        for (source_field, destination_field, field_type) in self.columns:
+            try:
+                field_collection, field_name = source_field.split('.')
+            except ValueError:
+                print source_field
+                raise
+
+            try:
+                collection_columns[field_collection].append((field_name, destination_field, field_type))
+            except KeyError:
+                collection_columns[field_collection] = [(field_name, destination_field, field_type)]
+
+        if collection:
+            return collection_columns[collection]
+        else:
+            return collection_columns
+
     @timeit
     def run(self):
 
@@ -263,7 +291,8 @@ class DatasetTask(luigi.Task):
 
             log.info("Querying Monary")
 
-            query_fields, df_cols, field_types = zip(*self.columns)
+            # Get field definitions for default collection
+            query_fields, df_cols, field_types = zip(*self.get_collection_columns(self.collection_name))
 
             catalogue_blocks = m.block_query(db, self.collection_name, self.query, query_fields, field_types, block_size=self.block_size)
 
