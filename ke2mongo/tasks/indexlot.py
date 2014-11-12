@@ -3,6 +3,9 @@
 """
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
+
+python indexlot.py IndexLotDatasetAPITask --local-scheduler
+
 """
 import luigi
 import pandas as pd
