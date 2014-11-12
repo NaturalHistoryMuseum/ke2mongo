@@ -4,8 +4,8 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
-python specimen.py SpecimenDatasetToCKANTask --local-scheduler --date 20140731
-python specimen.py SpecimenDatasetToCSVTask --local-scheduler --date 20140821
+python specimen.py SpecimenDatasetAPITask --local-scheduler --date 20140731
+python specimen.py SpecimenDatasetCSVTask --local-scheduler --date 20140821
 
 """
 import re

@@ -15,14 +15,3 @@ owner_org =
 
 [core]
 error-email:
-
-[datastore]
-host =
-database =
-# Copy to datastore - requires root access
-user =
-password =
-# The owner to set the tables to after copying
-owner =
-# Datastore read user
-datastore_readonly =

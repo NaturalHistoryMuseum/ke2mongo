@@ -20,9 +20,9 @@ class IndexLotDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-indexlot',
-        'notes': u'Index Lot (species level) records from the Natural History Museum\'s collection',
-        'title': "Indexlots",
+        'name': 'collection-indexlot2',
+        'notes': u'Index Lot records from the Natural History Museum\'s collection',
+        'title': "Index Lot collection",
         'author': DATASET_AUTHOR,
         'license_id': DATASET_LICENCE,
         'resources': [],
@@ -33,8 +33,8 @@ class IndexLotDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'indexlot',
-            'description': 'Index Lots',
+            'name': 'Index Lots',
+            'description': 'Species level record denoting the presence of a taxon in the Museum collection',
             'format': 'csv'
         },
         'primary_key': 'Catalogue number'
