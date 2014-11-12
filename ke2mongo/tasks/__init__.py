@@ -18,15 +18,8 @@ DATE_FORMAT = 'YYYY-MM-DD'
 
 RECORD_STATUS = 'Active'
 
-COLLECTION_DATASET = {
-    'name': 'nhm-collection',
-    'notes': u'The Natural History Museum\'s collection',
-    'title': "NHM Collection",
-    'author': 'Natural History Museum',
-    'license_id': u'cc-by',
-    'resources': [],
-    'dataset_type': 'Specimen',
-    'spatial': '{"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}',
-    'owner_org': config.get('ckan', 'owner_org')
-}
+DATASET_LICENCE = 'cc-zero'
+DATASET_AUTHOR = 'Natural History Museum'
+DATASET_TYPE = 'Collections'
+
 

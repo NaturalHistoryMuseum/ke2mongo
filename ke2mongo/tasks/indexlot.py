@@ -5,24 +5,33 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 import luigi
-import numpy as np
 import pandas as pd
 from collections import OrderedDict
+from ke2mongo import config
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
-from ke2mongo.tasks import COLLECTION_DATASET
+from ke2mongo.tasks import DATASET_LICENCE, DATASET_AUTHOR, DATASET_TYPE
 
 class IndexLotDatasetTask(DatasetTask):
 
     record_type = 'Index Lot'
 
     # CKAN Dataset params
-    package = COLLECTION_DATASET
+    package = {
+        'name': 'collection-indexlot',
+        'notes': u'Index Lot (species level) records from the Natural History Museum\'s collection',
+        'title': "Indexlots",
+        'author': DATASET_AUTHOR,
+        'license_id': DATASET_LICENCE,
+        'resources': [],
+        'dataset_type': DATASET_TYPE,
+        'owner_org': config.get('ckan', 'owner_org')
+    }
 
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'indexlots1',
-            'description': 'Index lots',
+            'name': 'indexlot',
+            'description': 'Index Lots',
             'format': 'csv'
         },
         'primary_key': 'Catalogue number'

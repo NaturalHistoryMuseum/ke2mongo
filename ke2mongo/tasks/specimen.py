@@ -12,10 +12,8 @@ import re
 import pandas as pd
 import numpy as np
 import luigi
-import itertools
-from collections import OrderedDict
 from ke2mongo import config
-from ke2mongo.tasks import PARENT_TYPES, COLLECTION_DATASET
+from ke2mongo.tasks import PARENT_TYPES, DATASET_LICENCE, DATASET_AUTHOR, DATASET_TYPE
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
@@ -23,13 +21,23 @@ from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 class SpecimenDatasetTask(DatasetTask):
 
     # CKAN Dataset params
-    package = COLLECTION_DATASET
+    package = {
+        'name': 'collection-specimen',
+        'notes': u'Specimen records from the Natural History Museum\'s collection',
+        'title': "Collection specimens",
+        'author': DATASET_AUTHOR,
+        'license_id': DATASET_LICENCE,
+        'resources': [],
+        'dataset_type': DATASET_TYPE,
+        'spatial': '{"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}',
+        'owner_org': config.get('ckan', 'owner_org')
+    }
 
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Specimens5',
-            'description': 'Specimens',
+            'name': 'Specimens',
+            'description': 'Specimen records',
             'format': 'dwc'  # Darwin core
         },
         'primary_key': 'Occurrence ID'
