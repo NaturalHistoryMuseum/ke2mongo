@@ -40,7 +40,6 @@ class DeleteTask(MongoTask):
         # For delete to run, all other mongo tasks for same date must have already run
         return [MongoCatalogueTask(self.date), MongoTaxonomyTask(self.date),  MongoMultimediaTask(self.date), MongoCollectionIndexTask(self.date), MongoSiteTask(self.date), ke_file_task]
 
-
     @timeit
     def run(self):
         # Build a dict of all modules and collections
