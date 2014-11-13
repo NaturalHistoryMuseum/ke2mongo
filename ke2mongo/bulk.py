@@ -4,12 +4,11 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
-The main task will fail if there are Bulkple KE EMu exports
-See CSVTask.__init__()
-This is to ensure that an error in the exports - ie: they're not available on the due date
-is investigated
+Running bulk does not delete anything from CKAN
+It's intended to be run to bulk load everything into a fresh CKAN instance
 
 """
+from ke2mongo import config
 from ke2mongo.log import log
 from luigi import scheduler, worker
 from luigi.interface import setup_interface_logging
@@ -18,7 +17,7 @@ from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
 from ke2mongo.tasks.mongo_site import MongoSiteTask
-from ke2mongo.tasks.mongo_delete import DeleteTask
+from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 from ke2mongo.lib.file import get_export_file_dates
 from ke2mongo.lib.mongo import mongo_get_update_markers
 
@@ -48,11 +47,13 @@ def main():
     update_markers = mongo_get_update_markers()
 
     # Make sure the updates have all mongo classes
-    bulk_tasks = [unicode(task.__name__) for task in [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, DeleteTask]]
+    bulk_tasks = [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, MongoDeleteTask]
+
+    bulk_task_names = [unicode(task.__name__) for task in bulk_tasks]
 
     for date, update_marker in update_markers.iteritems():
         # Assert that for every date we have all the bulk tasks
-        assert list(set(bulk_tasks) - set(update_marker)) == [], 'There are missing mongo tasks for date %s' % date
+        assert list(set(bulk_task_names) - set(update_marker)) == [], 'There are missing mongo tasks for date %s' % date
 
     # Get a list of all export files to process
     export_dates = [d for d in get_export_file_dates() if d not in update_markers.keys()]
@@ -65,11 +66,35 @@ def main():
 
     sch = scheduler.CentralPlannerScheduler()
 
+    full_export_date = int(config.get('keemu', 'full_export_date'))
+
+    w = BulkWorker(scheduler=sch)
+
+    # On full export date we will not have the eaudit deleted
+    # So rather than calling MongoDeleteTask() which will fail if eaudit.deleted-export is missing
+    # We will call these first, before moving onto the bulk Op
+    if full_export_date in export_dates:
+
+        # Remove full export date from list of dates to process
+        export_dates.remove(full_export_date)
+
+        # Remove the delete task from list of tasks to process
+        bulk_tasks.remove(MongoDeleteTask)
+
+        # Loop through all bulks tasks, adding for the export date
+        for task in bulk_tasks:
+            w.add(task(date=full_export_date))
+
+        # Run the tasks
+        w.run()
+        w.stop()
+
     for export_date in export_dates:
-        w = BulkWorker(scheduler=sch)
+
         log.info('Processing date %s', export_date)
-        # We only need to call the delete task, as all other tasks are a requirement
-        w.add(DeleteTask(date=export_date))
+        # We only need to call the mongo delete task, as all other tasks are a requirement
+        # NB: This doesn't delete anything from CKAN - if that's needed change this to DeleteTask
+        w.add(MongoDeleteTask(date=export_date))
         w.run()
         w.stop()
 
