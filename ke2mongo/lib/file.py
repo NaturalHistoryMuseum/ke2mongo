@@ -23,7 +23,6 @@ def get_export_file_dates():
     except NoOptionError:
         full_export_date = None
 
-
     files = [f for f in os.listdir(export_dir) if os.path.isfile(os.path.join(export_dir,f))]
 
     # Use a set so we don't have duplicate dates
