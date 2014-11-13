@@ -42,14 +42,19 @@ def get_export_file_dates():
             pass
         else:
 
-            date = int(date)
-
-            # If we have full export date (the data the last full dump was produced)
-            # we only want dates after the last full dump - so skip prior dates
-            if full_export_date and date < full_export_date:
+            try:
+                date = int(date)
+            except ValueError:
+                # First dump did not contain date stamp
+                # ecatalogue.export.zip
                 continue
+            else:
+                # If we have full export date (the data the last full dump was produced)
+                # we only want dates after the last full dump - so skip prior dates
+                if full_export_date and date < full_export_date:
+                    continue
 
-            dates.add(date)
+                dates.add(date)
 
     # Make sure they are in the right order and convert to list
     dates = sorted(list(dates))
