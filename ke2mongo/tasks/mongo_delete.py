@@ -27,7 +27,7 @@ class MongoDeleteTask(DeleteTask):
 
     force = luigi.BooleanParameter(default=False, significant=False)
 
-    # Use the same task family asDeleteTask
+    # Use the same task family as DeleteTask
     # if DeleteTask has run, we do not want this to run, and vice versa
     task_family = DeleteTask.task_family
 
