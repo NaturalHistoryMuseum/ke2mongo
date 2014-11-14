@@ -415,7 +415,7 @@ class DatasetAPITask(DatasetTask):
     """
     Write directly to CKAN API
     """
-    block_size = 1000
+    block_size = 100
 
     def output(self):
         return APITarget(resource_id=self.resource_id, columns=self.get_output_columns())
