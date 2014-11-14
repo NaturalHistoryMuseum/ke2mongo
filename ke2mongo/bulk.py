@@ -58,6 +58,15 @@ def main():
         MongoDeleteTask
     ]
 
+    def _get_task_names(tasks):
+        """
+        We need to initiate and get the family name, not just the class name
+        MongoDeleteTask => DeleteTask
+        @param tasks:
+        @return:
+        """
+        return [unicode(task(date=0).task_family) for task in tasks]
+
     full_export_date = int(config.get('keemu', 'full_export_date'))
 
     for date, update_marker in update_markers.iteritems():
@@ -66,9 +75,9 @@ def main():
         if full_export_date and date == full_export_date:
             bulk_task_copy = list(bulk_tasks)
             bulk_task_copy.remove(MongoDeleteTask)
-            bulk_task_names = [unicode(task.__name__) for task in bulk_task_copy]
+            bulk_task_names = _get_task_names(bulk_task_copy)
         else:
-            bulk_task_names = [unicode(task.__name__) for task in bulk_tasks]
+            bulk_task_names = _get_task_names(bulk_tasks)
 
         # Assert that for every date we have all the bulk tasks
         missing_tasks = list(set(bulk_task_names) - set(update_marker))
