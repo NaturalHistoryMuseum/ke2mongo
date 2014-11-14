@@ -19,6 +19,7 @@ from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
+from ke2mongo.tasks.mongo_collection_event import MongoCollectionEventTask
 from ke2mongo.tasks.mongo_site import MongoSiteTask
 
 
@@ -37,8 +38,17 @@ class DeleteTask(MongoTask):
 
         # Need to require the parent mongo task - the KE file
         ke_file_task = super(DeleteTask, self).requires()
+
         # For delete to run, all other mongo tasks for same date must have already run
-        return [MongoCatalogueTask(self.date), MongoTaxonomyTask(self.date),  MongoMultimediaTask(self.date), MongoCollectionIndexTask(self.date), MongoSiteTask(self.date), ke_file_task]
+        return [
+            MongoCatalogueTask(self.date),
+            MongoTaxonomyTask(self.date),
+            MongoMultimediaTask(self.date),
+            MongoCollectionIndexTask(self.date),
+            MongoCollectionEventTask(self.date),
+            MongoSiteTask(self.date),
+            ke_file_task
+        ]
 
     @timeit
     def run(self):
@@ -55,7 +65,7 @@ class DeleteTask(MongoTask):
                 ke_file_target = i
                 break
 
-        ke_data = KEParser(ke_file_target.open('r'), schema_file=self.keemu_schema_file, input_file_path=ke_file_target.path)
+        ke_data = KEParser(ke_file_target.open('r'), file_path=ke_file_target.path, schema_file=self.keemu_schema_file)
 
         for record in self.iterate_data(ke_data):
 

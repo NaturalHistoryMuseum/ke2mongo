@@ -16,6 +16,7 @@ from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
+from ke2mongo.tasks.mongo_collection_event import MongoCollectionEventTask
 from ke2mongo.tasks.mongo_site import MongoSiteTask
 from ke2mongo.tasks.mongo_delete import MongoDeleteTask
 from ke2mongo.lib.file import get_export_file_dates
@@ -47,13 +48,31 @@ def main():
     update_markers = mongo_get_update_markers()
 
     # Make sure the updates have all mongo classes
-    bulk_tasks = [MongoCollectionIndexTask, MongoCatalogueTask, MongoTaxonomyTask, MongoMultimediaTask, MongoSiteTask, MongoDeleteTask]
+    bulk_tasks = [
+        MongoCollectionIndexTask,
+        MongoCollectionEventTask,
+        MongoCatalogueTask,
+        MongoTaxonomyTask,
+        MongoMultimediaTask,
+        MongoSiteTask,
+        MongoDeleteTask
+    ]
 
-    bulk_task_names = [unicode(task.__name__) for task in bulk_tasks]
+    full_export_date = int(config.get('keemu', 'full_export_date'))
 
     for date, update_marker in update_markers.iteritems():
+
+        #  If this is the fll export date, MongoDeleteTask is not required
+        if full_export_date and date == full_export_date:
+            bulk_task_copy = list(bulk_tasks)
+            bulk_task_copy.remove(MongoDeleteTask)
+            bulk_task_names = [unicode(task.__name__) for task in bulk_task_copy]
+        else:
+            bulk_task_names = [unicode(task.__name__) for task in bulk_tasks]
+
         # Assert that for every date we have all the bulk tasks
-        assert list(set(bulk_task_names) - set(update_marker)) == [], 'There are missing mongo tasks for date %s' % date
+        missing_tasks = list(set(bulk_task_names) - set(update_marker))
+        assert missing_tasks == [], 'There are missing mongo tasks for date %s: %s' % (date, missing_tasks)
 
     # Get a list of all export files to process
     export_dates = [d for d in get_export_file_dates() if d not in update_markers.keys()]
@@ -65,8 +84,6 @@ def main():
     setup_interface_logging()
 
     sch = scheduler.CentralPlannerScheduler()
-
-    full_export_date = int(config.get('keemu', 'full_export_date'))
 
     w = BulkWorker(scheduler=sch)
 
@@ -94,7 +111,7 @@ def main():
         log.info('Processing date %s', export_date)
         # We only need to call the mongo delete task, as all other tasks are a requirement
         # NB: This doesn't delete anything from CKAN - if that's needed change this to DeleteTask
-        w.add(MongoDeleteTask(date=export_date))
+        w.add(MongoDeleteTask(date=export_date, force=True))
         w.run()
         w.stop()
 
