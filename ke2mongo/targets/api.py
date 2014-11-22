@@ -31,10 +31,15 @@ class APITarget(luigi.Target):
 
         log.info("Saving records to CKAN resource %s", self.resource_id)
 
+        # Convert all empty/null values to None - so will be NULL values in postgres
         # Ensure any float fields with value 0.0 are actually None
         for col, np_type in self.columns.iteritems():
+
             if np_type.startswith('float'):
-                df[col][df[col] == 0.0] = np.NaN
+                df[col][df[col] == 0.0] = None
+            else:
+                # BUGFIX: Multimedia fields are being populated with empty string rather than NULL
+                df[col][df[col].astype(str) == ''] = None
 
         # Loop through all the dataframe columns, removing internal ones (fields starting with _)
         for col in df:

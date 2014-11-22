@@ -184,6 +184,7 @@ class DatasetTask(luigi.Task):
 
         except ckanapi.NotFound:
             log.info("Package %s not found - creating", self.package['name'])
+
             # Create the package
             ckan_package = self.ckan.action.package_create(**self.package)
 
