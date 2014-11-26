@@ -221,7 +221,11 @@ class DatasetTask(luigi.Task):
         @param pandas_type: pandas data type
         @return: ckan data type
         """
-        type_num, type_arg, numpy_type = get_monary_numpy_type(pandas_type)
+        try:
+            type_num, type_arg, numpy_type = get_monary_numpy_type(pandas_type)
+        except ValueError:
+            # There is no numpy type - just use original value (JSON)
+            return pandas_type;
 
         try:
             if issubclass(numpy_type, np.signedinteger):
