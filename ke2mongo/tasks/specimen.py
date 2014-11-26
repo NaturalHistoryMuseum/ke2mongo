@@ -18,11 +18,11 @@ from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 
-
 class SpecimenDatasetTask(DatasetTask):
+
     # CKAN Dataset params
     package = {
-        'name': 'collection-specimen4',
+        'name': 'collection-specimen-x3',
         'notes': u'Specimen records from the Natural History Museum\'s collection',
         'title': "Collection specimens",
         'author': DATASET_AUTHOR,
@@ -88,12 +88,14 @@ class SpecimenDatasetTask(DatasetTask):
         # ('ecatalogue.DarContinentOcean', 'continentOcean', 'string:100'),
         ('ecatalogue.DarHigherGeography', 'higherGeography', 'string:100'),
         ('ecatalogue.ColHabitatVerbatim', 'habitat', 'string:100'),
+        ('ecatalogue.DarLatLongComments', '_latLongComments', 'string:100'),
         ('ecatalogue.DarDecimalLongitude', 'decimalLongitude', 'float64'),
         ('ecatalogue.DarDecimalLatitude', 'decimalLatitude', 'float64'),
         ('ecatalogue.DarGeodeticDatum', 'geodeticDatum', 'string:100'),
         ('ecatalogue.DarGeorefMethod', 'georeferenceProtocol', 'string:100'),
 
-        ('esites.LatDeriveCentroid', 'centroid', 'bool'),
+        # LatDeriveCentroid is always True - so removing, and we'll base centroids on it being label such in DarLatLongComments
+        # ('esites.LatDeriveCentroid', 'centroid', 'bool'),
         ('esites.GeorefMaxErrorDist', 'maxError', 'string:100'),
         ('esites.GeorefMaxErrorDistUnits', '_errorUnit', 'string:100'),
         ('esites.LatLongitude', 'verbatimLongitude', 'string:100'),
@@ -295,10 +297,11 @@ class SpecimenDatasetTask(DatasetTask):
     literal_columns = [
         ('institutionCode', 'string:100', 'NHMUK'),
         ('basisOfRecord', 'string:100', 'Specimen'),
-        ('determinations', 'string:100', np.NaN),
+        ('determinations', 'json', np.NaN),
         # This is set dynamically if this is a part record (with parent Ref)
         ('relatedResourceID', 'string:100', np.NaN),
-        ('relationshipOfResource', 'string:100', np.NaN)
+        ('relationshipOfResource', 'string:100', np.NaN),
+        ('centroid', 'bool', False)
     ]
 
     @property
@@ -330,7 +333,7 @@ class SpecimenDatasetTask(DatasetTask):
         ]
 
         # Test query
-        # query['RegRegistrationParentRef'] = {"$exists": 1}
+        # query['DarDecimalLatitude'] = {"$exists": 1}
         # query['_id'] = {'$in': [1]}
 
         return query
@@ -371,16 +374,27 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Assign determination name, type and field as to Determinations to show determination history
         determinations = [
-            ('Name', '_determinationNames'),
-            ('Type', '_determinationTypes'),
-            ('Filed as', '_determinationFiledAs')
+            ('name', '_determinationNames'),
+            ('type', '_determinationTypes'),
+            ('filedAs', '_determinationFiledAs')
         ]
+
+        df['determinations'] = '{'
+        conj = ''
 
         # Loop through all the determination fields, adding the field name
         for field_name, determination in determinations:
-            df[determination][df[determination] != ''] = field_name + '=' + df[determination]
+            df['determinations'][df[determination] != ''] += conj + '"' + field_name + '":"' + df[determination] + '"'
+            conj = ','
 
-        df['determinations'] = df['_determinationNames'].str.cat(df['_determinationTypes'].values.astype(str), sep='|').str.cat(df['_determinationFiledAs'].values.astype(str), sep='|')
+        df['determinations'] += '}'
+
+        # There doesn't seem to be a good way to identify centroids in KE EMu
+        # I was using esites.LatDeriveCentroid, but this always defaults to True
+        # And trying to use centroid lat/lon fields, also includes pretty much every record
+        # But matching against *entroid being added to georeferencing notes produces much better results
+
+        df['centroid'][df['_latLongComments'].str.contains("entroid")] = True
 
         # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df
         df = df.applymap(lambda x: np.nan if isinstance(x, basestring) and x == '' else x)
@@ -453,7 +467,7 @@ class SpecimenDatasetTask(DatasetTask):
         # Get all collection columns
         collection_columns = self.get_collection_columns()
 
-        # Load extra sites info (if this a centroid and error radius + unit)
+        # Load extra sites info (if there's an error radius + unit)
         site_irns = self._get_unique_irns(df, '_siteRef')
 
         sites_df = self.get_dataframe(m, 'esites', collection_columns['esites'], site_irns, '_esitesIrn')
