@@ -18,6 +18,8 @@ def get_cites_species():
 
     mongoimport --db keemu --collection cites --type json --file /vagrant/exports/Index_of_CITES_Species_2014-10-17\ 17-34.json --jsonArray
 
+    This should only be run if mongo is rebuilt - new records are marked as CITES on import
+
     @return: list
     """
     mongo_db = mongo_client_db()
