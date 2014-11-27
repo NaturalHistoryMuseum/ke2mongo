@@ -22,7 +22,7 @@ class SpecimenDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-specimen-x3',
+        'name': 'collection-specimen-x4',
         'notes': u'Specimen records from the Natural History Museum\'s collection',
         'title': "Collection specimens",
         'author': DATASET_AUTHOR,
@@ -313,7 +313,6 @@ class SpecimenDatasetTask(DatasetTask):
 
         @return: dict
         """
-
         query = super(SpecimenDatasetTask, self).query
 
         # Override the default ColRecordType
@@ -325,7 +324,8 @@ class SpecimenDatasetTask(DatasetTask):
         # And only for Entom, Min, Pal & Zoo departments.
         query['$or'] = [
             {"ColDepartment": 'Botany', "DarCatalogNumber": re.compile("^BM")},
-            {"ColDepartment":
+            {
+                "ColDepartment":
                  {
                      "$in": ["Entomology", "Mineralogy", "Palaeontology", "Zoology"]
                  }
@@ -333,7 +333,7 @@ class SpecimenDatasetTask(DatasetTask):
         ]
 
         # Test query
-        # query['DarDecimalLatitude'] = {"$exists": 1}
+        # query['_determinationNames'] = {"$exists": 1}
         # query['_id'] = {'$in': [1]}
 
         return query
@@ -482,8 +482,8 @@ class SpecimenDatasetTask(DatasetTask):
             df[i][df['_cites'] == 'True'] = np.NaN
 
         # Some records are being assigned a Centroid even if they have no lat/lon fields.
-        # Ensure it's NaN is latitude is null
-        df['centroid'][df['decimalLatitude'].isnull()] = np.NaN
+        # Ensure it's False is latitude is null
+        df['centroid'][df['decimalLatitude'].isnull()] = False
 
         # Load collection event data
         collection_event_irns = self._get_unique_irns(df, '_collectionEventRef')
