@@ -39,13 +39,17 @@ A new dump was produced 20140814, containing all records.
 Updates prior to that point do not include records updated on the date the report runs.
 
 
-TODO
-----
+INSTALL
+-------
 
-Updates! If we run bulk, need update to include them all!! Get last date from updates????
-Mark CITES on import
-Get running on server
-Test data
+Requires postgres CITEXT extension
+
+CREATE EXTENSION IF NOT EXISTS citext;
+
+And restart postgresql
+
+
+
 
 
 
