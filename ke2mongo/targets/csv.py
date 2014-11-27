@@ -25,6 +25,9 @@ class CSVTarget(luigi.LocalTarget):
          # CSV Chunksize needs to be one more than block_size, so if we do get a UnicodeDecodeError, no rows will have been re-written
         chunksize = row_count + 1
 
+        # Encode determinations json string into postgres string
+        df['determinations'] = '("""' + df['determinations'].str.replace('"', '\\\\""') + '""","")'
+
         try:
             # Test whether the data is encoding - we need to test for this here
             # before calling to_csv which writes line by line - so lines preceding an error
