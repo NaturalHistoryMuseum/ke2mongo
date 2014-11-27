@@ -478,4 +478,9 @@ class DatasetCSVTask(DatasetTask):
             path=self.path
         ))
 
+        log.info("And update full text index:")
+        log.info("paster update-fulltext -i \"{resource_id}\" -c /vagrant/etc/default/development.ini".format(
+            resource_id=self.resource_id,
+        ))
+
         return super(DatasetCSVTask, self).complete()
