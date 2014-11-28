@@ -296,6 +296,8 @@ class DatasetTask(luigi.Task):
 
             catalogue_blocks = m.block_query(db, self.collection_name, self.query, query_fields, field_types, block_size=self.block_size)
 
+            log.info("Processing Monary data")
+
             for catalogue_block in catalogue_blocks:
 
                 # Bit of a hack: fill fields with a blank value (depending on type)
@@ -322,6 +324,7 @@ class DatasetTask(luigi.Task):
                 row_count, col_count = df.shape
                 count += row_count
                 log.info("\t %s records", count)
+
 
     def process_dataframe(self, m, df):
 
