@@ -7,26 +7,28 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 import luigi
 from ke2mongo import config
+from ke2mongo.tasks import DATASET_LICENCE, DATASET_AUTHOR, DATASET_TYPE
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
+
 
 class ArtefactDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'artefacts2',
+        'name': 'collection-artefacts',
         'notes': u'Cultural and historical artefacts from The Natural History Museum',
         'title': "Artefacts",
-        'author': 'Natural History Museum',
-        'license_id': u'cc-by',
+        'author': DATASET_AUTHOR,
+        'license_id': DATASET_LICENCE,
         'resources': [],
-        'dataset_type': 'Cultural artefacts',
+        'dataset_type': DATASET_TYPE,
         'owner_org': config.get('ckan', 'owner_org')
     }
 
     # And now save to the datastore
     datastore = {
         'resource': {
-            'name': 'Artefacts2',
+            'name': 'Artefacts',
             'description': 'Museum artefacts',
             'format': 'csv'
         },
