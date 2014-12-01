@@ -344,26 +344,6 @@ class SpecimenDatasetTask(DatasetTask):
 
         return output_columns
 
-    def get_related_parts(self, parent_irns):
-
-        client = MongoClient(host=config.get('mongo', 'host'))
-        db = config.get('mongo', 'database')
-
-        collection = client[db][self.collection_name]
-
-        # Use the same query, so we filter out any unwanted records
-        # But use a copy just in case, as we'll be changing it
-        q = dict(self.query)
-
-        # Delete _id if it's set - need this for testing
-        if '_id' in q:
-            del q['_id']
-
-        # Get all records with the same parent
-        q['RegRegistrationParentRef'] = {'$in': parent_irns}
-        cursor = collection.find(q, {'_id': 1, 'RegRegistrationParentRef': 1})
-
-
     def process_dataframe(self, m, df):
         """
         Process the dataframe, updating multimedia irns => URIs
