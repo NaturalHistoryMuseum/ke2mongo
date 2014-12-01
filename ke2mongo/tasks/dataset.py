@@ -433,7 +433,7 @@ class DatasetCSVTask(DatasetTask):
     Output dataset to CSV
     """
 
-    block_size = 2500  # 2500 Seems to be most efficient
+    block_size = 500  # 2500 Seems to be fastest, but >500 causes the process to hang when looking up lots of part/parents
 
     @property
     def path(self):
