@@ -98,8 +98,8 @@ class MongoCatalogueTask(MongoTask):
         self.collection.ensure_index('SecRecordStatus')
 
         # Add index on sumRegistrationNumber & ColDepartment -
-        self.collection.ensure_index('sumRegistrationNumber')
-        self.collection.ensure_index('ColDepartment')
+        # self.collection.ensure_index('sumRegistrationNumber')
+        # self.collection.ensure_index('ColDepartment')
 
         # Add index on RegRegistrationParentRef - select records with the same parent
         self.collection.ensure_index('RegRegistrationParentRef')
