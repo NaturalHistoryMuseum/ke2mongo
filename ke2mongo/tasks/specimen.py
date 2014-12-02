@@ -38,6 +38,8 @@ class SpecimenDatasetTask(DatasetTask):
         'owner_org': config.get('ckan', 'owner_org')
     }
 
+    print package
+
     # And now save to the datastore
     datastore = {
         'resource': {
@@ -327,7 +329,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Test query
         # query['_determinationNames'] = {"$exists": 1}
-        # query['_id'] = {'$in': [1, 2, 3]}
+        query['_id'] = {'$in': [701450]}
 
         return query
 
