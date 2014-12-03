@@ -5,7 +5,7 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
 python tasks/specimen.py SpecimenDatasetAPITask --local-scheduler --date 20140731
-python specimen.py SpecimenDatasetCSVTask --local-scheduler --date 20140821
+python tasks/specimen.py SpecimenDatasetCSVTask --local-scheduler --date 20140821
 
 NOTE: This started failing on my dev box, I think because indexes got corrupted
 Running rebuildIndexes() has fixed the problem
