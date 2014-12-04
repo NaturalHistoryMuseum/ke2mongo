@@ -86,9 +86,6 @@ def main():
     # Get a list of all export files to process
     export_dates = [d for d in get_export_file_dates() if d not in update_markers.keys()]
 
-    # We do not want to bulk process the most recent
-    export_dates.pop()
-
     # Run setup_interface_logging to ensure luigi commands
     setup_interface_logging()
 
