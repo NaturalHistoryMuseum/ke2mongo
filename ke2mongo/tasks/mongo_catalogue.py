@@ -4,7 +4,8 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
- python tasks/mongo_catalogue.py MongoCatalogueTask --local-scheduler --date 20140814
+ python tasks/mongo_catalogue.py --local-scheduler --date 20141204
+
 
 """
 
