@@ -423,7 +423,7 @@ class DatasetAPITask(DatasetTask):
     """
     Write directly to CKAN API
     """
-    block_size = 500   # 5000 is fastest, but Apache throws 413 “Request Entity Too Large” error
+    block_size = 200   # 5000 is fastest, but Apache throws 413 “Request Entity Too Large” error
 
     def output(self):
         return APITarget(resource_id=self.resource_id, columns=self.get_output_columns())

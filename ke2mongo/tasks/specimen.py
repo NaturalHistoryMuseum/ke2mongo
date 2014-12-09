@@ -254,8 +254,8 @@ class SpecimenDatasetTask(DatasetTask):
         ('ecatalogue.EntCatPreservation', '_entCatPreservation', 'string:100'),
 
         # Used to build previous determinations for Botany
-        ('ecatalogue.DetTypeofType', '_determinationTypes', 'string:100'),
-        ('ecatalogue.EntIdeScientificNameLocal', '_determinationNames', 'string:100'),
+        ('ecatalogue.IdeCitationTypeStatus', '_determinationTypes', 'string:100'),
+        ('ecatalogue.EntIdeScientificNameLocal', '_determinationNames', 'string:250'),
         ('ecatalogue.EntIdeFiledAs', '_determinationFiledAs', 'string:100'),
         # If DarTypeStatus is empty, we'll use sumTypeStatus which has previous determinations
         ('ecatalogue.sumTypeStatus', '_sumTypeStatus', 'string:100'),
@@ -302,7 +302,7 @@ class SpecimenDatasetTask(DatasetTask):
     literal_columns = [
         ('institutionCode', 'string:100', 'NHMUK'),
         ('basisOfRecord', 'string:100', 'Specimen'),
-        ('determinations', 'json', np.NaN),
+        ('determinations', 'string:250', np.NaN),
         # This is set dynamically if this is a part record (with parent Ref)
         ('relatedResourceID', 'string:100', np.NaN),
         ('relationshipOfResource', 'string:100', np.NaN),
@@ -326,8 +326,9 @@ class SpecimenDatasetTask(DatasetTask):
         }
 
         # Test query
-        # query['_determinationNames'] = {"$exists": 1}
-        # query['_id'] = {'$in': [701450]}
+        # query['EntIdeScientificNameLocal'] = {"$exists": 1}
+        # query['DetTypeofType'] = {"$exists": 1}
+        # query['_id'] = {'$in': [2574402]}
 
         return query
 
@@ -372,21 +373,17 @@ class SpecimenDatasetTask(DatasetTask):
             ('filedAs', '_determinationFiledAs')
         ]
 
-        df['determinations'] = '{'
-        conj = ''
-
-        # Loop through all the determination fields, adding the field name
+        # Add field name =  to each determination
         for field_name, determination in determinations:
-            df['determinations'][df[determination] != ''] += conj + '"' + field_name + '":"' + df[determination] + '"'
-            conj = ','
+            df[determination][df[determination] != ''] = field_name + '=' + df[determination]
 
-        df['determinations'] += '}'
+        # And join all determination fields into one
+        df['determinations'] = df['_determinationNames'].str.cat(df['_determinationTypes'].values.astype(str), sep='\n').str.cat(df['_determinationFiledAs'].values.astype(str), sep='\n')
 
         # There doesn't seem to be a good way to identify centroids in KE EMu
         # I was using esites.LatDeriveCentroid, but this always defaults to True
         # And trying to use centroid lat/lon fields, also includes pretty much every record
         # But matching against *entroid being added to georeferencing notes produces much better results
-
         df['centroid'][df['_latLongComments'].str.contains("entroid")] = True
 
         # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df

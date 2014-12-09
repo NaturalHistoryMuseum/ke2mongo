@@ -15,11 +15,13 @@ BULK IMPORT
 -----------
 
 To recreate from scratch, there's a bulk import. This script loops through all files
-in the export directory, and imports them one by one into mongo. 
+in the export directory, and imports them one by one into mongo.  It checks past imports,
+and will not rerun an import a file. If you want to rerun delete table_updates in KE EMu
+mongo collection.
 
 Run with command:
 
-python bulk.py
+    python bulk.py
 
 It does not import into CKAN. After running bulk import, you can call the
 CKAN import task with no date parameter to import all into CKAN.
