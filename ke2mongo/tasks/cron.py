@@ -4,7 +4,9 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
-python run.py MainTask --local-scheduler --date 20140123
+Add to crontab to run:
+
+# * * * * * /usr/lib/import/bin/python /usr/lib/import/src/ke2mongo/ke2mongo/tasks/cron.py >> /var/log/crontab/ke2mongo.log 2>&1
 
 """
 
@@ -23,7 +25,9 @@ class CronTask(luigi.Task):
     date = luigi.IntParameter()
 
     def requires(self):
-        yield ArtefactDatasetAPITask(self.date)
+        raise Exception('HEY')
+        #
+        # yield ArtefactDatasetAPITask(self.date)
 
 
 if __name__ == "__main__":

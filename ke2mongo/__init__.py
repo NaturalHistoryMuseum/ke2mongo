@@ -9,4 +9,4 @@ import os
 from ConfigParser import ConfigParser
 
 config = ConfigParser()
-config.read(os.path.join(os.path.dirname(__file__), 'client.cfg'))
+config.read(os.path.join(os.path.dirname(__file__), 'config.cfg'))
