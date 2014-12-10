@@ -19,15 +19,15 @@ from ke2mongo.lib.mongo import mongo_get_update_markers
 
 class CronTask(luigi.Task):
     """
-    Main controller task - runs the three dataset ckan API tasks
+    Main controller task - runs the three dataset ckan API tasks on cron
     """
 
     date = luigi.IntParameter()
 
     def requires(self):
-        raise Exception('HEY')
-        #
-        # yield ArtefactDatasetAPITask(self.date)
+
+        # Run all the API tasks
+        yield ArtefactDatasetAPITask(self.date), IndexLotDatasetAPITask(self.date), SpecimenDatasetAPITask(self.date)
 
 
 if __name__ == "__main__":
