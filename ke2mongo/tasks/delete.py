@@ -126,8 +126,6 @@ class DeleteTask(MongoTask):
 
             primary_key_value = mongo_record[ke_primary_key]
 
-            print primary_key_value
-
             # If we have a primary key prefix, append it and ensure primary key is a string
             if task.primary_key_prefix:
                 primary_key_value = task.primary_key_prefix + str(primary_key_value)
