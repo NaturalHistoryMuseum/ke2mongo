@@ -117,18 +117,27 @@ class DeleteTask(MongoTask):
             # Initiate the task class so we can access values and methods
             task = task_cls()
             primary_key_field = task.get_primary_key_field()
-            primary_key = mongo_record[primary_key_field[0]]
+
+            # Get the source primary key - this needs to be split on . as we have added the collection name
+            ke_primary_key = primary_key_field[0].split('.')[1]
+
+            # The name of the primary key field used in CKAN
+            ckan_primary_key = primary_key_field[1]
+
+            primary_key_value = mongo_record[ke_primary_key]
+
+            print primary_key_value
 
             # If we have a primary key prefix, append it and ensure primary key is a string
             if task.primary_key_prefix:
-                primary_key = task.primary_key_prefix + str(primary_key)
+                primary_key_value = task.primary_key_prefix + str(primary_key_value)
 
             # Load the resource, so we can find the resource ID
             resource = self.ckan.action.resource_show(id=task_cls.datastore['resource']['name'])
 
             # And delete the record from the datastore
-            log.info('Deleting record from CKAN where %s=%s' % (primary_key_field[1], primary_key))
-            self.ckan.action.datastore_delete(id=resource['id'], filters={primary_key_field[1]: primary_key})
+            log.info('Deleting record from CKAN where %s=%s' % (ckan_primary_key, primary_key_value))
+            self.ckan.action.datastore_delete(id=resource['id'], filters={ckan_primary_key: primary_key_value})
 
 if __name__ == "__main__":
     luigi.run(main_task_cls=DeleteTask)
