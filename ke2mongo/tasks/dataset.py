@@ -13,6 +13,7 @@ import pandas as pd
 import abc
 import ckanapi
 import itertools
+import datetime
 from collections import OrderedDict
 from monary import Monary
 from monary.monary import get_monary_numpy_type
@@ -439,6 +440,20 @@ class DatasetAPITask(DatasetTask):
 
     def output(self):
         return APITarget(resource_id=self.resource_id, columns=self.get_output_columns())
+
+    def on_success(self):
+        """
+        Luigi on_success function
+        Set last modified date of the resource
+        """
+
+        # Load and save the resource - so the last modified date gets updated
+        resource = self.ckan.action.resource_show(id=self.resource_id)
+
+        # Explicitly set the last modified date
+        resource['last_modified'] = datetime.datetime.now().isoformat()
+        self.ckan.action.resource_update(**resource)
+
 
 class DatasetCSVTask(DatasetTask):
     """
