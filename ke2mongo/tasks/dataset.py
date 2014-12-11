@@ -149,9 +149,6 @@ class DatasetTask(luigi.Task):
         export_file_dates = filter(filter_dates, get_export_file_dates())
         update_marker_dates = filter(filter_dates, mongo_get_update_markers().keys())
 
-        print export_file_dates
-        print update_marker_dates
-
         assert export_file_dates == update_marker_dates, 'Outstanding previous export file dates need to be processed first: %s' % list(set(export_file_dates) - set(update_marker_dates))
 
     def requires(self):
