@@ -42,4 +42,7 @@ if __name__ == "__main__":
         # raise Exception('Most recent file date %s has already been processed. Has the export failed?' % last_export_date)
         pass
 
+    # TEMP: Remove
+    last_export_date = 20141204
+
     luigi.run(['--date', str(last_export_date)], main_task_cls=CronTask)
