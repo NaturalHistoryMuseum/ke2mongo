@@ -49,6 +49,8 @@ class DatasetTask(luigi.Task):
     # Default record type - used to select records in query
     record_type = None
 
+    has_run = False
+
     @abc.abstractproperty
     def columns(self):
         """
@@ -325,6 +327,8 @@ class DatasetTask(luigi.Task):
                 count += row_count
                 log.info("\t %s records", count)
 
+        # After running, set the has run_flag
+        self.has_run = True
 
     def process_dataframe(self, m, df):
 
@@ -416,8 +420,16 @@ class DatasetTask(luigi.Task):
         return not field.startswith('_')
 
     def get_output_columns(self):
+
         return OrderedDict((col[1], col[2]) for col in self.columns if self._is_output_field(col[1]))
 
+    def complete(self):
+        """
+        Built in luigi function - has this task completed
+        We want to run this task every time it is called - but if used in a requires statement (cron task)
+        It needs to return a complete boolean - so set has_run flag after this task has run
+        """
+        return self.has_run
 
 class DatasetAPITask(DatasetTask):
     """
