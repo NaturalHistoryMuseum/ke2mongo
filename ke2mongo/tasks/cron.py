@@ -42,6 +42,8 @@ if __name__ == "__main__":
         # raise Exception('Most recent file date %s has already been processed. Has the export failed?' % last_export_date)
         pass
 
+    raise Exception('HEY')
+
     # TEMP: Remove
     last_export_date = 20141204
 
