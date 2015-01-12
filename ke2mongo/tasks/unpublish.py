@@ -60,7 +60,7 @@ class UnpublishTask(luigi.Task):
 
                     log.info(key_value)
 
-                    self.api_task.ckan.action.datastore_delete(id=resource['id'], filters={primary_key_field: key_value})
+                    # self.api_task.ckan.action.datastore_delete(id=resource['id'], filters={primary_key_field: key_value})
 
                     return
 
