@@ -64,8 +64,6 @@ class UnpublishTask(luigi.Task):
 
                     self.api_task.ckan.action.datastore_delete(id=resource['id'], filters={primary_key_field: key_value})
 
-                    return
-
                 percentage = float(count)/float(total) * 100
                 log.info("\tRecords\t\t{0}/{1} \t\test. {2:.1f}%".format(count, total, percentage))
 
