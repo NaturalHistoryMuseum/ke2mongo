@@ -102,7 +102,7 @@ class MongoCatalogueTask(MongoTask):
         self.collection.ensure_index('RegRegistrationParentRef')
 
         # Need to filter on web publishable
-        self.collection.ensure_index('AdmPublishWebPasswordFlag')
+        self.collection.ensure_index('AdmPublishWebNoPasswordFlag')
 
         super(MongoCatalogueTask, self).on_success()
 

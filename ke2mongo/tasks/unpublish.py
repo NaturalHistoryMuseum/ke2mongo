@@ -31,8 +31,8 @@ class UnpublishTask(luigi.Task):
 
         # Use the base specimen query
         query = self.api_task.query
-        # query['AdmPublishWebPasswordFlag'] = 'N'
-        query['AdmImportIdentifier'] = 'iCollections'
+        query['AdmPublishWebNoPasswordFlag'] = 'N'
+        # query['AdmImportIdentifier'] = 'iCollections'
 
         return query
 
@@ -42,9 +42,7 @@ class UnpublishTask(luigi.Task):
         # Get the resource
         resource = self.api_task.ckan.action.resource_show(id=self.api_task.datastore['resource']['name'])
 
-        # total = MongoClient()[self.database][self.collection].find(self.query).count()
-
-        total = 49611
+        total = MongoClient()[self.database][self.collection].find(self.query).count()
 
         log.info("%s to delete", total)
 
