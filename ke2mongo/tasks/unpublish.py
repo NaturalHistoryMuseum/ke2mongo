@@ -31,7 +31,8 @@ class UnpublishTask(luigi.Task):
 
         # Use the base specimen query
         query = self.api_task.query
-        query['AdmPublishWebPasswordFlag'] = 'N'
+        # query['AdmPublishWebPasswordFlag'] = 'N'
+        query['AdmImportIdentifier'] = 'iCollections'
 
         return query
 
@@ -43,7 +44,7 @@ class UnpublishTask(luigi.Task):
 
         # total = MongoClient()[self.database][self.collection].find(self.query).count()
 
-        total = 94725
+        total = 49611
 
         log.info("%s to delete", total)
 
@@ -63,6 +64,8 @@ class UnpublishTask(luigi.Task):
                     log.info(key_value)
 
                     self.api_task.ckan.action.datastore_delete(id=resource['id'], filters={primary_key_field: key_value})
+
+                    count += 1
 
                 percentage = float(count)/float(total) * 100
                 log.info("\tRecords\t\t{0}/{1} \t\test. {2:.1f}%".format(count, total, percentage))

@@ -82,6 +82,9 @@ class DatasetTask(luigi.Task):
 
         query["SecRecordStatus"] = RECORD_STATUS
 
+        # Web publishable != No
+        query['AdmPublishWebPasswordFlag'] = {'$ne': 'N'}
+
         if self.date:
             # Ensure we have processed all files for preceding dates
             self.ensure_export_date(self.date)
