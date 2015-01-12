@@ -101,6 +101,9 @@ class MongoCatalogueTask(MongoTask):
         # Add index on RegRegistrationParentRef - select records with the same parent
         self.collection.ensure_index('RegRegistrationParentRef')
 
+        # Need to filter on web publishable
+        self.collection.ensure_index('AdmPublishWebPasswordFlag')
+
         super(MongoCatalogueTask, self).on_success()
 
 if __name__ == "__main__":

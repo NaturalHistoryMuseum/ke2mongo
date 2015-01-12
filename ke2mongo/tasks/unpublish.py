@@ -41,7 +41,9 @@ class UnpublishTask(luigi.Task):
         # Get the resource
         resource = self.api_task.ckan.action.resource_show(id=self.api_task.datastore['resource']['name'])
 
-        total = MongoClient()[self.database][self.collection].find(self.query).count()
+        # total = MongoClient()[self.database][self.collection].find(self.query).count()
+
+        total = 94725
 
         log.info("%s to delete", total)
 
@@ -60,7 +62,7 @@ class UnpublishTask(luigi.Task):
 
                     log.info(key_value)
 
-                    # self.api_task.ckan.action.datastore_delete(id=resource['id'], filters={primary_key_field: key_value})
+                    self.api_task.ckan.action.datastore_delete(id=resource['id'], filters={primary_key_field: key_value})
 
                     return
 
