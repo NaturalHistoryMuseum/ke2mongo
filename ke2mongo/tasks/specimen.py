@@ -4,7 +4,7 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
-python tasks/specimen.py SpecimenDatasetAPITask --local-scheduler --date 20140731
+python tasks/specimen.py SpecimenDatasetAPITask --local-scheduler --date 20141211
 python tasks/specimen.py SpecimenDatasetCSVTask --local-scheduler --date 20140821
 
 NOTE: This started failing on my dev box, I think because indexes got corrupted
@@ -16,7 +16,6 @@ import re
 import pandas as pd
 import numpy as np
 import luigi
-from pymongo import MongoClient
 from ke2mongo import config
 from ke2mongo.tasks import PARENT_TYPES, DATASET_LICENCE, DATASET_AUTHOR, DATASET_TYPE
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
