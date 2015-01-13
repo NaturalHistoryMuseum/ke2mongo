@@ -32,7 +32,7 @@ class UnpublishTask(luigi.Task):
         # Use the base specimen query
         query = self.api_task.query
         query['AdmPublishWebNoPasswordFlag'] = 'N'
-        query['_id'] = {'$gt': 2694875}
+        query['_id'] = {'$gt': 4775653}
 
         # query['AdmImportIdentifier'] = 'iCollections'
 
