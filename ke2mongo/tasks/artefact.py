@@ -18,7 +18,7 @@ class ArtefactDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-artefacts',
+        'name': 'collection-artefacts-guid-1',
         'notes': u'Cultural and historical artefacts from The Natural History Museum',
         'title': "Artefacts",
         'author': DATASET_AUTHOR,
@@ -35,11 +35,11 @@ class ArtefactDatasetTask(DatasetTask):
             'description': 'Museum artefacts',
             'format': 'csv'
         },
-        'primary_key': 'Identifier'
+        'primary_key': 'GUID'
     }
 
     columns = [
-        ('ecatalogue.irn', 'Identifier', 'string:100'),
+        ('ecatalogue.AdmGUIDPreferredValue', 'GUID', 'uuid'),
         ('ecatalogue.ArtName', 'Name', 'string:100'),
         ('ecatalogue.ArtKind', 'Kind', 'string:100'),
         ('ecatalogue.PalArtDescription', 'Description', 'string:100'),
@@ -48,6 +48,33 @@ class ArtefactDatasetTask(DatasetTask):
     ]
 
     record_type = 'Artefact'
+
+    @property
+    def query(self):
+        """
+        Query object for selecting data from mongoDB
+
+        To test encoding, use query = {'_id': 42866}
+
+        @return: dict
+        """
+        # query = super(SpecimenDatasetTask, self).query
+        #
+        # # Override the default ColRecordType
+        # query['ColRecordType'] = {
+        #     "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
+        # }
+
+        query = {
+            'AdmGUIDPreferredValue': {'$exists': True}
+        }
+
+        # Test query
+        # query['EntIdeScientificNameLocal'] = {"$exists": 1}
+        # query['DetTypeofType'] = {"$exists": 1}
+        # query['_id'] = {'$in': [2574402]}
+
+        return query
 
     def process_dataframe(self, m, df):
         """
@@ -59,6 +86,8 @@ class ArtefactDatasetTask(DatasetTask):
         # And update images to URLs
 
         df = super(ArtefactDatasetTask, self).process_dataframe(m, df)
+
+        print df['GUID']
 
         self.ensure_multimedia(df, 'Multimedia')
         return df

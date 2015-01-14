@@ -421,9 +421,6 @@ class SpecimenDatasetTask(DatasetTask):
 
             part_df = pd.DataFrame(np.matrix(monary_query).transpose(), columns=['RegRegistrationParentRef', '_id'])
 
-            # Add primary key prefix
-            part_df['_id'] = self.primary_key_prefix + part_df['_id'].astype(np.str)
-
             # Group by parent ref
             parts = part_df.groupby('RegRegistrationParentRef')['_id'].apply(lambda x: "%s" % ';'.join(x))
 

@@ -126,10 +126,6 @@ class DeleteTask(MongoTask):
 
             primary_key_value = mongo_record[ke_primary_key]
 
-            # If we have a primary key prefix, append it and ensure primary key is a string
-            if task.primary_key_prefix:
-                primary_key_value = task.primary_key_prefix + str(primary_key_value)
-
             # Load the resource, so we can find the resource ID
             resource = self.ckan.action.resource_show(id=task_cls.datastore['resource']['name'])
 

@@ -55,7 +55,7 @@ class APITarget(luigi.Target):
         datastore_params = {
             'resource_id': self.resource_id,
             'records': records,
-            # 'primary_key': self.datastore['primary_key']
+            # 'primary_key': '_id'
         }
 
         # Check that the data doesn't contain invalid chars

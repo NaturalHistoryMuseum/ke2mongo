@@ -38,7 +38,7 @@ class IndexLotDatasetTask(DatasetTask):
             'description': 'Species level record denoting the presence of a taxon in the Museum collection',
             'format': 'csv'
         },
-        'primary_key': 'Catalogue number'
+        'primary_key': 'GUID'
     }
 
     columns = [
