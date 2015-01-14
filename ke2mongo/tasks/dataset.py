@@ -44,9 +44,6 @@ class DatasetTask(luigi.Task):
     # MongoDB params
     collection_name = 'ecatalogue'
 
-    # Should the primary key be prefixed - eg NHMUK:ecatalogue
-    primary_key_prefix = 'NHMUK:ecatalogue:'
-
     # Default record type - used to select records in query
     record_type = None
 
@@ -248,8 +245,7 @@ class DatasetTask(luigi.Task):
 
         return ckan_type
 
-
-    def get_collection_columns(self, collection=None):
+    def get_collection_source_columns(self, collection=None):
         """
         Parse columns into dictionary keyed by collection name
         And return all fields for a particular collection
@@ -260,6 +256,9 @@ class DatasetTask(luigi.Task):
 
         for (source_field, destination_field, field_type) in self.columns:
             field_collection, field_name = source_field.split('.')
+
+            # UUID fields should be retrieved as 32 byte strings
+            field_type = 'string:36' if field_type == 'uuid' else field_type
 
             try:
                 collection_columns[field_collection].append((field_name, destination_field, field_type))
@@ -298,7 +297,7 @@ class DatasetTask(luigi.Task):
             log.info("Querying Monary")
 
             # Get field definitions for default collection
-            query_fields, df_cols, field_types = zip(*self.get_collection_columns(self.collection_name))
+            query_fields, df_cols, field_types = zip(*self.get_collection_source_columns(self.collection_name))
 
             catalogue_blocks = m.block_query(db, self.collection_name, self.query, query_fields, field_types, block_size=self.block_size)
 
@@ -335,11 +334,6 @@ class DatasetTask(luigi.Task):
         self.has_run = True
 
     def process_dataframe(self, m, df):
-
-        if self.primary_key_prefix:
-            primary_key = self.datastore['primary_key']
-            df[primary_key] = self.primary_key_prefix + df[primary_key]
-
         return df
 
     @staticmethod
@@ -421,7 +415,7 @@ class DatasetTask(luigi.Task):
         @param field:
         @return: bool
         """
-        return not field.startswith('_')
+        return not field.startswith('_') and field != '_id'
 
     def get_output_columns(self):
 
