@@ -104,6 +104,10 @@ class MongoCatalogueTask(MongoTask):
         # Need to filter on web publishable
         self.collection.ensure_index('AdmPublishWebNoPasswordFlag')
 
+        # Exclude records if they do not have a GUID
+        self.collection.ensure_index('AdmGUIDPreferredValue')
+
+
         super(MongoCatalogueTask, self).on_success()
 
 if __name__ == "__main__":
