@@ -18,7 +18,7 @@ from ke2mongo.log import log
 from ke2mongo import config
 from ke2mongo.lib.timeit import timeit
 from ke2mongo.targets.mongo import MongoTarget
-from pymongo.errors import InvalidOperation
+from pymongo.errors import InvalidOperation, DuplicateKeyError
 from ConfigParser import NoOptionError
 
 class InvalidRecordException(Exception):
@@ -128,7 +128,7 @@ class MongoTask(luigi.Task):
             bulk.execute()
         except InvalidOperation:
             # If we do not have any records to execute, ignore error
-            # They have been executed in ln132
+            # They have been executed in ln124
             pass
 
     def batch_insert(self, ke_data):
@@ -143,7 +143,21 @@ class MongoTask(luigi.Task):
                 # If the batch length equals the batch size, commit and clear the batch
                 if len(batch) % self.batch_size == 0:
                     log.info('Submitting batch')
-                    self.collection.insert(batch)
+
+                    try:
+                        self.collection.insert(batch)
+                    except DuplicateKeyError:
+                        # Duplicate key error - KE export does duplicate some records
+                        # So switch to bulk upsert for this operation
+
+                        log.error('Duplicate key error - switching to upsert')
+
+                        bulk = self.collection.initialize_unordered_bulk_op()
+                        for batch_record in batch:
+                            bulk.find({'_id': batch_record['_id']}).upsert().replace_one(batch_record)
+
+                        bulk.execute()
+
                     batch = []
 
             else:
