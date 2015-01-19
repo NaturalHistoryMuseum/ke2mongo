@@ -133,6 +133,22 @@ class MongoTask(luigi.Task):
 
     def batch_insert(self, ke_data):
 
+        def _insert(batch):
+
+            try:
+                self.collection.insert(batch)
+            except DuplicateKeyError:
+                # Duplicate key error - KE export does duplicate some records
+                # So switch to bulk upsert for this operation
+
+                log.error('Duplicate key error - switching to upsert')
+
+                bulk = self.collection.initialize_unordered_bulk_op()
+                for batch_record in batch:
+                    bulk.find({'_id': batch_record['_id']}).upsert().replace_one(batch_record)
+
+                bulk.execute()
+
         batch = []
 
         for record in self.iterate_data(ke_data):
@@ -143,21 +159,7 @@ class MongoTask(luigi.Task):
                 # If the batch length equals the batch size, commit and clear the batch
                 if len(batch) % self.batch_size == 0:
                     log.info('Submitting batch')
-
-                    try:
-                        self.collection.insert(batch)
-                    except DuplicateKeyError:
-                        # Duplicate key error - KE export does duplicate some records
-                        # So switch to bulk upsert for this operation
-
-                        log.error('Duplicate key error - switching to upsert')
-
-                        bulk = self.collection.initialize_unordered_bulk_op()
-                        for batch_record in batch:
-                            bulk.find({'_id': batch_record['_id']}).upsert().replace_one(batch_record)
-
-                        bulk.execute()
-
+                    _insert(batch)
                     batch = []
 
             else:
@@ -165,7 +167,7 @@ class MongoTask(luigi.Task):
 
         # Add any records remaining in the batch
         if batch:
-            self.collection.insert(batch)
+            _insert(batch)
 
     def iterate_data(self, ke_data):
         """
