@@ -93,25 +93,6 @@ def main():
 
     w = BulkWorker(scheduler=sch)
 
-    # On full export date we will not have the eaudit deleted
-    # So rather than calling MongoDeleteTask() which will fail if eaudit.deleted-export is missing
-    # We will call these first, before moving onto the bulk Op
-    if full_export_date in export_dates:
-
-        # Remove full export date from list of dates to process
-        export_dates.remove(full_export_date)
-
-        # Remove the delete task from list of tasks to process
-        bulk_tasks.remove(MongoDeleteTask)
-
-        # Loop through all bulks tasks, adding for the export date
-        for task in bulk_tasks:
-            w.add(task(date=full_export_date))
-
-        # Run the tasks
-        w.run()
-        w.stop()
-
     for export_date in export_dates:
 
         log.info('Processing date %s', export_date)

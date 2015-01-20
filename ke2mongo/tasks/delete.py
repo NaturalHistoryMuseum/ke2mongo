@@ -36,27 +36,42 @@ class DeleteTask(MongoTask):
 
     def requires(self):
 
-        # Need to require the parent mongo task - the KE file
-        ke_file_task = super(DeleteTask, self).requires()
-
         # For delete to run, all other mongo tasks for same date must have already run
-        return [
+        req = [
             MongoCatalogueTask(self.date),
             MongoTaxonomyTask(self.date),
             MongoMultimediaTask(self.date),
             MongoCollectionIndexTask(self.date),
             MongoCollectionEventTask(self.date),
             MongoSiteTask(self.date),
-            ke_file_task
         ]
+
+        # Full export does not include an eaudit file
+        # So we do not want to try processing
+        if not self.is_full_export():
+            req.append(super(DeleteTask, self).requires())
+
+        return req
+
+
+    def is_full_export(self):
+        """
+        Is this data a full export date
+        @return:
+        """
+        return self.date == int(config.get('keemu', 'full_export_date'))
 
     @timeit
     def run(self):
+
+
         # Build a dict of all modules and collections
         # We then retrieve the appropriate collection from the records module name (AudTable)
         collections = {}
         for cls in MongoTask.__subclasses__():
             collections[cls.module] = cls(None).get_collection()
+
+        ke_file_target = None
 
         # We have multiple requirements (& thus inputs)
         # Loop through to find the ke file target
@@ -65,27 +80,31 @@ class DeleteTask(MongoTask):
                 ke_file_target = i
                 break
 
-        ke_data = KEParser(ke_file_target.open('r'), file_path=ke_file_target.path, schema_file=self.keemu_schema_file)
+        # If we have a KE target file for this delete operation, process it
+        # We won't if this data is for a full export
+        if ke_file_target:
 
-        for record in self.iterate_data(ke_data):
+            ke_data = KEParser(ke_file_target.open('r'), file_path=ke_file_target.path, schema_file=self.keemu_schema_file)
 
-            module = record.get('AudTable')
-            irn = record.get('AudKey')
-            try:
-                collection = collections[module]
-            except KeyError:
-                log.debug('Skipping eaudit record for %s' % module)
-                # We do not have a collection for this module - skip to next record
-                continue
-            else:
-                log.info('Deleting record %s(%s)' % (module, irn))
+            for record in self.iterate_data(ke_data):
 
-                # If this is an ecatalogue record, try and delete from CKAN
-                if collection.name == 'ecatalogue':
-                    self.ckan_delete(collection, irn)
+                module = record.get('AudTable')
+                irn = record.get('AudKey')
+                try:
+                    collection = collections[module]
+                except KeyError:
+                    log.debug('Skipping eaudit record for %s' % module)
+                    # We do not have a collection for this module - skip to next record
+                    continue
+                else:
+                    log.info('Deleting record %s(%s)' % (module, irn))
 
-                # And then delete from mongoDB
-                collection.remove({'_id': irn})
+                    # If this is an ecatalogue record, try and delete from CKAN
+                    if collection.name == 'ecatalogue':
+                        self.ckan_delete(collection, irn)
+
+                    # And then delete from mongoDB
+                    collection.remove({'_id': irn})
 
         self.mark_complete()
 

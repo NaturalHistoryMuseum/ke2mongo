@@ -26,7 +26,7 @@ class SpecimenDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-specimens',
+        'name': 'collection-specimens-new',
         'notes': u'Specimen records from the Natural History Museum\'s collection',
         'title': "Collection specimens",
         'author': DATASET_AUTHOR,
