@@ -325,7 +325,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Test query
         # query['EntIdeScientificNameLocal'] = {"$exists": 1}
-        query['RegRegistrationParentRef'] = {"$exists": 1}
+        # query['RegRegistrationParentRef'] = {"$exists": 1}
         # query['_id'] = {'$in': [2574402]}
 
         return query
