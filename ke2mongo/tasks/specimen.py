@@ -55,7 +55,8 @@ class SpecimenDatasetTask(DatasetTask):
     columns = [
         # List of columns
         # ([KE EMu field], [new field], [field type])
-        ('ecatalogue._id', '_id', 'int32'),  # Used for logging
+        ('ecatalogue._id', '_id', 'int32'),  # Used for logging and joins
+        ('ecatalogue.AdmGUIDPreferredValue', 'occurrenceID', 'uuid'),
         ('ecatalogue.DarCatalogNumber', 'catalogNumber', 'string:100'),
         # Taxonomy
         ('ecatalogue.DarScientificName', 'scientificName', 'string:100'),
@@ -234,8 +235,6 @@ class SpecimenDatasetTask(DatasetTask):
         ('ecatalogue.MinMetWeightAsRegistered', 'registeredWeight', 'string:100'),
         ('ecatalogue.MinMetWeightAsRegisteredUnit', 'registeredWeightUnit', 'string:100'),
 
-        # Identifier
-        ('ecatalogue.irn', 'occurrenceID', 'string:100'),
         # Record level
         ('ecatalogue.AdmDateModified', 'modified', 'string:100'),
         # This isn't actually in DwC - but I'm going to use dcterms:created
@@ -326,7 +325,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Test query
         # query['EntIdeScientificNameLocal'] = {"$exists": 1}
-        # query['DetTypeofType'] = {"$exists": 1}
+        query['RegRegistrationParentRef'] = {"$exists": 1}
         # query['_id'] = {'$in': [2574402]}
 
         return query
@@ -414,21 +413,25 @@ class SpecimenDatasetTask(DatasetTask):
             if '_id' in q:
                 del q['_id']
 
-            # Get all records with the same parent
+            # Get all records with the same parent, so we can add them as related records
             q['RegRegistrationParentRef'] = {'$in': parent_irns}
 
-            monary_query = m.query(config.get('mongo', 'database'), 'ecatalogue', q, ['RegRegistrationParentRef', '_id'], ['int32'] * 2)
+            monary_query = m.query(config.get('mongo', 'database'), 'ecatalogue', q, ['RegRegistrationParentRef', 'AdmGUIDPreferredValue'], ['int32', 'string:36'])
 
-            part_df = pd.DataFrame(np.matrix(monary_query).transpose(), columns=['RegRegistrationParentRef', '_id'])
+            part_df = pd.DataFrame(np.matrix(monary_query).transpose(), columns=['RegRegistrationParentRef', 'AdmGUIDPreferredValue'])
 
-            # Group by parent ref
-            parts = part_df.groupby('RegRegistrationParentRef')['_id'].apply(lambda x: "%s" % ';'.join(x))
+            part_df['RegRegistrationParentRef'] = part_df['RegRegistrationParentRef'].astype('int32')
+
+            # Group by parent ref and concatenate all the GUIDs together
+            # So we now have:
+            # parent_irn   guid; guid
+            parts = part_df.groupby('RegRegistrationParentRef')['AdmGUIDPreferredValue'].apply(lambda x: "%s" % ';'.join(x))
 
             # And update the main date frame with the group parts, merged on _parentRef
             df['relatedResourceID'] = df.apply(lambda row: parts[row['_parentRef']] if row['_parentRef'] in parts else np.NaN, axis=1)
             df['relationshipOfResource'][df['relatedResourceID'].notnull()] = 'Parts'
 
-            parent_df = self.get_dataframe(m, 'ecatalogue', self.get_collection_columns('ecatalogue'), parent_irns, '_id')
+            parent_df = self.get_dataframe(m, 'ecatalogue', self.get_collection_source_columns('ecatalogue'), parent_irns, '_id')
 
             # Ensure the parent multimedia images are usable
             self.ensure_multimedia(parent_df, 'associatedMedia')
@@ -449,7 +452,7 @@ class SpecimenDatasetTask(DatasetTask):
         df['decimalLatitude'] = df['decimalLatitude'].astype('float64')
 
         # Get all collection columns
-        collection_columns = self.get_collection_columns()
+        collection_columns = self.get_collection_source_columns()
 
         # Load extra sites info (if there's an error radius + unit)
         site_irns = self._get_unique_irns(df, '_siteRef')
