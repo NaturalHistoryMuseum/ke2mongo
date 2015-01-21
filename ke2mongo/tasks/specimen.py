@@ -27,7 +27,7 @@ class SpecimenDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-specimens-json',
+        'name': 'collection-specimens-2',
         'notes': u'Specimen records from the Natural History Museum\'s collection',
         'title': "Collection specimens",
         'author': DATASET_AUTHOR,
@@ -327,7 +327,7 @@ class SpecimenDatasetTask(DatasetTask):
         # Test query
         # query['EntIdeScientificNameLocal'] = {"$exists": 1}
         # query['EntIdeScientificNameLocal'] = {"$exists": 1}
-        query['_id'] = {'$in': [4676028]}
+        # query['_id'] = {'$in': [4676028]}
 
         return query
 
@@ -381,7 +381,7 @@ class SpecimenDatasetTask(DatasetTask):
             """
             return json.dumps({field_name: row[determination].split(';') for field_name, determination in determination_fields if row[determination]})
 
-        df['determinations'] = df.apply(determinations_json, axis=1)
+        df['determinations'] = df[df['_determinationNames'] != ''].apply(determinations_json, axis=1)
 
         # There doesn't seem to be a good way to identify centroids in KE EMu
         # I was using esites.LatDeriveCentroid, but this always defaults to True

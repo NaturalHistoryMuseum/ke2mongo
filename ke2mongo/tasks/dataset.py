@@ -435,7 +435,9 @@ class DatasetTask(luigi.Task):
             @param irns:
             @return: json
             """
-            return json.dumps([multimedia_dict[irn] for irn in irns if irn in multimedia_dict])
+
+            multimedia_records = [multimedia_dict[irn] for irn in irns if irn in multimedia_dict]
+            return json.dumps(multimedia_records) if multimedia_records else np.nan
 
         # And finally update the associatedMedia field, so formatting with the IRN with MULTIMEDIA_URL, if the IRN is in valid_multimedia
         df[multimedia_field] = df[multimedia_field].apply(multimedia_to_json)
