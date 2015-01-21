@@ -16,6 +16,7 @@ import re
 import pandas as pd
 import numpy as np
 import luigi
+import json
 from ke2mongo import config
 from ke2mongo.tasks import PARENT_TYPES, DATASET_LICENCE, DATASET_AUTHOR, DATASET_TYPE
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
@@ -26,7 +27,7 @@ class SpecimenDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-specimens-new',
+        'name': 'collection-specimens-json',
         'notes': u'Specimen records from the Natural History Museum\'s collection',
         'title': "Collection specimens",
         'author': DATASET_AUTHOR,
@@ -300,7 +301,7 @@ class SpecimenDatasetTask(DatasetTask):
     literal_columns = [
         ('institutionCode', 'string:100', 'NHMUK'),
         ('basisOfRecord', 'string:100', 'Specimen'),
-        ('determinations', 'string:250', np.NaN),
+        ('determinations', 'json', np.NaN),
         # This is set dynamically if this is a part record (with parent Ref)
         ('relatedResourceID', 'string:100', np.NaN),
         ('relationshipOfResource', 'string:100', np.NaN),
@@ -325,8 +326,8 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Test query
         # query['EntIdeScientificNameLocal'] = {"$exists": 1}
-        # query['RegRegistrationParentRef'] = {"$exists": 1}
-        # query['_id'] = {'$in': [2574402]}
+        # query['EntIdeScientificNameLocal'] = {"$exists": 1}
+        query['_id'] = {'$in': [4676028]}
 
         return query
 
@@ -364,19 +365,23 @@ class SpecimenDatasetTask(DatasetTask):
         # Ensure multimedia resources are suitable (jpeg rather than tiff etc.,)
         self.ensure_multimedia(df, 'associatedMedia')
 
-        # Assign determination name, type and field as to Determinations to show determination history
-        determinations = [
+        # Assign determination name, type and field as to determinations for determination history
+        determination_fields = [
             ('name', '_determinationNames'),
             ('type', '_determinationTypes'),
             ('filedAs', '_determinationFiledAs')
         ]
 
-        # Add field name =  to each determination
-        for field_name, determination in determinations:
-            df[determination][df[determination] != ''] = field_name + '=' + df[determination]
+        def determinations_json(row):
+            """
+            Convert determination fields to json
+            Dictionary comprehension looping through each field, and if it exists adding to a dict
+            @param row:
+            @return:
+            """
+            return json.dumps({field_name: row[determination].split(';') for field_name, determination in determination_fields if row[determination]})
 
-        # And join all determination fields into one
-        df['determinations'] = df['_determinationNames'].str.cat(df['_determinationTypes'].values.astype(str), sep='\n').str.cat(df['_determinationFiledAs'].values.astype(str), sep='\n')
+        df['determinations'] = df.apply(determinations_json, axis=1)
 
         # There doesn't seem to be a good way to identify centroids in KE EMu
         # I was using esites.LatDeriveCentroid, but this always defaults to True
