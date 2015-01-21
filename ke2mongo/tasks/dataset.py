@@ -417,12 +417,15 @@ class DatasetTask(luigi.Task):
                     width=get_max_dimension(record['DocWidth']),
                     height=get_max_dimension(record['DocHeight'])
                 ),
-                'format': record['MulMimeFormat'],
+                'format': 'image/%s' % record['MulMimeFormat'],
                 "type": "StillImage",
-                "title": 'image/%s' % record['MulTitle'],
                 "licence": "http://creativecommons.org/licenses/by/4.0/",
                 "rightsHolder": "The Trustees of the Natural History Museum, London"
             }
+
+            # Add the title if it exists
+            if record.get('MulTitle', None):
+                multimedia_dict[record['_id']]['title'] = record.get('MulTitle')
 
         def multimedia_to_json(irns):
             """
