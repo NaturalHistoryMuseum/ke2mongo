@@ -14,6 +14,7 @@ import abc
 import ckanapi
 import itertools
 import datetime
+import json
 from collections import OrderedDict
 from monary import Monary
 from monary.monary import get_monary_numpy_type
@@ -245,6 +246,28 @@ class DatasetTask(luigi.Task):
 
         return ckan_type
 
+    @staticmethod
+    def ckan_to_numpy_type(ckan_type):
+        """
+        Convert CKAN field types to numpy types
+        Essentially convert special types (UUID; JSON) to strings
+        @param pandas_type:
+        @return:
+        """
+
+        if ckan_type == 'uuid':
+            # UUID fields should be retrieved as 36 byte strings
+            numpy_type = 'string:36'
+        elif ckan_type == 'json':
+            # JSON fields should be retrieved as strings
+            numpy_type = 'string:200'
+        else:
+            # Otherwise keep the original type
+            numpy_type = ckan_type
+
+        return numpy_type
+
+
     def get_collection_source_columns(self, collection=None):
         """
         Parse columns into dictionary keyed by collection name
@@ -256,9 +279,7 @@ class DatasetTask(luigi.Task):
 
         for (source_field, destination_field, field_type) in self.columns:
             field_collection, field_name = source_field.split('.')
-
-            # UUID fields should be retrieved as 32 byte strings
-            field_type = 'string:36' if field_type == 'uuid' else field_type
+            field_type = self.ckan_to_numpy_type(field_type)
 
             try:
                 collection_columns[field_collection].append((field_name, destination_field, field_type))
@@ -374,21 +395,47 @@ class DatasetTask(luigi.Task):
                 '_id': {'$in': unique_multimedia_irns},
                 'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS},
                 'DocHeight': {'$exists': True},
-                'DocWidth': {'$exists': True}
+                'DocWidth': {'$exists': True},
+                'AdmPublishWebNoPasswordFlag': 'Y',
+                'MulMimeType': 'image'
             },
-            {'DocHeight': 1, 'DocWidth': 1}
+            {
+                'DocHeight': 1,
+                'DocWidth': 1,
+                'MulMimeFormat': 1,
+                'MulTitle': 1
+            }
         )
 
-        multimedia = {
-            r['_id']: 'http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php?irn={_id}&image=yes&width={width}&height={height}'.format(
-                _id=r['_id'],
-                width=get_max_dimension(r['DocWidth']),
-                height=get_max_dimension(r['DocHeight'])
-            ) for r in cursor
-        }
+        # Create a dictionary of multimedia records, keyed by _id
+        multimedia_dict = {}
+
+        for record in cursor:
+            multimedia_dict[record['_id']] = {
+                'identifier': 'http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php?irn={_id}&image=yes&width={width}&height={height}'.format(
+                    _id=record['_id'],
+                    width=get_max_dimension(record['DocWidth']),
+                    height=get_max_dimension(record['DocHeight'])
+                ),
+                'format': record['MulMimeFormat'],
+                "type": "StillImage",
+                "title": 'image/%s' % record['MulTitle'],
+                "licence": "http://creativecommons.org/licenses/by/4.0/",
+                "rightsHolder": "The Trustees of the Natural History Museum, London"
+            }
+
+        def multimedia_to_json(irns):
+            """
+            Convert multimedia fields to json
+            Loop through all the irns in the field, check they key exists in multimedia_dict
+            (If it's not the image might not be publishable / be in the correct format)
+            @param irns:
+            @return: json
+            """
+            return json.dumps([multimedia_dict[irn] for irn in irns if irn in multimedia_dict])
 
         # And finally update the associatedMedia field, so formatting with the IRN with MULTIMEDIA_URL, if the IRN is in valid_multimedia
-        df[multimedia_field] = df[multimedia_field].apply(lambda irns: '; '.join(multimedia[irn] for irn in irns if irn in multimedia))
+        df[multimedia_field] = df[multimedia_field].apply(multimedia_to_json)
 
     @staticmethod
     def get_dataframe(m, collection, columns, irns, key):

@@ -22,6 +22,10 @@ class MongoMultimediaTask(MongoTask):
         """
         self.collection = self.get_collection()
         self.collection.ensure_index('MulMimeFormat')
+        self.collection.ensure_index('MulMimeType')
+
+        # Need to filter on web publishable
+        self.collection.ensure_index('AdmPublishWebNoPasswordFlag')
 
 if __name__ == "__main__":
     luigi.run(main_task_cls=MongoMultimediaTask)

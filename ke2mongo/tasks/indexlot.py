@@ -21,7 +21,7 @@ class IndexLotDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-indexlots',
+        'name': 'collection-indexlots-guid1',
         'notes': u'Index Lot records from the Natural History Museum\'s collection',
         'title': "Index Lot collection",
         'author': DATASET_AUTHOR,
@@ -61,7 +61,7 @@ class IndexLotDatasetTask(DatasetTask):
         ('etaxonomy.ClaSubspecies', 'Subspecies', 'string:100'),
         ('etaxonomy.ClaRank', 'Taxonomic rank', 'string:20'),  # NB: CKAN uses rank internally
 
-        ('ecatalogue.irn', 'Catalogue number', 'string:100'),
+        ('ecatalogue.AdmGUIDPreferredValue', 'GUID', 'uuid'),
         ('ecatalogue.EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
         ('ecatalogue.EntIndMaterial', 'Material', 'bool'),
         ('ecatalogue.EntIndType', 'Type', 'bool'),
@@ -102,7 +102,7 @@ class IndexLotDatasetTask(DatasetTask):
         df = super(IndexLotDatasetTask, self).process_dataframe(m, df)
 
         # Convert booleans to yes / no for all columns in the main collection
-        for (_, field, field_type) in self.get_collection_columns(self.collection_name):
+        for (_, field, field_type) in self.get_collection_source_columns(self.collection_name):
             if field_type == 'bool':
                 df[field][df[field] == 'True'] = 'Yes'
                 df[field][df[field] == 'False'] = 'No'
@@ -123,7 +123,7 @@ class IndexLotDatasetTask(DatasetTask):
         collection_index_df = self.get_dataframe(m, 'ecollectionindex', collection_index_columns, collection_index_irns, '_collection_index_irn')
 
         # Get all collection columns
-        collection_columns = self.get_collection_columns()
+        collection_columns = self.get_collection_source_columns()
 
         # And get the taxonomy for these collection
         taxonomy_irns = self._get_unique_irns(collection_index_df, '_taxonomy_irn')

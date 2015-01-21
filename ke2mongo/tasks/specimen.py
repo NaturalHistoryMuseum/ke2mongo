@@ -159,7 +159,7 @@ class SpecimenDatasetTask(DatasetTask):
         # So it's better to build automatically from part / parent records
 
         # Multimedia
-        ('ecatalogue.MulMultiMediaRef', 'associatedMedia', 'string:100'),
+        ('ecatalogue.MulMultiMediaRef', 'associatedMedia', 'json'),
 
         # Dynamic properties
         # These fields do not map to DwC, but are still very useful
