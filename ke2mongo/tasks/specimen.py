@@ -56,7 +56,7 @@ class SpecimenDatasetTask(DatasetTask):
     columns = [
         # List of columns
         # ([KE EMu field], [new field], [field type])
-        ('ecatalogue._id', '_id', 'int32'),  # Used for logging and joins
+        ('ecatalogue._id', '_id', 'int32'),  # Used for logging, joins and the old stable identifier
         ('ecatalogue.AdmGUIDPreferredValue', 'occurrenceID', 'uuid'),
         ('ecatalogue.DarCatalogNumber', 'catalogNumber', 'string:100'),
         # Taxonomy
@@ -112,7 +112,6 @@ class SpecimenDatasetTask(DatasetTask):
         ('ecatalogue.DarMaximumElevationInMeters', 'maximumElevationInMeters', 'string:100'),
         ('ecatalogue.DarMinimumDepthInMeters', 'minimumDepthInMeters', 'string:100'),
         ('ecatalogue.DarMaximumDepthInMeters', 'maximumDepthInMeters', 'string:100'),
-        ('ecatalogue.DarOtherCatalogNumbers', 'otherCatalogNumbers', 'string:100'),
         # DarCollector doesn't have multiple collectors NHMUK:ecatalogue:1751715 - Switched to using ecollectionevents.ColParticipantLocal
         # ('ecatalogue.DarCollector', 'Recorded by', 'string:100'),
         ('ecatalogue.DarCollectorNumber', 'recordNumber', 'string:100'),
@@ -305,7 +304,8 @@ class SpecimenDatasetTask(DatasetTask):
         # This is set dynamically if this is a part record (with parent Ref)
         ('relatedResourceID', 'string:100', np.NaN),
         ('relationshipOfResource', 'string:100', np.NaN),
-        ('centroid', 'bool', False)
+        ('centroid', 'bool', False),
+        ('otherCatalogNumbers', 'string:100', np.NaN),
     ]
 
     @property
@@ -361,6 +361,8 @@ class SpecimenDatasetTask(DatasetTask):
         df['collectionCode'] = df['collectionCode'].str.upper().str[0:3]
         # Entom record collection code = BMNH(E)
         df['collectionCode'][df['collectionCode'] == 'ENT'] = "BMNH(E)"
+        # Add the old stable identifier - IRN concatenated with catalogue name etc.,
+        df['otherCatalogNumbers'] = 'NHMUK:ecatalogue:' + df['_id'].astype('str')
 
         # Ensure multimedia resources are suitable (jpeg rather than tiff etc.,)
         self.ensure_multimedia(df, 'associatedMedia')

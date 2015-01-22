@@ -16,8 +16,6 @@ MULTIMEDIA_FORMATS = ['jp2', 'jpeg']
 
 DATE_FORMAT = 'YYYY-MM-DD'
 
-RECORD_STATUS = 'Active'
-
 DATASET_LICENCE = 'cc-zero'
 DATASET_AUTHOR = 'Natural History Museum'
 DATASET_TYPE = 'Collections'
