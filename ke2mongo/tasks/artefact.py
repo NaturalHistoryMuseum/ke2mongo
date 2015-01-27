@@ -4,7 +4,7 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
-python tasks/artefact.py ArtefactDatasetAPITask
+python tasks/artefact.py ArtefactDatasetAPITask --local-scheduler
 
 """
 
@@ -18,7 +18,7 @@ class ArtefactDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-artefacts-json-2',
+        'name': 'collection-artefacts',
         'notes': u'Cultural and historical artefacts from The Natural History Museum',
         'title': "Artefacts",
         'author': DATASET_AUTHOR,

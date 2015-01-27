@@ -106,6 +106,9 @@ class DatasetTask(luigi.Task):
         # Web publishable != No
         query['AdmPublishWebNoPasswordFlag'] = {'$ne': 'N'}
 
+        # And ensure we have a GUID
+        query['AdmGUIDPreferredValue'] = {'$exists': True}
+
         if self.date:
             # Ensure we have processed all files for preceding dates
             self.ensure_export_date(self.date)
@@ -442,7 +445,7 @@ class DatasetTask(luigi.Task):
                 ),
                 'format': 'image/%s' % record['MulMimeFormat'],
                 "type": "StillImage",
-                "licence": "http://creativecommons.org/licenses/by/4.0/",
+                "license": "http://creativecommons.org/licenses/by/4.0/",
                 "rightsHolder": "The Trustees of the Natural History Museum, London"
             }
 

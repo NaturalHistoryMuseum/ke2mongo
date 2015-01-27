@@ -21,7 +21,7 @@ class IndexLotDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-indexlots-guid1',
+        'name': 'collection-indexlots',
         'notes': u'Index Lot records from the Natural History Museum\'s collection',
         'title': "Index Lot collection",
         'author': DATASET_AUTHOR,
