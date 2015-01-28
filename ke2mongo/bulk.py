@@ -19,6 +19,7 @@ from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
 from ke2mongo.tasks.mongo_collection_event import MongoCollectionEventTask
 from ke2mongo.tasks.mongo_site import MongoSiteTask
 from ke2mongo.tasks.mongo_delete import MongoDeleteTask
+from ke2mongo.tasks.unpublish import UnpublishTask
 from ke2mongo.lib.file import get_export_file_dates
 from ke2mongo.lib.mongo import mongo_get_update_markers
 
@@ -55,6 +56,7 @@ def main():
         MongoTaxonomyTask,
         MongoMultimediaTask,
         MongoSiteTask,
+        UnpublishTask,
         MongoDeleteTask
     ]
 

@@ -19,5 +19,3 @@ DATE_FORMAT = 'YYYY-MM-DD'
 DATASET_LICENCE = 'cc-zero'
 DATASET_AUTHOR = 'Natural History Museum'
 DATASET_TYPE = 'Collections'
-
-
