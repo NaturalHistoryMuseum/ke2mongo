@@ -423,8 +423,10 @@ class DatasetTask(luigi.Task):
                 'DocHeight': {'$exists': True},
                 'DocWidth': {'$exists': True},
                 'AdmPublishWebNoPasswordFlag': 'Y',
-                'MulMimeType': 'image'
-            },
+                'MulMimeType': 'image',
+                'ISODateInserted': {
+                    '$lte': datetime.datetime(2014, 4, 24)},  # All images added after 25/3/2014 aren't available
+                },
             {
                 'DocHeight': 1,
                 'DocWidth': 1,
