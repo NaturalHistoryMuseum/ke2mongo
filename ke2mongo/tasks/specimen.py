@@ -4,7 +4,7 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
-python tasks/specimen.py SpecimenDatasetAPITask --local-scheduler --date 20141211
+python tasks/specimen.py SpecimenDatasetAPITask --local-scheduler
 python tasks/specimen.py SpecimenDatasetCSVTask --local-scheduler --date 20140821
 
 NOTE: This started failing on my dev box, I think because indexes got corrupted
@@ -176,7 +176,9 @@ class SpecimenDatasetTask(DatasetTask):
         ('ecatalogue.DarObservedWeight', 'observedWeight', 'string:100'),
 
         # Location
-        ('ecatalogue.sumViceCountry', 'viceCountry', 'string:100'),
+        # Data is stored in sumViceCountry field in ecatalogue data - but actually this
+        # should be viceCountry (which it is in esites)
+        ('ecatalogue.sumViceCountry', 'viceCounty', 'string:100'),
 
         ('ecatalogue.DnaExtractionMethod', 'extractionMethod', 'string:100'),
         ('ecatalogue.DnaReSuspendedIn', 'resuspendedIn', 'string:100'),
@@ -326,7 +328,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # Test query
         # query['EntIdeScientificNameLocal'] = {"$exists": 1}
-        # query['EntIdeScientificNameLocal'] = {"$exists": 1}
+        # query['MulMultiMediaRef'] = {"$exists": 1}
         # query['_id'] = {'$in': [4676028]}
 
         return query
