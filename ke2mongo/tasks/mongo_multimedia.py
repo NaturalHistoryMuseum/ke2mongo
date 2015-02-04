@@ -3,6 +3,9 @@
 """
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
+
+ python tasks/mongo_multimedia.py --local-scheduler --date 20150115
+
 """
 
 import luigi
