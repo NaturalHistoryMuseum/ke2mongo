@@ -38,7 +38,7 @@ class DeleteTask(MongoTask):
         req = [
             MongoCatalogueTask(self.date),
             MongoTaxonomyTask(self.date),
-            MongoMultimediaTask(self.date),
+            # MongoMultimediaTask(self.date),
             MongoCollectionIndexTask(self.date),
             MongoCollectionEventTask(self.date),
             MongoSiteTask(self.date),

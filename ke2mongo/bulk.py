@@ -54,7 +54,7 @@ def main():
         MongoCollectionEventTask,
         MongoCatalogueTask,
         MongoTaxonomyTask,
-        MongoMultimediaTask,
+        # MongoMultimediaTask,
         MongoSiteTask,
         UnpublishTask,
         MongoDeleteTask
