@@ -225,6 +225,9 @@ class DatasetTask(luigi.Task):
             self.datastore['fields'] = [{'id': col, 'type': self.numpy_to_ckan_type(np_type)} for col, np_type in self.get_output_columns().iteritems()]
             self.datastore['resource']['package_id'] = ckan_package['id']
 
+            # Create BTREE indexes for all citext fields
+            self.datastore['indexes'] = [col['id'] for col in self.datastore['fields'] if col['type'] == 'citext']
+
             # API call to create the datastore
             resource_id = self.ckan.action.datastore_create(**self.datastore)['resource_id']
 
@@ -319,7 +322,6 @@ class DatasetTask(luigi.Task):
 
     @timeit
     def run(self):
-
         count = 0
 
         host = config.get('mongo', 'host')
@@ -528,6 +530,12 @@ class DatasetAPITask(DatasetTask):
         # Explicitly set the last modified date
         resource['last_modified'] = datetime.datetime.now().isoformat()
         self.ckan.action.resource_update(**resource)
+
+        # If we have geospatial fields, update the geom columns
+        if self.geospatial_fields:
+            log.info("Updating geometry columns for %s", self.resource_id)
+            self.geospatial_fields['resource_id'] = self.resource_id
+            self.ckan.action.update_geom_columns(**self.geospatial_fields)
 
 
 class DatasetCSVTask(DatasetTask):
