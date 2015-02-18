@@ -54,6 +54,83 @@ A new dump was produced 20140814, containing all records.
 Updates prior to that point do not include records updated on the date the report runs.
 
 
+IMPORT CRITERIA
+---------------
+
+The import process filters out records not needed on the portal. The criteria are:
+ 
+Specimens
+---------
+
+(These are filtered out before adding to the mongo collection - see MongoCatalogueTask)
+
+Record type != [
+    'Acquisition',
+    'Bound Volume',
+    'Bound Volume Page',
+    'Collection Level Description',
+    'DNA Card',  
+    'Field Notebook',
+    'Field Notebook (Double Page)',
+    'Image',
+    'Image (electronic)',
+    'Image (non-digital)',
+    'Image (digital)',
+    'Incoming Loan',
+    'L&A Catalogue',
+    'Missing',
+    'Object Entry',
+    'object entry', 
+    'Object entry',  
+    'PEG Specimen',
+    'PEG Catalogue',
+    'Preparation',
+    'Rack File',
+    'Tissue', 
+    'Transient Lot'
+ ]
+
+Record status != [
+    "DELETE",
+    "DELETE-MERGED",
+    "DUPLICATION",
+    "Disposed of",
+    "FROZEN ARK",
+    "INVALID",
+    "POSSIBLE TYPE",
+    "PROBLEM",
+    "Re-registered in error",
+    "Reserved",
+    "Retired",
+    "Retired (see Notes)",
+    "Retired (see Notes)Retired (see Notes)",
+    "SCAN_cat",
+    "See Notes",
+    "Specimen missing - see notes",
+    "Stub",
+    "Stub Record",
+    "Stub record"
+]
+
+Web publishable != 'N'
+
+Preferred GUID value exists
+ 
+Index lots
+----------
+
+Record type = 'Index Lot'
+Web publishable != 'N'
+Preferred GUID value exists
+
+Artefacts
+---------
+
+Record type = 'Artefacts'
+Web publishable != 'N'
+Preferred GUID value exists
+
+
 Luigi
 -----
 
