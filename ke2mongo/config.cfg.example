@@ -11,9 +11,19 @@ schema = /vagrant/exports/schema.pl
 full_export_date = YYYYMMDD
 
 [ckan]
+owner_org =
+
+[ckan.local]
+site_url = http://localhost
+api_key =
+
+[ckan.dev]
 site_url =
 api_key =
-owner_org =
+
+[ckan.live]
+site_url =
+api_key = 
 
 [csv]
 # The directory to write CSV files
