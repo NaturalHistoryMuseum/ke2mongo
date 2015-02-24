@@ -10,10 +10,18 @@ from luigi.parameter import MissingParameterException
 from ke2mongo.lib.timeit import timeit
 from keparser import KEParser
 from ke2mongo.log import log
-from ke2mongo.tasks.delete import DeleteTask
+from ke2mongo.tasks.mongo import MongoTask
 
+# Import all the mongo tasks so they're findable in MongoTask.__subclasses__()
+from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
+from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
+from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
+from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
+from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
+from ke2mongo.tasks.mongo_collection_event import MongoCollectionEventTask
+from ke2mongo.tasks.mongo_site import MongoSiteTask
 
-class MongoDeleteTask(DeleteTask):
+class MongoDeleteTask(MongoTask):
     """
     Delete records from Mongo DB
     This does not delete the corresponding records from CKAN dataset
@@ -25,24 +33,49 @@ class MongoDeleteTask(DeleteTask):
 
     """
 
+    module = 'eaudit'
+    file_extension = 'deleted-export'
+
     force = luigi.BooleanParameter(default=False, significant=False)
 
-    # Use the same task family as DeleteTask
-    # if DeleteTask has run, we do not want this to run, and vice versa
-    task_family = DeleteTask.task_family
-
+    @timeit
     def run(self):
 
+        # Running this task doesn't delete anything from CKAN itself - so require --force flag to be sent to run it
         if not self.force:
             raise Exception('Warning: this class does not delete CKAN records. Use --force to run it.')
 
-        super(MongoDeleteTask, self).run()
+        # Build a dict of all modules and collections
+        # We then retrieve the appropriate collection from the records module name (AudTable)
+        # Exclude the MongoDeleteTask though
+        collections = {cls.module: cls(None).get_collection() for cls in MongoTask.__subclasses__()}
 
-    def ckan_delete(self, collection, irn):
+        ke_data = KEParser(self.input().open('r'), file_path=self.input().path, schema_file=self.keemu_schema_file)
+
+        for record in self.iterate_data(ke_data):
+
+            module = record.get('AudTable')
+            irn = record.get('AudKey')
+
+            try:
+                collection = collections[module]
+            except KeyError:
+                log.debug('Skipping eaudit record for %s' % module)
+                # We do not have a collection for this module - skip to next record
+                continue
+            else:
+                log.info('Deleting record %s(%s)' % (module, irn))
+                self.delete(collection, irn)
+
+        self.mark_complete()
+
+    def delete(self, collection, irn):
         """
-        In this class, we do not delete the CKAN record
+        Delete the actual record
         """
-        pass
+
+        # Delete from MongoDB
+        collection.remove({'_id': irn})
 
 if __name__ == "__main__":
     luigi.run(main_task_cls=MongoDeleteTask)

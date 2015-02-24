@@ -14,6 +14,7 @@ import luigi
 from ke2mongo.tasks.specimen import SpecimenDatasetAPITask
 from ke2mongo.tasks.indexlot import IndexLotDatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetAPITask
+from ke2mongo.tasks.unpublish import UnpublishTask
 from ke2mongo.lib.file import get_export_file_dates
 from ke2mongo.lib.mongo import mongo_get_update_markers
 
@@ -23,10 +24,17 @@ class CronTask(luigi.Task):
     """
 
     date = luigi.IntParameter()
+    ckan_hostname = luigi.Parameter()
 
     def requires(self):
+
+        params = {
+            'date': self.date,
+            'ckan_hostname': self.ckan_hostname
+        }
+
         # Run all the API tasks
-        yield ArtefactDatasetAPITask(self.date), IndexLotDatasetAPITask(self.date), SpecimenDatasetAPITask(self.date)
+        yield ArtefactDatasetAPITask(**params), IndexLotDatasetAPITask(**params), SpecimenDatasetAPITask(**params)
 
 if __name__ == "__main__":
 

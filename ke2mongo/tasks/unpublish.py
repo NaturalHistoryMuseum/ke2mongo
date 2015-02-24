@@ -17,35 +17,46 @@ from ke2mongo.log import log
 from ke2mongo.lib.timeit import timeit
 from ke2mongo.lib.ckan import ckan_delete
 from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
+from ke2mongo.tasks.api import APITask
 from ke2mongo.targets.mongo import MongoTarget
 
-class UnpublishTask(luigi.Task):
+class UnpublishTask(APITask):
     """
     If a KE EMu record has been marked non web publishable, it needs to be deleted from CKAN
 
     """
-
-    date = luigi.IntParameter()
     database = config.get('mongo', 'database')
     keemu_schema_file = config.get('keemu', 'schema')
 
-    # Set up CKAN API connection
-    ckan = ckanapi.RemoteCKAN(config.get('ckan', 'site_url'), apikey=config.get('ckan', 'api_key'))
-
     def requires(self):
         # Mongo catalogue task for date must have
-        yield MongoCatalogueTask(self.date),
+        yield MongoCatalogueTask(self.date)
 
+    def complete(self):
+        # We do not need to run unpublish for full exports
+        # So if the date is the same as the last full export, mark as complete
+        if self.date == self.full_export_date:
+            return True
+
+        return super(UnpublishTask, self).complete()
 
     @timeit
     def run(self):
 
         collection = self.output().get_collection('ecatalogue')
 
-        cursor = collection.find({'exportFileDate': self.date, 'AdmPublishWebNoPasswordFlag': 'N'})
+        q = {
+            'AdmPublishWebNoPasswordFlag': 'N'
+        }
+
+        if self.date:
+            q['exportFileDate'] = self.date
+
+        cursor = collection.find(q)
+        log.info('%s records to unpublish', cursor.count())
 
         for record in cursor:
-            ckan_delete(record)
+            ckan_delete(self.remote_ckan, record)
 
         # And mark the object as complete
         self.output().touch()

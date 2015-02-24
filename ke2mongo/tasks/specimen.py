@@ -33,7 +33,7 @@ class SpecimenDatasetTask(DatasetTask):
         'author': DATASET_AUTHOR,
         'license_id': DATASET_LICENCE,
         'resources': [],
-        'dataset_type': DATASET_TYPE,
+        'dataset_category': DATASET_TYPE,
         'spatial': '{"type":"Polygon","coordinates":[[[-180,82],[180,82],[180,-82],[-180,-82],[-180,82]]]}',
         'owner_org': config.get('ckan', 'owner_org')
     }

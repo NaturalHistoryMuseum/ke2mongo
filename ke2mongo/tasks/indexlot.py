@@ -27,7 +27,7 @@ class IndexLotDatasetTask(DatasetTask):
         'author': DATASET_AUTHOR,
         'license_id': DATASET_LICENCE,
         'resources': [],
-        'dataset_type': DATASET_TYPE,
+        'dataset_category': DATASET_TYPE,
         'owner_org': config.get('ckan', 'owner_org')
     }
 

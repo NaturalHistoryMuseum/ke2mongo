@@ -15,13 +15,11 @@ from ke2mongo import config
 
 class APITarget(luigi.Target):
 
-    def __init__(self, resource_id, columns):
+    def __init__(self, remote_ckan, resource_id, columns):
 
+        self.remote_ckan = remote_ckan
         self.resource_id = resource_id
         self.columns = columns
-
-        # Set up connection to CKAN
-        self.ckan = ckanapi.RemoteCKAN(config.get('ckan', 'site_url'), apikey=config.get('ckan', 'api_key'))
 
     def exists(self):
         # Always run
@@ -77,4 +75,4 @@ class APITarget(luigi.Target):
 
             datastore_params['records'] = validated_records
 
-        self.ckan.action.datastore_upsert(**datastore_params)
+        self.remote_ckan.action.datastore_upsert(**datastore_params)

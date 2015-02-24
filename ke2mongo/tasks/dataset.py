@@ -26,21 +26,22 @@ from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
 from ke2mongo.tasks.mongo_site import MongoSiteTask
-from ke2mongo.tasks.delete import DeleteTask
+from ke2mongo.tasks.unpublish import UnpublishTask
+from ke2mongo.tasks.delete import DeleteAPITask
 from ke2mongo.targets.csv import CSVTarget
 from ke2mongo.targets.api import APITarget
 from ke2mongo.tasks import MULTIMEDIA_FORMATS
 from ke2mongo.lib.mongo import mongo_client_db, mongo_get_update_markers
 from ke2mongo.lib.file import get_export_file_dates
+from ke2mongo.tasks.api import APITask
 
-class DatasetTask(luigi.Task):
+
+class DatasetTask(APITask):
     """
     Class for processing data mongo into a dataset
     If date set, this task requires all mongo files for that date to have been imported into Mongo DB
     """
-    # Parameters
-    # Date to process
-    date = luigi.IntParameter(default=None)
+    ### Parameters
 
     # MongoDB params
     collection_name = 'ecatalogue'
@@ -142,24 +143,11 @@ class DatasetTask(luigi.Task):
         """
         return None
 
-    def get_primary_key_field(self):
-        """
-        Return the source primary key fields
-        @return:
-        """
-
-        for col in self.columns:
-            if col[1] == self.datastore['primary_key']:
-                return col
-
     def __init__(self, *args, **kwargs):
 
         # If a date parameter has been passed in, we'll just use that
         # Otherwise, loop through the files and get all dates
         super(DatasetTask, self).__init__(*args, **kwargs)
-
-        # Create CKAN API instance
-        self.ckan = ckanapi.RemoteCKAN(config.get('ckan', 'site_url'), apikey=config.get('ckan', 'api_key'))
 
         # Get or create the resource object
         self.resource_id = self.get_or_create_resource()
@@ -182,11 +170,14 @@ class DatasetTask(luigi.Task):
         assert export_file_dates == update_marker_dates, 'Outstanding previous export file dates need to be processed first: %s' % list(set(export_file_dates) - set(update_marker_dates))
 
     def requires(self):
-        # DeleteTask depends upon all other mongo tasks
-
-        # Only require mongo tasks if data parameter is passed in - allows us to rerun for testing
         if self.date:
-            yield DeleteTask(self.date)
+            return [
+                # DeleteTask depends upon all other mongo tasks
+                # Only require mongo tasks if data parameter is passed in
+                DeleteAPITask(date=self.date, ckan_hostname=self.ckan_hostname),
+                # API Datasets aren't strictly dependent on Unpublish - but need to ensure it runs
+                UnpublishTask(date=self.date, ckan_hostname=self.ckan_hostname)
+            ]
 
     def get_or_create_resource(self):
         """
@@ -203,7 +194,7 @@ class DatasetTask(luigi.Task):
 
         try:
             # If the package exists, retrieve the resource
-            ckan_package = self.ckan.action.package_show(id=self.package['name'])
+            ckan_package = self.remote_ckan.action.package_show(id=self.package['name'])
 
             # Does a resource of the same name already exist for this dataset?
             # If it does, assign to resource_id
@@ -216,7 +207,7 @@ class DatasetTask(luigi.Task):
             log.info("Package %s not found - creating", self.package['name'])
 
             # Create the package
-            ckan_package = self.ckan.action.package_create(**self.package)
+            ckan_package = self.remote_ckan.action.package_create(**self.package)
 
         # If we don't have the resource ID, create
         if not resource_id:
@@ -229,13 +220,13 @@ class DatasetTask(luigi.Task):
             self.datastore['indexes'] = [col['id'] for col in self.datastore['fields'] if col['type'] == 'citext']
 
             # API call to create the datastore
-            resource_id = self.ckan.action.datastore_create(**self.datastore)['resource_id']
+            resource_id = self.remote_ckan.action.datastore_create(**self.datastore)['resource_id']
 
             # If this has geospatial fields, create geom columns
             if self.geospatial_fields:
                 log.info("Creating geometry columns for %s", resource_id)
                 self.geospatial_fields['resource_id'] = resource_id
-                self.ckan.action.create_geom_columns(**self.geospatial_fields)
+                self.remote_ckan.action.create_geom_columns(**self.geospatial_fields)
 
             log.info("Created datastore resource %s", resource_id)
 
@@ -516,7 +507,7 @@ class DatasetAPITask(DatasetTask):
     block_size = 200   # 5000 is fastest, but Apache throws 413 “Request Entity Too Large” error
 
     def output(self):
-        return APITarget(resource_id=self.resource_id, columns=self.get_output_columns())
+        return APITarget(remote_ckan=self.remote_ckan, resource_id=self.resource_id, columns=self.get_output_columns())
 
     def on_success(self):
         """
@@ -525,17 +516,17 @@ class DatasetAPITask(DatasetTask):
         """
 
         # Load and save the resource - so the last modified date gets updated
-        resource = self.ckan.action.resource_show(id=self.resource_id)
+        resource = self.remote_ckan.action.resource_show(id=self.resource_id)
 
         # Explicitly set the last modified date
         resource['last_modified'] = datetime.datetime.now().isoformat()
-        self.ckan.action.resource_update(**resource)
+        self.remote_ckan.action.resource_update(**resource)
 
         # If we have geospatial fields, update the geom columns
         if self.geospatial_fields:
             log.info("Updating geometry columns for %s", self.resource_id)
             self.geospatial_fields['resource_id'] = self.resource_id
-            self.ckan.action.update_geom_columns(**self.geospatial_fields)
+            self.remote_ckan.action.update_geom_columns(**self.geospatial_fields)
 
 
 class DatasetCSVTask(DatasetTask):
@@ -575,7 +566,7 @@ class DatasetCSVTask(DatasetTask):
         """
 
         # Load the datastore fields (limit = 0 so no rows returned)
-        datastore = self.ckan.action.datastore_search(resource_id=resource['id'], limit=0)
+        datastore = self.remote_ckan.action.datastore_search(resource_id=resource['id'], limit=0)
 
         # Create a list of all (non-internal - _id) datastore fields we'd expect in the CSV
         datastore_fields = [field['id'] for field in datastore['fields'] if field['id'] != '_id']
