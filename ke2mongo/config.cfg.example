@@ -23,7 +23,7 @@ api_key =
 
 [ckan.live]
 site_url =
-api_key = 
+api_key =
 
 [csv]
 # The directory to write CSV files
