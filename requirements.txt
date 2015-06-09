@@ -3,6 +3,6 @@
 openpyxl>=1.6.1,<=2.0.0
 pandas==0.14.0
 pymongo==2.7
-Monary==0.4.0
+Monary
 -e git+https://github.com/ckan/ckanapi#egg=ckanapi
 tornado==4.0.2
