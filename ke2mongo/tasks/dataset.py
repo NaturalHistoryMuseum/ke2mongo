@@ -396,7 +396,7 @@ class DatasetTask(APITask):
         # And filter out non-image mimetypes we do not support
 
         # Convert associatedMedia field to a list
-        df[multimedia_field] = df[multimedia_field].apply(lambda x: list(int(z.strip()) for z in x.split(';') if z.strip()))
+        df[multimedia_field] = df[multimedia_field].apply(lambda x: list(int(z.strip()) for z in x.split(';') if isinstance(z.strip(), int)))
 
         # Get a unique list of IRNS
         unique_multimedia_irns = list(set(itertools.chain(*[irn for irn in df[multimedia_field].values])))
