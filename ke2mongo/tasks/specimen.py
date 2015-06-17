@@ -331,6 +331,9 @@ class SpecimenDatasetTask(DatasetTask):
             "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
         }
 
+        # And exclude all with an embargo date
+        # query['NhmSecEmbargoDate'] = None
+
         # Test query
         # query['EntIdeScientificNameLocal'] = {"$exists": 1}
         # query['MulMultiMediaRef'] = {"$exists": 1}
