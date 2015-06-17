@@ -17,7 +17,7 @@ class APITask(luigi.Task):
 
     # The name of the ckan instance to use - must match a ckan setting in the config file
     # Currently one of local, dev, or live
-    ckan_hostname = luigi.Parameter()
+    ckan_hostname = luigi.Parameter(default='local')
 
     # Date to process
     date = luigi.IntParameter(default=None)
