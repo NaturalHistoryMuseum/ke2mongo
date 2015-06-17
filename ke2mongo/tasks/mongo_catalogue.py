@@ -4,7 +4,7 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
- python tasks/mongo_catalogue.py --local-scheduler --date 20141204
+ python tasks/mongo_catalogue.py --local-scheduler --date 20150604
 
 
 """
@@ -81,6 +81,9 @@ class MongoCatalogueTask(MongoTask):
         if scientific_name and scientific_name in self.cites_species:
             data['cites'] = True
 
+        # Add embargoed date = 0 so we don't have to query against field exists (doesn't use the index)
+        if not 'NhmSecEmbargoDate' in data:
+            data['NhmSecEmbargoDate'] = 0
         return super(MongoCatalogueTask, self).process_record(data)
 
     def on_success(self):
@@ -88,26 +91,19 @@ class MongoCatalogueTask(MongoTask):
         On completion, add indexes
         @return: None
         """
-
         self.collection = self.get_collection()
-
-        log.info("Adding ColRecordType index")
-
+        log.info("Adding ecatalogue indexes")
         self.collection.ensure_index('ColRecordType')
-
         # Only include active records - not Stubs etc.,
         self.collection.ensure_index('SecRecordStatus')
-
         # Add index on RegRegistrationParentRef - select records with the same parent
         self.collection.ensure_index('RegRegistrationParentRef')
-
         # Need to filter on web publishable
         self.collection.ensure_index('AdmPublishWebNoPasswordFlag')
-
         # Exclude records if they do not have a GUID
         self.collection.ensure_index('AdmGUIDPreferredValue')
-
-
+        # Add embargo date index
+        self.collection.ensure_index('NhmSecEmbargoDate')
         super(MongoCatalogueTask, self).on_success()
 
 if __name__ == "__main__":
