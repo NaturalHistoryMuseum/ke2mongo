@@ -170,14 +170,15 @@ class DatasetTask(APITask):
         assert export_file_dates == update_marker_dates, 'Outstanding previous export file dates need to be processed first: %s' % list(set(export_file_dates) - set(update_marker_dates))
 
     def requires(self):
-        if self.date:
-            return [
-                # DeleteTask depends upon all other mongo tasks
-                # Only require mongo tasks if data parameter is passed in
-                DeleteAPITask(date=self.date, ckan_hostname=self.ckan_hostname),
-                # API Datasets aren't strictly dependent on Unpublish - but need to ensure it runs
-                UnpublishTask(date=self.date, ckan_hostname=self.ckan_hostname)
-            ]
+        pass
+        # if self.date:
+        #     return [
+        #         # DeleteTask depends upon all other mongo tasks
+        #         # Only require mongo tasks if data parameter is passed in
+        #         DeleteAPITask(date=self.date, ckan_hostname=self.ckan_hostname),
+        #         # API Datasets aren't strictly dependent on Unpublish - but need to ensure it runs
+        #         UnpublishTask(date=self.date, ckan_hostname=self.ckan_hostname)
+        #     ]
 
     def get_or_create_resource(self):
         """
@@ -397,13 +398,6 @@ class DatasetTask(APITask):
         # Convert associatedMedia field to a list
         df[multimedia_field] = df[multimedia_field].apply(lambda x: list(int(z.strip()) for z in x.split(';') if z.strip()))
 
-        def get_max_dimension(str_dimension):
-            """
-            Split the dimension string, and return the second highest value
-            """
-            dimensions = [int(x.strip()) for x in str_dimension.split(';')]
-            return sorted(dimensions,reverse=True)[1]
-
         # Get a unique list of IRNS
         unique_multimedia_irns = list(set(itertools.chain(*[irn for irn in df[multimedia_field].values])))
 
@@ -412,17 +406,14 @@ class DatasetTask(APITask):
         cursor = mongo_client['emultimedia'].find(
             {
                 '_id': {'$in': unique_multimedia_irns},
-                'MulMimeFormat': {'$in': MULTIMEDIA_FORMATS},
-                'DocHeight': {'$exists': True},
-                'DocWidth': {'$exists': True},
                 'AdmPublishWebNoPasswordFlag': 'Y',
-                'MulMimeType': 'image'
+                'NhmSecEmbargoDate': 0,
+                'GenDigitalMediaId': {'$ne': 0}
                 },
             {
-                'DocHeight': 1,
-                'DocWidth': 1,
-                'MulMimeFormat': 1,
-                'MulTitle': 1
+                'GenDigitalMediaId': 1,
+                'MulTitle': 1,
+                'MulMimeFormat': 1
             }
         )
 
@@ -431,10 +422,8 @@ class DatasetTask(APITask):
 
         for record in cursor:
             multimedia_dict[record['_id']] = {
-                'identifier': 'http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php?irn={_id}&image=yes&width={width}&height={height}'.format(
-                    _id=record['_id'],
-                    width=get_max_dimension(record['DocWidth']),
-                    height=get_max_dimension(record['DocHeight'])
+                'identifier': 'http://www.nhm.ac.uk/services/media-store/asset/{mam_id}/contents/preview'.format(
+                    mam_id=record['GenDigitalMediaId'],
                 ),
                 'format': 'image/%s' % record['MulMimeFormat'],
                 "type": "StillImage",
