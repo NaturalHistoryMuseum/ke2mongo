@@ -2,6 +2,10 @@
 # encoding: utf-8
 """
 Created by 'bens3' on 2013-06-21.
+
+
+ python tasks/mongo_taxonomy.py --local-scheduler --date 20150604
+
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
