@@ -30,7 +30,7 @@ class SpecimenDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-specimens',
+        'name': 'collection-specimens-150618',
         'notes': u'Specimen records from the Natural History Museum\'s collection',
         'title': "Collection specimens",
         'author': DATASET_AUTHOR,
@@ -332,9 +332,8 @@ class SpecimenDatasetTask(DatasetTask):
         }
 
         # And exclude all with an embargo date
-        # query['NhmSecEmbargoDate'] = None
+        query['NhmSecEmbargoDate'] = 0
 
-        # Test query
         # query['EntIdeScientificNameLocal'] = {"$exists": 1}
         # query['MulMultiMediaRef'] = {"$exists": 1}
         # query['_id'] = {'$in': [4676028]}
@@ -436,11 +435,8 @@ class SpecimenDatasetTask(DatasetTask):
 
             # Get all records with the same parent, so we can add them as related records
             q['RegRegistrationParentRef'] = {'$in': parent_irns}
-
             monary_query = m.query(config.get('mongo', 'database'), 'ecatalogue', q, ['RegRegistrationParentRef', 'AdmGUIDPreferredValue'], ['int32', 'string:36'])
-
             part_df = pd.DataFrame(np.matrix(monary_query).transpose(), columns=['RegRegistrationParentRef', 'AdmGUIDPreferredValue'])
-
             part_df['RegRegistrationParentRef'] = part_df['RegRegistrationParentRef'].astype('int32')
 
             # Group by parent ref and concatenate all the GUIDs together

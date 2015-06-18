@@ -17,10 +17,10 @@ class APITask(luigi.Task):
 
     # The name of the ckan instance to use - must match a ckan setting in the config file
     # Currently one of local, dev, or live
-    ckan_hostname = luigi.Parameter(default='local')
+    target = luigi.Parameter(default='local')
 
     # Date to process
-    date = luigi.IntParameter(default=None)
+    date = luigi.IntParameter()
 
     full_export_date = config.get('keemu', 'full_export_date')
 
@@ -30,6 +30,6 @@ class APITask(luigi.Task):
         # Otherwise, loop through the files and get all dates
         super(APITask, self).__init__(*args, **kwargs)
 
-        # ckan_hostname is local, live etc - so match up with config settings ckan.local
-        config_setting = 'ckan.%s' % self.ckan_hostname
+        # target is local, live etc - so match up with config settings ckan.local
+        config_setting = 'ckan.%s' % self.target
         self.remote_ckan = ckanapi.RemoteCKAN(config.get(config_setting, 'site_url'), apikey=config.get(config_setting, 'api_key'))

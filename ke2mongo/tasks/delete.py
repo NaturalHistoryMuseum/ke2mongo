@@ -44,22 +44,26 @@ class DeleteAPITask(APITask, MongoDeleteTask):
         return [
             MongoCatalogueTask(date=self.date),
             MongoTaxonomyTask(self.date),
-            # MongoMultimediaTask(self.date),
+            MongoMultimediaTask(self.date),
             MongoCollectionIndexTask(self.date),
             MongoCollectionEventTask(self.date),
             MongoSiteTask(self.date),
-            # And then add the normal Delete requirement - processing the KE File
-            super(DeleteAPITask, self).requires()
         ]
 
     def input(self):
         """
         Override task.input()
-        Loop through each of the requirements - only the KEFileTask is the input
+        We want to use the mongo delete file
         """
-        for i in self.requires():
-            if isinstance(i, KEFileTask):
-                return getpaths(i)
+        t = MongoDeleteTask(date=self.date)
+        return t.input()
+
+    def run(self):
+        if int(self.full_export_date) == int(self.date):
+            log.info("No records to delete for full exports")
+            self.mark_complete()
+            return
+        super(DeleteAPITask, self).run()
 
     def delete(self, collection, irn):
 

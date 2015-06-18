@@ -11,8 +11,6 @@ PARENT_TYPES = [
     'Bird Group Parent',
     'Mammal Group Parent',
 ]
-# http://www.nhm.ac.uk/emu-classes/class.EMuMedia.php only supports jp2 and jpeg - not gif, tiff etc.,
-MULTIMEDIA_FORMATS = ['jp2', 'jpeg']
 
 DATE_FORMAT = 'YYYY-MM-DD'
 

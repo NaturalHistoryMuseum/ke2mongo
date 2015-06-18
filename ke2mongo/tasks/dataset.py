@@ -25,12 +25,12 @@ from ke2mongo.tasks.mongo_catalogue import MongoCatalogueTask
 from ke2mongo.tasks.mongo_taxonomy import MongoTaxonomyTask
 from ke2mongo.tasks.mongo_multimedia import MongoMultimediaTask
 from ke2mongo.tasks.mongo_collection_index import MongoCollectionIndexTask
+from ke2mongo.tasks.mongo_collection_event import MongoCollectionEventTask
 from ke2mongo.tasks.mongo_site import MongoSiteTask
 from ke2mongo.tasks.unpublish import UnpublishTask
 from ke2mongo.tasks.delete import DeleteAPITask
 from ke2mongo.targets.csv import CSVTarget
 from ke2mongo.targets.api import APITarget
-from ke2mongo.tasks import MULTIMEDIA_FORMATS
 from ke2mongo.lib.mongo import mongo_client_db, mongo_get_update_markers
 from ke2mongo.lib.file import get_export_file_dates
 from ke2mongo.tasks.api import APITask
@@ -110,7 +110,8 @@ class DatasetTask(APITask):
         # And ensure we have a GUID
         query['AdmGUIDPreferredValue'] = {'$exists': True}
 
-        if self.date:
+        # If this is a full export date, we do not need to filter on date
+        if int(self.full_export_date) == int(self.date):
             # Ensure we have processed all files for preceding dates
             self.ensure_export_date(self.date)
             query['exportFileDate'] = self.date
@@ -166,19 +167,23 @@ class DatasetTask(APITask):
         # Get a list of export files dates and marker dates, prior to the current date being processed
         export_file_dates = filter(filter_dates, get_export_file_dates())
         update_marker_dates = filter(filter_dates, mongo_get_update_markers().keys())
-
         assert export_file_dates == update_marker_dates, 'Outstanding previous export file dates need to be processed first: %s' % list(set(export_file_dates) - set(update_marker_dates))
 
     def requires(self):
-        pass
-        # if self.date:
-        #     return [
-        #         # DeleteTask depends upon all other mongo tasks
-        #         # Only require mongo tasks if data parameter is passed in
-        #         DeleteAPITask(date=self.date, ckan_hostname=self.ckan_hostname),
-        #         # API Datasets aren't strictly dependent on Unpublish - but need to ensure it runs
-        #         UnpublishTask(date=self.date, ckan_hostname=self.ckan_hostname)
-        #     ]
+        return [
+            # DeleteTask depends upon all other mongo tasks, but lets add them in anyway so it's
+            # obvious what's happening here
+            MongoCatalogueTask(date=self.date),
+            MongoTaxonomyTask(self.date),
+            MongoMultimediaTask(self.date),
+            MongoCollectionIndexTask(self.date),
+            MongoCollectionEventTask(self.date),
+            MongoSiteTask(self.date),
+            DeleteAPITask(date=self.date, target=self.target),
+            # API Datasets aren't strictly dependent on Unpublish - but need to ensure it runs
+            UnpublishTask(date=self.date, target=self.target)
+        ]
+
 
     def get_or_create_resource(self):
         """
@@ -503,10 +508,8 @@ class DatasetAPITask(DatasetTask):
         Luigi on_success function
         Set last modified date of the resource
         """
-
         # Load and save the resource - so the last modified date gets updated
         resource = self.remote_ckan.action.resource_show(id=self.resource_id)
-
         # Explicitly set the last modified date
         resource['last_modified'] = datetime.datetime.now().isoformat()
         self.remote_ckan.action.resource_update(**resource)
@@ -532,11 +535,7 @@ class DatasetCSVTask(DatasetTask):
         File name to output
         @return: str
         """
-        file_name = self.__class__.__name__.replace('DatasetCSVTask', '').lower()
-
-        if self.date:
-            file_name += '-' + str(self.date)
-
+        file_name = self.__class__.__name__.replace('DatasetCSVTask', '').lower() + '-' + str(self.date)
         return os.path.join(config.get('csv', 'output_dir'), file_name + '.csv')
 
     def output(self):

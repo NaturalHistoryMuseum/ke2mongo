@@ -24,13 +24,13 @@ class CronTask(luigi.Task):
     """
 
     date = luigi.IntParameter()
-    ckan_hostname = luigi.Parameter()
+    target = luigi.Parameter()
 
     def requires(self):
 
         params = {
             'date': self.date,
-            'ckan_hostname': self.ckan_hostname
+            'target': self.target
         }
 
         # Run all the API tasks

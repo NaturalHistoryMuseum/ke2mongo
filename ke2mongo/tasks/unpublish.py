@@ -23,35 +23,27 @@ from ke2mongo.targets.mongo import MongoTarget
 class UnpublishTask(APITask):
     """
     If a KE EMu record has been marked non web publishable, it needs to be deleted from CKAN
-
+    NB: This does not remove embargoed records which have already been published.
+    You cannot embargo a record after it's release.
     """
     database = config.get('mongo', 'database')
     keemu_schema_file = config.get('keemu', 'schema')
-
     def requires(self):
-        # Mongo catalogue task for date must have
+        # Mongo catalogue task for date must have run
         yield MongoCatalogueTask(self.date)
-
-    def complete(self):
-        # We do not need to run unpublish for full exports
-        # So if the date is the same as the last full export, mark as complete
-        if self.date == self.full_export_date:
-            return True
-
-        return super(UnpublishTask, self).complete()
-
     @timeit
     def run(self):
-
+        # Do not run if this is a full export date - all non-publishable records will
+        # Already have been removed
+        if int(self.full_export_date) == int(self.date):
+            log.info("No records to unpublish for full exports")
+            self.mark_complete()
+            return
         collection = self.output().get_collection('ecatalogue')
-
-        q = {
-            'AdmPublishWebNoPasswordFlag': 'N'
-        }
-
-        if self.date:
-            q['exportFileDate'] = self.date
-
+        q = dict(
+            AdmPublishWebNoPasswordFlag='N',
+            exportFileDate=self.date
+        )
         cursor = collection.find(q)
         log.info('%s records to unpublish', cursor.count())
 
@@ -59,6 +51,9 @@ class UnpublishTask(APITask):
             ckan_delete(self.remote_ckan, record)
 
         # And mark the object as complete
+        self.mark_complete()
+
+    def mark_complete(self):
         self.output().touch()
 
     def output(self):
