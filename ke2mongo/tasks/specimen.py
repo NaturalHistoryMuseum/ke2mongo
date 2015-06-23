@@ -211,7 +211,7 @@ class SpecimenDatasetTask(DatasetTask):
         # Mineralogy
         ('ecatalogue.MinDateRegistered', 'dateRegistered', 'string:100'),
         ('ecatalogue.MinIdentificationAsRegistered', 'identificationAsRegistered', 'string:100'),
-        ('ecatalogue.MinIdentificationDescription', 'identificationDescription', 'string:100'),
+        ('ecatalogue.MinIdentificationDescription', 'identificationDescription', 'string:200'),
         ('ecatalogue.MinPetOccurance', 'occurrence', 'string:100'),
         ('ecatalogue.MinOreCommodity', 'commodity', 'string:200'),
         ('ecatalogue.MinOreDepositType', 'depositType', 'string:100'),
