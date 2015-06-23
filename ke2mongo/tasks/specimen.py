@@ -267,6 +267,8 @@ class SpecimenDatasetTask(DatasetTask):
         # The encoding of DarLocality is buggered - see ecatalogue.1804973
         # So better to use the original field with the correct encoding
         ('ecatalogue.sumPreciseLocation', '_preciseLocation', 'string:100'),
+        # Locality if precise and nearest named place is empty
+        ('ecatalogue.MinNhmVerbatimLocalityLocal', '_minLocalityLocal', 'string:100'),
 
         # CITES specimens
         ('ecatalogue.cites', '_cites', 'bool'),
@@ -336,7 +338,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # query['EntIdeScientificNameLocal'] = {"$exists": 1}
         # query['MulMultiMediaRef'] = {"$exists": 1}
-        # query['_id'] = {'$in': [4676028]}
+        # query['_id'] = {'$in': [209958]}
 
         return query
 
@@ -410,7 +412,9 @@ class SpecimenDatasetTask(DatasetTask):
         df['catalogNumber'].fillna(df['_regRegistrationNumber'], inplace=True)
 
         # If PalNearestNamedPlaceLocal is missing, use sumPreciseLocation
+        # And then try MinNhmVerbatimLocalityLocal
         df['locality'].fillna(df['_preciseLocation'], inplace=True)
+        df['locality'].fillna(df['_minLocalityLocal'], inplace=True)
 
         # Replace missing DarTypeStatus
         df['typeStatus'].fillna(df['_sumTypeStatus'], inplace=True)
