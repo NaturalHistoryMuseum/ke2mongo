@@ -24,13 +24,11 @@ class CronTask(luigi.Task):
     """
 
     date = luigi.IntParameter()
-    target = luigi.Parameter()
 
     def requires(self):
 
         params = {
             'date': self.date,
-            'target': self.target
         }
 
         # Run all the API tasks

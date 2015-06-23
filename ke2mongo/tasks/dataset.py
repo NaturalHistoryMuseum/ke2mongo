@@ -179,9 +179,9 @@ class DatasetTask(APITask):
             MongoCollectionIndexTask(self.date),
             MongoCollectionEventTask(self.date),
             MongoSiteTask(self.date),
-            DeleteAPITask(date=self.date, target=self.target),
+            DeleteAPITask(date=self.date),
             # API Datasets aren't strictly dependent on Unpublish - but need to ensure it runs
-            UnpublishTask(date=self.date, target=self.target)
+            UnpublishTask(date=self.date)
         ]
 
 

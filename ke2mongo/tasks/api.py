@@ -15,10 +15,6 @@ class APITask(luigi.Task):
     Base CKAN API Task
     """
 
-    # The name of the ckan instance to use - must match a ckan setting in the config file
-    # Currently one of local, dev, or live
-    target = luigi.Parameter(default='local')
-
     # Date to process
     date = luigi.IntParameter()
 
@@ -29,7 +25,4 @@ class APITask(luigi.Task):
         # If a date parameter has been passed in, we'll just use that
         # Otherwise, loop through the files and get all dates
         super(APITask, self).__init__(*args, **kwargs)
-
-        # target is local, live etc - so match up with config settings ckan.local
-        config_setting = 'ckan.%s' % self.target
-        self.remote_ckan = ckanapi.RemoteCKAN(config.get(config_setting, 'site_url'), apikey=config.get(config_setting, 'api_key'))
+        self.remote_ckan = ckanapi.RemoteCKAN(config.get('ckan', 'site_url'), apikey=config.get('ckan', 'api_key'))
