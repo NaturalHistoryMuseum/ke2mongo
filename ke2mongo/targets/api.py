@@ -49,10 +49,10 @@ class APITarget(luigi.Target):
 
         # Convert records to dictionary
         records = df.to_dict(outtype='records')
-
         datastore_params = {
             'resource_id': self.resource_id,
             'records': records,
+            'force': True
             # 'primary_key': '_id'
         }
 
