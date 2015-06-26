@@ -30,7 +30,7 @@ class SpecimenDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-specimens-150618',
+        'name': 'collection-specimens-150618-e',
         'notes': u'Specimen records from the Natural History Museum\'s collection',
         'title': "Collection specimens",
         'author': DATASET_AUTHOR,
@@ -55,6 +55,8 @@ class SpecimenDatasetTask(DatasetTask):
         'latitude_field': 'decimalLatitude',
         'longitude_field': 'decimalLongitude'
     }
+
+    indexed_fields = ['dqi', 'collectionCode', 'catalogNumber', 'created']
 
     columns = [
         # List of columns
@@ -211,7 +213,7 @@ class SpecimenDatasetTask(DatasetTask):
         # Mineralogy
         ('ecatalogue.MinDateRegistered', 'dateRegistered', 'string:100'),
         ('ecatalogue.MinIdentificationAsRegistered', 'identificationAsRegistered', 'string:100'),
-        ('ecatalogue.MinIdentificationDescription', 'identificationDescription', 'string:200'),
+        ('ecatalogue.MinIdentificationDescription', 'identificationDescription', 'string:300'),
         ('ecatalogue.MinPetOccurance', 'occurrence', 'string:100'),
         ('ecatalogue.MinOreCommodity', 'commodity', 'string:200'),
         ('ecatalogue.MinOreDepositType', 'depositType', 'string:100'),
@@ -338,7 +340,7 @@ class SpecimenDatasetTask(DatasetTask):
 
         # query['EntIdeScientificNameLocal'] = {"$exists": 1}
         # query['MulMultiMediaRef'] = {"$exists": 1}
-        # query['_id'] = {'$in': [209958]}
+        # query['_id'] = {'$in': [5584728]}
 
         return query
 
