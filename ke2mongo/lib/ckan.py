@@ -46,7 +46,6 @@ def ckan_delete(remote_ckan, mongo_record):
     except ckanapi.NotFound:
         log.error('CKAN Package %s not found', task_cls.package['name'])
         raise
-
     try:
         # And delete the record from the datastore
         log.info('Deleting record from CKAN where %s=%s' % (ckan_primary_key, primary_key_value))
