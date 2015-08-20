@@ -40,9 +40,6 @@ def ckan_delete(remote_ckan, mongo_record):
     primary_key_value = mongo_record[ke_primary_key]
 
     # Load the resource, so we can find the resource ID
-
-    print task_cls.datastore['resource']
-
     try:
         resource = remote_ckan.action.resource_show(id=task_cls.datastore['resource']['name'])
     except ckanapi.NotFound:
@@ -50,6 +47,7 @@ def ckan_delete(remote_ckan, mongo_record):
         log.error('Record not found')
         raise
     else:
+        print resource
         # And delete the record from the datastore
         log.info('Deleting record from CKAN where %s=%s' % (ckan_primary_key, primary_key_value))
         remote_ckan.action.datastore_delete(id=resource['id'], filters={ckan_primary_key: primary_key_value})
