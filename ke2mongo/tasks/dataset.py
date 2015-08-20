@@ -121,6 +121,9 @@ class DatasetTask(APITask):
     # CKAN Dataset params
     geospatial_fields = None
 
+    # Fields that require indexing - if None is set all fields will be indexed
+    indexed_fields = None
+
     @abc.abstractproperty
     def package(self):
         """
@@ -222,8 +225,12 @@ class DatasetTask(APITask):
             self.datastore['fields'] = [{'id': col, 'type': self.numpy_to_ckan_type(np_type)} for col, np_type in self.get_output_columns().iteritems()]
             self.datastore['resource']['package_id'] = ckan_package['id']
 
-            # Create BTREE indexes for all citext fields
-            self.datastore['indexes'] = [col['id'] for col in self.datastore['fields'] if col['type'] == 'citext']
+            if self.indexed_fields:
+                # Create BTREE indexes for all specified indexed fields
+                self.datastore['indexes'] = [col['id'] for col in self.datastore['fields'] if col['id'] in self.indexed_fields]
+            else:
+                # Create BTREE indexes for all citext fields
+                self.datastore['indexes'] = [col['id'] for col in self.datastore['fields'] if col['type'] == 'citext']
 
             # API call to create the datastore
             resource_id = self.remote_ckan.action.datastore_create(**self.datastore)['resource_id']
