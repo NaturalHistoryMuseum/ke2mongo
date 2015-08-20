@@ -570,7 +570,7 @@ class DatasetCSVTask(DatasetTask):
         try:
             assert datastore_fields == columns, 'Current datastore fields do not match CSV fields'
         except AssertionError:
-            print set(datastore_fields) - set(columns)
+            print set(datastore_fields) - set(columns) or set(columns) - set(datastore_fields)
             raise
 
     def on_success(self):
