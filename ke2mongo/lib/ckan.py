@@ -5,6 +5,7 @@ Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
+import ckanapi
 from ke2mongo.log import log
 
 def ckan_delete(remote_ckan, mongo_record):
@@ -39,8 +40,14 @@ def ckan_delete(remote_ckan, mongo_record):
     primary_key_value = mongo_record[ke_primary_key]
 
     # Load the resource, so we can find the resource ID
-    resource = remote_ckan.action.resource_show(id=task_cls.datastore['resource']['name'])
 
-    # And delete the record from the datastore
-    log.info('Deleting record from CKAN where %s=%s' % (ckan_primary_key, primary_key_value))
-    remote_ckan.action.datastore_delete(id=resource['id'], filters={ckan_primary_key: primary_key_value})
+    try:
+        resource = remote_ckan.action.resource_show(id=task_cls.datastore['resource']['name'])
+    except ckanapi.NotFound:
+        print task_cls.datastore['resource']
+        log.error('Record not found')
+        raise
+    else:
+        # And delete the record from the datastore
+        log.info('Deleting record from CKAN where %s=%s' % (ckan_primary_key, primary_key_value))
+        remote_ckan.action.datastore_delete(id=resource['id'], filters={ckan_primary_key: primary_key_value})

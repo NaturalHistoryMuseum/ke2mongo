@@ -48,11 +48,7 @@ class UnpublishTask(APITask):
         log.info('%s records to unpublish', cursor.count())
 
         for record in cursor:
-            try:
-                ckan_delete(self.remote_ckan, record)
-            except ckanapi.NotFound:
-                print record
-                log.errpr('Record not found')
+            ckan_delete(self.remote_ckan, record)
 
         # And mark the object as complete
         self.mark_complete()
