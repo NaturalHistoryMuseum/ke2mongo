@@ -42,7 +42,7 @@ def ckan_delete(remote_ckan, mongo_record):
     # Load the package, so we can find the resource ID
     try:
 
-        ckan_package = remote_ckan.action.package_show(id=task_cls.datastore['name'])
+        ckan_package = remote_ckan.action.package_show(id=task_cls.package['name'])
 
         print ckan_package
         # resource = remote_ckan.action.resource_show(id=task_cls.datastore['name'])
