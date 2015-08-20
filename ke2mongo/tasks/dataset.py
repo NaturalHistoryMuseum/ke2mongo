@@ -522,10 +522,10 @@ class DatasetAPITask(DatasetTask):
         self.remote_ckan.action.resource_update(**resource)
 
         # If we have geospatial fields, update the geom columns
-        if self.geospatial_fields:
-            log.info("Updating geometry columns for %s", self.resource_id)
-            self.geospatial_fields['resource_id'] = self.resource_id
-            self.remote_ckan.action.update_geom_columns(**self.geospatial_fields)
+        # if self.geospatial_fields:
+        #     log.info("Updating geometry columns for %s", self.resource_id)
+        #     self.geospatial_fields['resource_id'] = self.resource_id
+        #     self.remote_ckan.action.update_geom_columns(**self.geospatial_fields)
 
 
 class DatasetCSVTask(DatasetTask):
@@ -567,7 +567,11 @@ class DatasetCSVTask(DatasetTask):
         datastore_fields = [field['id'] for field in datastore['fields'] if field['id'] != '_id']
         columns = [col for col in self.get_output_columns().keys()]
 
-        assert datastore_fields == columns, 'Current datastore fields do not match CSV fields'
+        try:
+            assert datastore_fields == columns, 'Current datastore fields do not match CSV fields'
+        except AssertionError:
+            print set(datastore_fields) - set(columns)
+            raise
 
     def on_success(self):
 
