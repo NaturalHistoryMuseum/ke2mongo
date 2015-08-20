@@ -570,7 +570,7 @@ class DatasetCSVTask(DatasetTask):
         field_diff = set(datastore_fields).symmetric_difference(columns)
 
         try:
-            assert field_diff == 0, 'Current datastore fields do not match CSV fields'
+            assert len(field_diff) == 0, 'Current datastore fields do not match CSV fields'
         except AssertionError:
             print field_diff
             raise
