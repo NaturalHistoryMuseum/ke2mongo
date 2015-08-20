@@ -566,12 +566,13 @@ class DatasetCSVTask(DatasetTask):
         # Create a list of all (non-internal - _id) datastore fields we'd expect in the CSV
         datastore_fields = [unicode(field['id']) for field in datastore['fields'] if field['id'] != '_id']
         columns = [unicode(col) for col in self.get_output_columns().keys()]
+
+        field_diff = set(datastore_fields).symmetric_difference(columns)
+
         try:
-            assert datastore_fields == columns, 'Current datastore fields do not match CSV fields'
+            assert field_diff == 0, 'Current datastore fields do not match CSV fields'
         except AssertionError:
-            print 'Datastore fields: ', datastore_fields
-            print 'Columns: ', columns
-            print set(datastore_fields[1:]).symmetric_difference(columns[1:])
+            print field_diff
             raise
 
     def on_success(self):
