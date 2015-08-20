@@ -41,12 +41,8 @@ def ckan_delete(remote_ckan, mongo_record):
 
     # Load the package, so we can find the resource ID
     try:
-
         ckan_package = remote_ckan.action.package_show(id=task_cls.package['name'])
-        rec = ckan_package['resources'][0]
-
-        print rec
-        # resource = remote_ckan.action.resource_show(id=task_cls.datastore['name'])
+        resource = ckan_package['resources'][0]
     except ckanapi.NotFound:
         print task_cls.datastore['resource']
         log.error('Record not found')
