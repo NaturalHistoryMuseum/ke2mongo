@@ -111,11 +111,10 @@ class DatasetTask(APITask):
         query['AdmGUIDPreferredValue'] = {'$exists': True}
 
         # If this is a full export date, we do not need to filter on date
-        if int(self.full_export_date) == int(self.date):
+        if int(self.full_export_date) != int(self.date):
             # Ensure we have processed all files for preceding dates
             self.ensure_export_date(self.date)
             query['exportFileDate'] = self.date
-
         return query
 
     # CKAN Dataset params

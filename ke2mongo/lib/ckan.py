@@ -16,7 +16,7 @@ def get_resource_id(remote_ckan, package_name):
         # Try and retrieve from cache
         return _cache[package_name]
     except KeyError:
-        log.error('nopt cachked %s', package_name)
+        log.error('Not cached %s', package_name)
         # Load the package, so we can find the resource ID
         try:
             ckan_package = remote_ckan.action.package_show(id=package_name)
@@ -25,7 +25,6 @@ def get_resource_id(remote_ckan, package_name):
         except ckanapi.NotFound, e:
             print e
             log.error('CKAN Package %s not found', package_name)
-            raise
         except ckanapi.CKANAPIError, e:
             print e
             log.error('CKAN API ERROR')
