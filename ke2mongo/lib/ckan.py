@@ -50,7 +50,7 @@ def ckan_delete(remote_ckan, mongo_record):
     except ckanapi.CKANAPIError, e:
         print e
         print task_cls.package
-        log.error('CKAN API ERROR', task_cls.package['name'])
+        log.error('CKAN API ERROR')
         raise
 
     try:
