@@ -8,6 +8,31 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 import ckanapi
 from ke2mongo.log import log
 
+_cache = {}
+
+def get_resource_id(remote_ckan, package_name):
+
+    try:
+        # Try and retrieve from cache
+        return _cache[package_name]
+    except KeyError:
+        log.error('nopt cachked %s', package_name)
+        # Load the package, so we can find the resource ID
+        try:
+            ckan_package = remote_ckan.action.package_show(id=package_name)
+            _cache[package_name] = ckan_package['resources'][0]['id']
+            return _cache[package_name]
+        except ckanapi.NotFound, e:
+            print e
+            log.error('CKAN Package %s not found', package_name)
+            raise
+        except ckanapi.CKANAPIError, e:
+            print e
+            log.error('CKAN API ERROR')
+            raise
+
+
+
 def ckan_delete(remote_ckan, mongo_record):
 
     # To avoid circular imports, import the tasks we need to check here
@@ -38,26 +63,14 @@ def ckan_delete(remote_ckan, mongo_record):
     ckan_primary_key = primary_key_field[1]
 
     primary_key_value = mongo_record[ke_primary_key]
-
-    # Load the package, so we can find the resource ID
-    try:
-        ckan_package = remote_ckan.action.package_show(id=task_cls.package['name'])
-        resource = ckan_package['resources'][0]
-        print 'Found: %s' % task_cls.package['name']
-    except ckanapi.NotFound, e:
-        print e
-        log.error('CKAN Package %s not found', task_cls.package['name'])
-        raise
-    except ckanapi.CKANAPIError, e:
-        print e
-        print task_cls.package
-        log.error('CKAN API ERROR')
-        raise
-
-    try:
-        # And delete the record from the datastore
-        log.info('Deleting record from CKAN where %s=%s' % (ckan_primary_key, primary_key_value))
-        remote_ckan.action.datastore_delete(id=resource['id'], filters={ckan_primary_key: primary_key_value}, force=True)
-    except ckanapi.CKANAPIError:
-        # We don't care if the record isn't found
-        log.error('Record not found')
+    resource_id = get_resource_id(remote_ckan, task_cls.package['name'])
+    if resource_id:
+        try:
+            # And delete the record from the datastore
+            log.info('Deleting record from CKAN where %s=%s' % (ckan_primary_key, primary_key_value))
+            remote_ckan.action.datastore_delete(id=resource_id, filters={ckan_primary_key: primary_key_value}, force=True)
+        except ckanapi.CKANAPIError:
+            # We don't care if the record isn't found
+            log.error('Record not found')
+    else:
+        log.error('No resource ID')
