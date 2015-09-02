@@ -6,12 +6,13 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 
 Unpublish records marked non web publishable
 
-python tasks/unpublish.py --local-scheduler --date 20150122
+python tasks/unpublish.py --local-scheduler --date 20150702
 
 """
 
 import luigi
 import ckanapi
+from datetime import datetime, timedelta
 from ke2mongo import config
 from ke2mongo.log import log
 from ke2mongo.lib.timeit import timeit
@@ -40,9 +41,12 @@ class UnpublishTask(APITask):
             self.mark_complete()
             return
         collection = self.output().get_collection('ecatalogue')
+        # We only care about records who's status has changed in the past week (6 days to be sure)
+        date_object = datetime.strptime(str(self.date), '%Y%m%d')
         q = dict(
             AdmPublishWebNoPasswordFlag='N',
-            exportFileDate=self.date
+            exportFileDate=self.date,
+            ISODateInserted={'$gte': date_object - timedelta(days=6)}
         )
         cursor = collection.find(q)
         log.info('%s records to unpublish', cursor.count())
