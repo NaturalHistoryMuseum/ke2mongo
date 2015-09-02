@@ -38,7 +38,6 @@ def get_export_file_date():
     # If they have, add date to completed date
     for date, tasks in update_markers.items():
         for task in MainTask.tasks:
-            print task.task_family
             if task.task_family not in tasks:
                 break
             completed_dates.append(date)
