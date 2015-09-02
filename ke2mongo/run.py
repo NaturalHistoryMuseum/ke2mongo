@@ -13,6 +13,7 @@ Add to crontab to run:
 import sys
 import getopt
 import luigi
+from ke2mongo import config
 from ke2mongo.tasks.specimen import SpecimenDatasetAPITask
 from ke2mongo.tasks.indexlot import IndexLotDatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetAPITask
@@ -28,7 +29,10 @@ def get_export_file_date():
     """
 
     update_markers = mongo_get_update_markers()
-    completed_dates = [20150604]
+    # Always skip the full export date, as this is often imported a different way
+    # If it's needs to be run, then use the normal dataset tasks
+    full_export_date = config.get('keemu', 'full_export_date')
+    completed_dates = [full_export_date]
 
     # Check all tasks for a particular date have run correctly
     # If they have, add date to completed date
