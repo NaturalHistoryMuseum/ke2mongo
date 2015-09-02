@@ -31,7 +31,6 @@ def get_resource_id(remote_ckan, package_name):
             raise
 
 
-
 def ckan_delete(remote_ckan, mongo_record):
 
     # To avoid circular imports, import the tasks we need to check here
@@ -61,15 +60,19 @@ def ckan_delete(remote_ckan, mongo_record):
     # The name of the primary key field used in CKAN
     ckan_primary_key = primary_key_field[1]
 
-    primary_key_value = mongo_record[ke_primary_key]
-    resource_id = get_resource_id(remote_ckan, task_cls.package['name'])
-    if resource_id:
-        try:
-            # And delete the record from the datastore
-            log.info('Deleting record from CKAN where %s=%s' % (ckan_primary_key, primary_key_value))
-            remote_ckan.action.datastore_delete(id=resource_id, filters={ckan_primary_key: primary_key_value}, force=True)
-        except ckanapi.CKANAPIError:
-            # We don't care if the record isn't found
-            log.error('Record not found')
+    try:
+        primary_key_value = mongo_record[ke_primary_key]
+    except KeyError:
+        log.error('No value for primary key %s', ke_primary_key)
     else:
-        log.error('No resource ID')
+        resource_id = get_resource_id(remote_ckan, task_cls.package['name'])
+        if resource_id:
+            try:
+                # And delete the record from the datastore
+                log.info('Deleting record from CKAN where %s=%s' % (ckan_primary_key, primary_key_value))
+                remote_ckan.action.datastore_delete(id=resource_id, filters={ckan_primary_key: primary_key_value}, force=True)
+            except ckanapi.CKANAPIError:
+                # We don't care if the record isn't found
+                log.error('Record not found')
+        else:
+            log.error('No resource ID')

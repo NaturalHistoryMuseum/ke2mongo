@@ -31,6 +31,7 @@ from ke2mongo.tasks.unpublish import UnpublishTask
 from ke2mongo.tasks.delete import DeleteAPITask
 from ke2mongo.targets.csv import CSVTarget
 from ke2mongo.targets.api import APITarget
+from ke2mongo.targets.mongo import MongoTarget
 from ke2mongo.lib.mongo import mongo_client_db, mongo_get_update_markers
 from ke2mongo.lib.file import get_export_file_dates
 from ke2mongo.tasks.api import APITask
@@ -154,6 +155,16 @@ class DatasetTask(APITask):
 
         # Get or create the resource object
         self.resource_id = self.get_or_create_resource()
+
+        # Set up a mongo target to be used to mark complete
+        self.mongo_target = MongoTarget(database=config.get('mongo', 'database'), update_id=self.task_id)
+
+    def complete(self):
+        """
+        Is this task complete?
+        :return:
+        """
+        return self.mongo_target.exists()
 
     def ensure_export_date(self, date):
         """
@@ -382,8 +393,8 @@ class DatasetTask(APITask):
                 count += row_count
                 log.info("\t %s records", count)
 
-        # After running, set the has run_flag
-        self.has_run = True
+        # After running, update mongo
+        self.mongo_target.touch()
 
     def process_dataframe(self, m, df):
         return df
@@ -492,13 +503,6 @@ class DatasetTask(APITask):
 
         return OrderedDict((col[1], col[2]) for col in self.columns if self._is_output_field(col[1]))
 
-    def complete(self):
-        """
-        Built in luigi function - has this task completed
-        We want to run this task every time it is called - but if used in a requires statement (cron task)
-        It needs to return a complete boolean - so set has_run flag after this task has run
-        """
-        return self.has_run
 
 class DatasetAPITask(DatasetTask):
     """
@@ -521,10 +525,10 @@ class DatasetAPITask(DatasetTask):
         self.remote_ckan.action.resource_update(**resource)
 
         # If we have geospatial fields, update the geom columns
-        # if self.geospatial_fields:
-        #     log.info("Updating geometry columns for %s", self.resource_id)
-        #     self.geospatial_fields['resource_id'] = self.resource_id
-        #     self.remote_ckan.action.update_geom_columns(**self.geospatial_fields)
+        if self.geospatial_fields:
+            log.info("Updating geometry columns for %s", self.resource_id)
+            self.geospatial_fields['resource_id'] = self.resource_id
+            self.remote_ckan.action.update_geom_columns(**self.geospatial_fields)
 
 
 class DatasetCSVTask(DatasetTask):
