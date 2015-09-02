@@ -163,11 +163,8 @@ class DatasetTask(APITask):
     def update_id(self):
         """
         This update id will be a unique identifier for this insert on this collection.
-        Uses luigi task_id and the target host name, so we can differentiate between dev and
-        production boxes
         """
-        parsed_url = urlparse(self.remote_ckan.address)
-        return '%s - %s' % (self.task_id, parsed_url.netloc)
+        return self.task_id
 
     def complete(self):
         """
