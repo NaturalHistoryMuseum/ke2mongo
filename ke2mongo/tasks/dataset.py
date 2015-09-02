@@ -200,8 +200,8 @@ class DatasetTask(APITask):
             MongoCollectionEventTask(self.date),
             MongoSiteTask(self.date),
             DeleteAPITask(date=self.date),
-            # API Datasets aren't strictly dependent on Unpublish - but need to ensure it runs
-            UnpublishTask(date=self.date)
+            # Removed unpublished - once published, a record cannot be marked as hidden
+            # UnpublishTask(date=self.date)
         ]
 
 

@@ -23,6 +23,9 @@ from ke2mongo.targets.mongo import MongoTarget
 
 class UnpublishTask(APITask):
     """
+
+    Deprecated - once published, a record cannot be marked unpublish
+
     If a KE EMu record has been marked non web publishable, it needs to be deleted from CKAN
     NB: This does not remove embargoed records which have already been published.
     You cannot embargo a record after it's release.
@@ -32,6 +35,7 @@ class UnpublishTask(APITask):
     def requires(self):
         # Mongo catalogue task for date must have run
         yield MongoCatalogueTask(self.date)
+
     @timeit
     def run(self):
         # Do not run if this is a full export date - all non-publishable records will
