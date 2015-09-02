@@ -525,10 +525,10 @@ class DatasetAPITask(DatasetTask):
         self.remote_ckan.action.resource_update(**resource)
 
         # If we have geospatial fields, update the geom columns
-        if self.geospatial_fields:
-            log.info("Updating geometry columns for %s", self.resource_id)
-            self.geospatial_fields['resource_id'] = self.resource_id
-            self.remote_ckan.action.update_geom_columns(**self.geospatial_fields)
+        # if self.geospatial_fields:
+        #     log.info("Updating geometry columns for %s", self.resource_id)
+        #     self.geospatial_fields['resource_id'] = self.resource_id
+        #     self.remote_ckan.action.update_geom_columns(**self.geospatial_fields)
 
 
 class DatasetCSVTask(DatasetTask):
