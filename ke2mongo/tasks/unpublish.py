@@ -24,7 +24,7 @@ from ke2mongo.targets.mongo import MongoTarget
 class UnpublishTask(APITask):
     """
 
-    Deprecated - once published, a record cannot be marked unpublish
+    Deprecated - once published, a record cannot be marked "do not publish to internet".
 
     If a KE EMu record has been marked non web publishable, it needs to be deleted from CKAN
     NB: This does not remove embargoed records which have already been published.
