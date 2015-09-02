@@ -15,6 +15,7 @@ import ckanapi
 import itertools
 import datetime
 import json
+from urlparse import urlparse
 from collections import OrderedDict
 from monary import Monary
 from monary.monary import get_monary_numpy_type
@@ -157,7 +158,16 @@ class DatasetTask(APITask):
         self.resource_id = self.get_or_create_resource()
 
         # Set up a mongo target to be used to mark complete
-        self.mongo_target = MongoTarget(database=config.get('mongo', 'database'), update_id=self.task_id)
+        self.mongo_target = MongoTarget(database=config.get('mongo', 'database'), update_id=self.update_id())
+
+    def update_id(self):
+        """
+        This update id will be a unique identifier for this insert on this collection.
+        Uses luigi task_id and the target host name, so we can differentiate between dev and
+        production boxes
+        """
+        parsed_url = urlparse(self.remote_ckan.address)
+        return '%s - %s' % (self.task_id, parsed_url.netloc)
 
     def complete(self):
         """
