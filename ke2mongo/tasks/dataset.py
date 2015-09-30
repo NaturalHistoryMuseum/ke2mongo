@@ -199,7 +199,7 @@ class DatasetTask(APITask):
             MongoCollectionIndexTask(self.date),
             MongoCollectionEventTask(self.date),
             MongoSiteTask(self.date),
-            # DeleteAPITask(date=self.date),
+            DeleteAPITask(date=self.date),
             # Removed unpublished - once published, a record cannot be marked as hidden
             # UnpublishTask(date=self.date)
         ]
