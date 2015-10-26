@@ -450,6 +450,10 @@ class DatasetTask(APITask):
         multimedia_dict = {}
 
         for record in cursor:
+
+            if record['GenDigitalMediaId'] == 'Pending':
+                continue
+
             multimedia_dict[record['_id']] = {
                 'identifier': 'http://www.nhm.ac.uk/services/media-store/asset/{mam_id}/contents/preview'.format(
                     mam_id=record['GenDigitalMediaId'],
