@@ -23,9 +23,6 @@ from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 
-DQI_UNKNOWN = 'Unknown'
-DQI_NOT_APPLICABLE = 'N/A'
-
 class SpecimenDatasetTask(DatasetTask):
 
     # CKAN Dataset params
@@ -56,7 +53,7 @@ class SpecimenDatasetTask(DatasetTask):
         'longitude_field': 'decimalLongitude'
     }
 
-    indexed_fields = ['dqi', 'collectionCode', 'catalogNumber', 'created']
+    indexed_fields = ['collectionCode', 'catalogNumber', 'created']
 
     columns = [
         # List of columns
@@ -314,9 +311,7 @@ class SpecimenDatasetTask(DatasetTask):
         ('relatedResourceID', 'string:100', np.NaN),
         ('relationshipOfResource', 'string:100', np.NaN),
         ('centroid', 'bool', False),
-        ('otherCatalogNumbers', 'string:100', np.NaN),
-        # Add data quality indicators
-        ('dqi', 'string:16', DQI_UNKNOWN),
+        ('otherCatalogNumbers', 'string:100', np.NaN)
     ]
 
     @property
@@ -374,9 +369,6 @@ class SpecimenDatasetTask(DatasetTask):
         df['collectionCode'] = df['collectionCode'].str.upper().str[0:3]
         # Entom record collection code = BMNH(E)
         df['collectionCode'][df['collectionCode'] == 'ENT'] = "BMNH(E)"
-
-        # We use GBIF to populate Data Quality Indicators, so mark all mineralogy records as N/A
-        df['dqi'][df['collectionCode'] == 'MIN'] = DQI_NOT_APPLICABLE
 
         # Add the old stable identifier - IRN concatenated with catalogue name etc.,
         df['otherCatalogNumbers'] = 'NHMUK:ecatalogue:' + df['_id'].astype('str')
