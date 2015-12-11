@@ -10,6 +10,7 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 """
 
 import luigi
+from uuid import UUID
 from ke2mongo.lib.cites import get_cites_species
 from ke2mongo.tasks.mongo import MongoTask, InvalidRecordException
 from ke2mongo.tasks import DATE_FORMAT
@@ -56,6 +57,21 @@ class MongoCatalogueTask(MongoTask):
         if record_type in self.excluded_types:
             log.debug('Skipping record %s: Excluded type %s', data['irn'], record_type)
             raise InvalidRecordException
+
+        # Make sure the UUID is valid
+
+        guid = data.get('AdmGUIDPreferredValue', None)
+
+        if guid:
+
+            try:
+                UUID(guid, version=4)
+            except ValueError:
+                # print 'Skipping: not a valid UUID'
+                # Value error - not a valid hex code for a UUID.
+                # continue
+                print 'ERROR: ', guid
+                raise InvalidRecordException
 
         # If we don't have collection department, skip it
         if not data.get('ColDepartment', None):
