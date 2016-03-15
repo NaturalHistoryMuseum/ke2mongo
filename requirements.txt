@@ -6,3 +6,7 @@ pymongo==2.7
 Monary
 -e git+https://github.com/ckan/ckanapi#egg=ckanapi
 tornado==4.0.2
+pyyaml
+numpy
+python-dateutil
+ckanapi
