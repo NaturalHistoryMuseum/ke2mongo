@@ -62,6 +62,7 @@ class IndexLotDatasetTask(DatasetTask):
         ('etaxonomy.ClaRank', 'Taxonomic rank', 'string:20'),  # NB: CKAN uses rank internally
 
         ('ecatalogue.AdmGUIDPreferredValue', 'GUID', 'uuid'),
+        ('ecatalogue._id', 'IRN', 'uuid'),
         ('ecatalogue.EntIndIndexLotNameRef', '_collection_index_irn', 'int32'),
         ('ecatalogue.EntIndMaterial', 'Material', 'bool'),
         ('ecatalogue.EntIndType', 'Type', 'bool'),
