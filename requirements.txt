@@ -8,5 +8,4 @@ Monary
 tornado==4.0.2
 pyyaml
 numpy
-monary==0.2.3
 python-dateutil
