@@ -54,7 +54,7 @@ class SpecimenDatasetTask(DatasetTask):
         'longitude_field': 'decimalLongitude'
     }
 
-    indexed_fields = ['collectionCode', 'catalogNumber', 'created']
+    indexed_fields = ['collectionCode', 'catalogNumber', 'created', 'project']
 
     columns = [
         # List of columns
