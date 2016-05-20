@@ -13,6 +13,7 @@ Running rebuildIndexes() has fixed the problem
 
 """
 import re
+import time
 import pandas as pd
 import numpy as np
 import luigi
@@ -210,7 +211,7 @@ class SpecimenDatasetTask(DatasetTask):
         # Mineralogy
         ('ecatalogue.MinDateRegistered', 'dateRegistered', 'string:100'),
         ('ecatalogue.MinIdentificationAsRegistered', 'identificationAsRegistered', 'string:100'),
-        ('ecatalogue.MinIdentificationDescription', 'identificationDescription', 'string:300'),
+        ('ecatalogue.MinIdentificationDescription', 'identificationDescription', 'string:500'),
         ('ecatalogue.MinPetOccurance', 'occurrence', 'string:100'),
         ('ecatalogue.MinOreCommodity', 'commodity', 'string:200'),
         ('ecatalogue.MinOreDepositType', 'depositType', 'string:100'),
@@ -238,6 +239,8 @@ class SpecimenDatasetTask(DatasetTask):
         ('ecatalogue.MinMetRecoveryWeight', 'recoveryWeight', 'string:100'),
         ('ecatalogue.MinMetWeightAsRegistered', 'registeredWeight', 'string:100'),
         ('ecatalogue.MinMetWeightAsRegisteredUnit', 'registeredWeightUnit', 'string:100'),
+        # Project
+        ('ecatalogue.NhmSecProjectName', 'project', 'string:100'),
 
         # Record level
         ('ecatalogue.AdmDateModified', 'modified', 'string:100'),
@@ -330,12 +333,10 @@ class SpecimenDatasetTask(DatasetTask):
             "$nin": PARENT_TYPES + [ArtefactDatasetTask.record_type, IndexLotDatasetTask.record_type]
         }
 
-        # And exclude all with an embargo date
-        query['NhmSecEmbargoDate'] = 0
-
-        # query['EntIdeScientificNameLocal'] = {"$exists": 1}
-        # query['MulMultiMediaRef'] = {"$exists": 1}
-        # query['_id'] = {'$in': [5584728]}
+        # And exclude all with an embargo date (timestamp) in the future
+        query['RealEmbargoDate'] = {
+            "$lt": time.time()
+        }
 
         return query
 
