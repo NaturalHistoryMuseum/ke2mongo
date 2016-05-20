@@ -29,10 +29,7 @@ def get_export_file_date():
     """
 
     update_markers = mongo_get_update_markers()
-    # Always skip the full export date, as this is often imported a different way
-    # If it's needs to be run, then use the normal dataset tasks
-    full_export_date = config.get('keemu', 'full_export_date')
-    completed_dates = [int(full_export_date)]
+    completed_dates = []
 
     # Check all tasks for a particular date have run correctly
     # If they have, add date to completed date
