@@ -4,17 +4,19 @@
 Created by 'bens3' on 2013-06-21.
 Copyright (c) 2013 'bens3'. All rights reserved.
 
- python tasks/mongo_catalogue.py --local-scheduler --date 20160303
+ python tasks/mongo_catalogue.py --local-scheduler --date 20160519
 
 
 """
 
+import time
 import luigi
 from uuid import UUID
 from ke2mongo.lib.cites import get_cites_species
 from ke2mongo.tasks.mongo import MongoTask, InvalidRecordException
 from ke2mongo.tasks import DATE_FORMAT
 from ke2mongo.log import log
+from datetime import datetime
 
 class MongoCatalogueTask(MongoTask):
 
@@ -97,9 +99,20 @@ class MongoCatalogueTask(MongoTask):
         if scientific_name and scientific_name in self.cites_species:
             data['cites'] = True
 
-        # Add embargoed date = 0 so we don't have to query against field exists (doesn't use the index)
-        if not 'NhmSecEmbargoDate' in data:
-            data['NhmSecEmbargoDate'] = 0
+        # For the embargo date, we're going to use the latest of NhmSecEmbargoDate and NhmSecEmbargoExtensionDate
+        # So loop through, convert to timestamp.
+
+        embargo_list = []
+
+        for f in ['NhmSecEmbargoDate', 'NhmSecEmbargoExtensionDate']:
+            if data.get(f):
+                ts =self.date_to_timestamp(data.get(f))
+            else:
+                ts = 0
+            embargo_list.append(ts)
+
+        # Set the Real Embargo data to the largest embargo or extension date
+        data['RealEmbargoDate'] = max(embargo_list)
         return super(MongoCatalogueTask, self).process_record(data)
 
     def on_success(self):
@@ -119,8 +132,18 @@ class MongoCatalogueTask(MongoTask):
         # Exclude records if they do not have a GUID
         self.collection.ensure_index('AdmGUIDPreferredValue')
         # Add embargo date index
-        self.collection.ensure_index('NhmSecEmbargoDate')
+        self.collection.ensure_index('RealEmbargoDate')
         super(MongoCatalogueTask, self).on_success()
+
+    @staticmethod
+    def date_to_timestamp(data_str):
+        """
+        Convert date string to timestamp
+        :return: timestamp
+        """
+
+        return time.mktime(datetime.strptime(data_str, "%Y-%m-%d").timetuple())
+
 
 if __name__ == "__main__":
     luigi.run(main_task_cls=MongoCatalogueTask)
