@@ -1,5 +1,5 @@
 -e git+https://github.com/NaturalHistoryMuseum/KEParser.git#egg=KEParser
--e git+https://github.com/spotify/luigi.git#egg=luigi
+-e git+https://github.com/spotify/luigi.git@1.3.0#egg=luigi
 openpyxl>=1.6.1,<=2.0.0
 pandas==0.14.0
 pymongo==2.7
