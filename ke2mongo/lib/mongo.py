@@ -11,11 +11,14 @@ from collections import OrderedDict
 from pymongo import MongoClient
 from ke2mongo import config
 
+
 def mongo_client_db(database=config.get('mongo', 'database'), host=config.get('mongo', 'host')):
     return MongoClient(host)[database]
 
+
 def mongo_get_marker_collection_name():
     return luigi.configuration.get_config().get('postgres', 'marker-table', 'table_updates')
+
 
 def mongo_get_update_markers():
 
