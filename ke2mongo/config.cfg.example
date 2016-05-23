@@ -1,30 +1,20 @@
 [mongo]
-database = keemu
-host = 172.0.0.1
+database = [db name]
+host = 127.0.0.1
 
 [keemu]
 # The directory where the keemu export files are deposited
-export_dir = /vagrant/exports
+export_dir =
 # Location of the keemu schema
-schema = /vagrant/exports/schema.pl
+schema =
 # We only want files since the last full export date
 full_export_date = YYYYMMDD
 
 [ckan]
-owner_org =
+site_url = http://157.140.126.18:8000
+api_key = 8fb9ec7d-431b-4ddb-83a5-a6656dd9a8e8
+owner_org = nhm
 
-[ckan.local]
-site_url = http://localhost
-api_key =
-
-[ckan.dev]
-site_url =
-api_key =
-
-[ckan.live]
-site_url =
-api_key =
-
-[csv]
-# The directory to write CSV files
-output_dir = /vagrant/tmp
+# The specimen indexes
+[solr]
+indexes = url, url
