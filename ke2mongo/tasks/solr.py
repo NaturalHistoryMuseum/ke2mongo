@@ -18,9 +18,6 @@ class SolrTask(luigi.Task):
     """
     Solr reindex task
     """
-
-    date = luigi.IntParameter()
-
     # indexes = config.get('solr', 'indexes').split(',')
 
     def run(self):
