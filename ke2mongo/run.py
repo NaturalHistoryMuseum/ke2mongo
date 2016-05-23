@@ -18,6 +18,8 @@ from ke2mongo.tasks.specimen import SpecimenDatasetAPITask
 from ke2mongo.tasks.indexlot import IndexLotDatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetAPITask
 from ke2mongo.tasks.unpublish import UnpublishTask
+from ke2mongo.tasks.solr import SolrTask
+
 from ke2mongo.tasks.main import MainTask
 from ke2mongo.lib.file import get_export_file_dates
 from ke2mongo.lib.mongo import mongo_get_update_markers
@@ -58,7 +60,11 @@ def main(argv):
             local_scheduler = True
 
     if export_file_date:
-        luigi.run(['--date', str(export_file_date)], main_task_cls=MainTask, local_scheduler=local_scheduler)
+        luigi.run(['--date', str(export_file_date)], main_task_cls=SolrTask, local_scheduler=local_scheduler)
+
+
+
+        # luigi.run(['--date', str(export_file_date)], main_task_cls=MainTask, local_scheduler=local_scheduler)
 
 if __name__ == "__main__":
 
