@@ -52,15 +52,25 @@ def get_export_file_date():
 
 def main(argv):
     export_file_date = get_export_file_date()
-    local_scheduler = False
     # Add local scheduler option so we can run manually when needed
-    opts, args = getopt.getopt(argv, "l", ["local-scheduler"])
+    local_scheduler = False
+    # And if we don't want to rebuild the indexes after run
+    index = True
+
+    opts, args = getopt.getopt(argv, "ln", ["local-scheduler", "no-index"])
     for opt, arg in opts:
         if opt in ("-l", "--local-scheduler"):
             local_scheduler = True
+        if opt in ("-n", "--no-index"):
+            index = False
 
     if export_file_date:
-        luigi.run(['--date', str(export_file_date)], main_task_cls=MainTask, local_scheduler=local_scheduler)
+
+        print(index)
+        print(export_file_date)
+
+
+        # luigi.run(['--date', str(export_file_date)], main_task_cls=MainTask, local_scheduler=local_scheduler)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
