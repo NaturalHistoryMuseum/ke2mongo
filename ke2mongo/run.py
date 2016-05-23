@@ -60,7 +60,6 @@ def main(argv):
             local_scheduler = True
 
     if export_file_date:
-        luigi.run([], main_task_cls=SolrTask, local_scheduler=local_scheduler)
         luigi.run(['--date', str(export_file_date)], main_task_cls=MainTask, local_scheduler=local_scheduler)
 
 if __name__ == "__main__":

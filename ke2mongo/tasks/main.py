@@ -13,6 +13,7 @@ import luigi
 from ke2mongo.tasks.specimen import SpecimenDatasetAPITask
 from ke2mongo.tasks.indexlot import IndexLotDatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetAPITask
+from ke2mongo.lib.solr import solr_reindex
 
 class MainTask(luigi.Task):
     """
@@ -31,3 +32,7 @@ class MainTask(luigi.Task):
         }
         for task in self.tasks:
             yield task(**params)
+
+    def on_success(self):
+        print('INDEX')
+
