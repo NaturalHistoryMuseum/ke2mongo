@@ -65,12 +65,7 @@ def main(argv):
             index = False
 
     if export_file_date:
-
-        print(index)
-        print(export_file_date)
-
-
-        # luigi.run(['--date', str(export_file_date)], main_task_cls=MainTask, local_scheduler=local_scheduler)
+        luigi.run(['--date', str(export_file_date), '--index', index], main_task_cls=MainTask, local_scheduler=local_scheduler)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

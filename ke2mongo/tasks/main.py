@@ -21,18 +21,22 @@ class MainTask(luigi.Task):
     """
 
     date = luigi.IntParameter()
+    index = luigi.BoolParameter(default=True)
 
     # List of all tasks that need to be run
     tasks = [ArtefactDatasetAPITask, IndexLotDatasetAPITask, SpecimenDatasetAPITask]
 
-    def requires(self):
-
-        params = {
-            'date': self.date,
-        }
-        for task in self.tasks:
-            yield task(**params)
+    # def requires(self):
+    #
+    #     params = {
+    #         'date': self.date,
+    #     }
+    #     for task in self.tasks:
+    #         yield task(**params)
 
     def on_success(self):
+
+        print(self.index)
+
         print('INDEX')
 
