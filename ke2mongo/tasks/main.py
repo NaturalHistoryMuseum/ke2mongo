@@ -21,22 +21,19 @@ class MainTask(luigi.Task):
     """
 
     date = luigi.IntParameter()
-    index = luigi.BoolParameter(default=True)
+    # Allow passing in a parameter for not rebuilding the index - useful if there's loads to run
+    no_index = luigi.BoolParameter(default=False)
 
     # List of all tasks that need to be run
     tasks = [ArtefactDatasetAPITask, IndexLotDatasetAPITask, SpecimenDatasetAPITask]
 
-    # def requires(self):
-    #
-    #     params = {
-    #         'date': self.date,
-    #     }
-    #     for task in self.tasks:
-    #         yield task(**params)
+    def requires(self):
+        params = {
+            'date': self.date,
+        }
+        for task in self.tasks:
+            yield task(**params)
 
     def on_success(self):
-
-        print(self.index)
-
-        print('INDEX')
-
+        if not self.no_index:
+            solr_reindex()
