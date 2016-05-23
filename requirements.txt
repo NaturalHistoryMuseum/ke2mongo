@@ -9,3 +9,4 @@ tornado==4.0.2
 pyyaml
 numpy
 python-dateutil
+requests
