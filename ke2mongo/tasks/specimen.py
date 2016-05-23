@@ -23,6 +23,7 @@ from ke2mongo.tasks import PARENT_TYPES, DATASET_LICENCE, DATASET_AUTHOR, DATASE
 from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
+from ke2mongo.lib.solr import solr_reindex
 
 class SpecimenDatasetTask(DatasetTask):
 
@@ -510,6 +511,10 @@ class SpecimenDatasetTask(DatasetTask):
 
         return df
 
+    def complete(self):
+        super(SpecimenDatasetTask, self).complete()
+        # After completing we want to reindex solr
+        solr_reindex()
 
 class SpecimenDatasetCSVTask(SpecimenDatasetTask, DatasetCSVTask):
     pass

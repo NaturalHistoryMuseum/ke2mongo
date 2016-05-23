@@ -153,7 +153,7 @@ MANUAL GIS
 
 From Scratch:
 
-UPDATE "748ea288-423c-4df4-9634-c0f1d947fea9" SET "_geom"=st_setsrid(st_makepoint("decimalLongitude"::float8, "decimalLatitude"::float8), 4326),
+UPDATE "a0aa9450-6d48-43c6-9836-18156fa1ff5f" SET "_geom"=st_setsrid(st_makepoint("decimalLongitude"::float8, "decimalLatitude"::float8), 4326),
 "_the_geom_webmercator" = st_transform(st_setsrid(st_makepoint("decimalLongitude"::float8, "decimalLatitude"::float8), 4326), 3857)
 WHERE "decimalLatitude" <= 90 AND "decimalLatitude" >= -90 AND "decimalLongitude" <= 180 AND "decimalLongitude" >= -180
 
