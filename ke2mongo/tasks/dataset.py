@@ -369,6 +369,8 @@ class DatasetTask(APITask):
             # Get field definitions for default collection
             query_fields, df_cols, field_types = zip(*self.get_collection_source_columns(self.collection_name))
 
+            print(self.block_size)
+
             catalogue_blocks = m.block_query(db, self.collection_name, self.query, query_fields, field_types, block_size=self.block_size)
 
             log.info("Processing Monary data")
@@ -519,7 +521,7 @@ class DatasetAPITask(DatasetTask):
     """
     Write directly to CKAN API
     """
-    block_size = 200   # 5000 is fastest, but Apache throws 413 “Request Entity Too Large” error
+    block_size = 20   # 5000 is fastest, but Apache throws 413 “Request Entity Too Large” error
 
     def output(self):
         return APITarget(remote_ckan=self.remote_ckan, resource_id=self.resource_id, columns=self.get_output_columns())
