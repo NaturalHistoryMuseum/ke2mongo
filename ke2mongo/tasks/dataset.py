@@ -369,8 +369,6 @@ class DatasetTask(APITask):
             # Get field definitions for default collection
             query_fields, df_cols, field_types = zip(*self.get_collection_source_columns(self.collection_name))
 
-            print(self.block_size)
-
             catalogue_blocks = m.block_query(db, self.collection_name, self.query, query_fields, field_types, block_size=self.block_size)
 
             log.info("Processing Monary data")
@@ -392,8 +390,6 @@ class DatasetTask(APITask):
                 for i, df_col in enumerate(df_cols):
                     if field_types[i].startswith('int'):
                         df[df_col] = df[df_col].astype(field_types[i])
-
-                print('HEL')
 
                 df = self.process_dataframe(m, df)
 
