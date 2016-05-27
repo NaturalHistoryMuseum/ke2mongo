@@ -393,6 +393,8 @@ class DatasetTask(APITask):
                     if field_types[i].startswith('int'):
                         df[df_col] = df[df_col].astype(field_types[i])
 
+                print('HEL')
+
                 df = self.process_dataframe(m, df)
 
                 # Output the dataframe
