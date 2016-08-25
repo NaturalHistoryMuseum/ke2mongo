@@ -106,6 +106,17 @@ class DatasetTask(APITask):
                 ]
             }
 
+	# Make sure that only the five collections departments are represented, as others can break stats pages
+	query["ColDepartment"] = {
+	    '$in': [
+	        "Botany",
+	        "Entomology",
+                "Mineralogy",
+                "Palaeontology",
+	        "Zoology"
+	        ]		
+	}
+
         # Web publishable != No
         query['AdmPublishWebNoPasswordFlag'] = {'$ne': 'N'}
 
@@ -426,7 +437,7 @@ class DatasetTask(APITask):
 
         # Convert associatedMedia field to a list
         df[multimedia_field] = df[multimedia_field].apply(lambda x: list(int(z.strip()) for z in x.split(';') if z.strip()))
-
+	
         # Get a unique list of IRNS
         unique_multimedia_irns = list(set(itertools.chain(*[irn for irn in df[multimedia_field].values])))
 
@@ -436,13 +447,15 @@ class DatasetTask(APITask):
             {
                 '_id': {'$in': unique_multimedia_irns},
                 'AdmPublishWebNoPasswordFlag': 'Y',
-                'NhmSecEmbargoDate': 0,
+                #'NhmSecEmbargoDate': 0,
                 'GenDigitalMediaId': {'$ne': 0}
                 },
             {
                 'GenDigitalMediaId': 1,
                 'MulTitle': 1,
-                'MulMimeFormat': 1
+                'MulMimeFormat': 1,
+		'NhmSecEmbargoDate': 1,
+		'NhmSecEmbargoExtensionDate': 1
             }
         )
 
@@ -454,6 +467,15 @@ class DatasetTask(APITask):
             if record['GenDigitalMediaId'] == 'Pending':
                 continue
 
+	    # If the embargo extension date exists and is in the future, then skip
+	    if 'NhmSecEmbargoExtensionDate' in record: 
+	    	if record['NhmSecEmbargoExtensionDate'] > 0 and record['NhmSecEmbargoExtensionDate'] > datetime.datetime.today().strftime("%Y-%m-%d"):
+			continue
+
+	    # For remaining records, if the original embargo date exists and is in the future then skip
+	    if record['NhmSecEmbargoDate'] > 0 and record['NhmSecEmbargoDate'] > datetime.datetime.today().strftime("%Y-%m-%d"):
+		continue
+		
             multimedia_dict[record['_id']] = {
                 'identifier': 'http://www.nhm.ac.uk/services/media-store/asset/{mam_id}/contents/preview'.format(
                     mam_id=record['GenDigitalMediaId'],
@@ -478,11 +500,11 @@ class DatasetTask(APITask):
             """
 
             multimedia_records = [multimedia_dict[irn] for irn in irns if irn in multimedia_dict]
-            return json.dumps(multimedia_records) if multimedia_records else np.nan
+	    return json.dumps(multimedia_records) if multimedia_records else np.nan
 
         # And finally update the associatedMedia field, so formatting with the IRN with MULTIMEDIA_URL, if the IRN is in valid_multimedia
         df[multimedia_field] = df[multimedia_field].apply(multimedia_to_json)
-
+	
     @staticmethod
     def get_dataframe(m, collection, columns, irns, key):
 
