@@ -18,3 +18,6 @@ owner_org = nhm
 # The specimen indexes
 [solr]
 indexes = url, url
+
+[dataset_id]
+specimen = 
