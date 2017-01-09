@@ -24,11 +24,12 @@ from ke2mongo.tasks.dataset import DatasetTask, DatasetCSVTask, DatasetAPITask
 from ke2mongo.tasks.artefact import ArtefactDatasetTask
 from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 
+
 class SpecimenDatasetTask(DatasetTask):
 
     # CKAN Dataset params
     package = {
-        'name': 'collection-specimens',
+        'name': 'collection-specimens5',
         'notes': u'Specimen records from the Natural History Museum\'s collection',
         'title': "Collection specimens",
         'author': DATASET_AUTHOR,
@@ -42,6 +43,7 @@ class SpecimenDatasetTask(DatasetTask):
     # And now save to the datastore
     datastore = {
         'resource': {
+            'id': config.get('dataset_id', 'specimen'),
             'name': 'Specimens',
             'description': 'Specimen records',
             'format': 'dwc'  # Darwin core
@@ -59,16 +61,19 @@ class SpecimenDatasetTask(DatasetTask):
     columns = [
         # List of columns
         # ([KE EMu field], [new field], [field type])
-        ('ecatalogue._id', '_id', 'int32'),  # Used for logging, joins and the old stable identifier
+        # Used for logging, joins and the old stable identifier
+        ('ecatalogue._id', '_id', 'int32'),
         ('ecatalogue.AdmGUIDPreferredValue', 'occurrenceID', 'uuid'),
         ('ecatalogue.DarCatalogNumber', 'catalogNumber', 'string:100'),
         # Taxonomy
         ('ecatalogue.DarScientificName', 'scientificName', 'string:100'),
         # Rather than using the two darwin core fields DarScientificNameAuthorYear and ScientificNameAuthor
-        # It's easier to just use IdeFiledAsAuthors which has them both concatenated
+        # It's easier to just use IdeFiledAsAuthors which has them both
+        # concatenated
         ('ecatalogue.IdeFiledAsAuthors', 'scientificNameAuthorship', 'string:100'),
         ('ecatalogue.DarTypeStatus', 'typeStatus', 'string:100'),
-        # Use nearest name place rather than precise locality https://github.com/NaturalHistoryMuseum/ke2mongo/issues/29
+        # Use nearest name place rather than precise locality
+        # https://github.com/NaturalHistoryMuseum/ke2mongo/issues/29
         ('ecatalogue.PalNearestNamedPlaceLocal', 'locality', 'string:100'),
         ('ecatalogue.DarCountry', 'country', 'string:100'),
         ('ecatalogue.DarWaterBody', 'waterBody', 'string:100'),
@@ -111,10 +116,14 @@ class SpecimenDatasetTask(DatasetTask):
         ('esites.LatLatitude', 'verbatimLatitude', 'string:100'),
 
         # Occurrence
-        ('ecatalogue.DarMinimumElevationInMeters', 'minimumElevationInMeters', 'string:100'),
-        ('ecatalogue.DarMaximumElevationInMeters', 'maximumElevationInMeters', 'string:100'),
-        ('ecatalogue.DarMinimumDepthInMeters', 'minimumDepthInMeters', 'string:100'),
-        ('ecatalogue.DarMaximumDepthInMeters', 'maximumDepthInMeters', 'string:100'),
+        ('ecatalogue.DarMinimumElevationInMeters',
+         'minimumElevationInMeters', 'string:100'),
+        ('ecatalogue.DarMaximumElevationInMeters',
+         'maximumElevationInMeters', 'string:100'),
+        ('ecatalogue.DarMinimumDepthInMeters',
+         'minimumDepthInMeters', 'string:100'),
+        ('ecatalogue.DarMaximumDepthInMeters',
+         'maximumDepthInMeters', 'string:100'),
         # DarCollector doesn't have multiple collectors NHMUK:ecatalogue:1751715 - Switched to using ecollectionevents.ColParticipantLocal
         # ('ecatalogue.DarCollector', 'Recorded by', 'string:100'),
         ('ecatalogue.DarCollectorNumber', 'recordNumber', 'string:100'),
@@ -129,9 +138,11 @@ class SpecimenDatasetTask(DatasetTask):
         # Identification
         ('ecatalogue.DarIdentifiedBy', 'identifiedBy', 'string:100'),
         # KE Emu has 3 fields for identification date: DarDayIdentified, DarMonthIdentified and DarYearIdentified
-        # But EntIdeDateIdentified holds them all - which is what we want for dateIdentified
+        # But EntIdeDateIdentified holds them all - which is what we want for
+        # dateIdentified
         ('ecatalogue.EntIdeDateIdentified', 'dateIdentified', 'string:100'),
-        ('ecatalogue.DarIdentificationQualifier', 'identificationQualifier', 'string:100'),
+        ('ecatalogue.DarIdentificationQualifier',
+         'identificationQualifier', 'string:100'),
         # ('ecatalogue.DarFieldNumber', 'Field number', 'string:100'),  Removed as mostly duplicates DarCollectorNumber (JW - feedback)
         ('ecatalogue.DarTimeOfDay', 'eventTime', 'string:100'),
         ('ecatalogue.DarDayCollected', 'day', 'string:100'),
@@ -143,14 +154,16 @@ class SpecimenDatasetTask(DatasetTask):
         ('ecatalogue.DarLatestEon', 'latestEonOrHighestEonothem', 'string:100'),
         ('ecatalogue.DarEarliestEra', 'earliestEraOrLowestErathem', 'string:100'),
         ('ecatalogue.DarLatestEra', 'latestEraOrHighestErathem', 'string:100'),
-        ('ecatalogue.DarEarliestPeriod', 'earliestPeriodOrLowestSystem', 'string:100'),
+        ('ecatalogue.DarEarliestPeriod',
+         'earliestPeriodOrLowestSystem', 'string:100'),
         ('ecatalogue.DarLatestPeriod', 'latestPeriodOrHighestSystem', 'string:100'),
         ('ecatalogue.DarEarliestEpoch', 'earliestEpochOrLowestSeries', 'string:100'),
         ('ecatalogue.DarLatestEpoch', 'latestEpochOrHighestSeries', 'string:100'),
         ('ecatalogue.DarEarliestAge', 'earliestAgeOrLowestStage', 'string:100'),
         ('ecatalogue.DarLatestAge', 'latestAgeOrHighestStage', 'string:100'),
         ('ecatalogue.DarLowestBiostrat', 'lowestBiostratigraphicZone', 'string:100'),
-        ('ecatalogue.DarHighestBiostrat', 'highestBiostratigraphicZone', 'string:100'),
+        ('ecatalogue.DarHighestBiostrat',
+         'highestBiostratigraphicZone', 'string:100'),
         ('ecatalogue.DarGroup', 'group', 'string:100'),
         ('ecatalogue.DarFormation', 'formation', 'string:100'),
         ('ecatalogue.DarMember', 'member', 'string:100'),
@@ -199,7 +212,9 @@ class SpecimenDatasetTask(DatasetTask):
         # Botany
         ('ecatalogue.CollExsiccati', 'exsiccati', 'string:100'),
         ('ecatalogue.ColExsiccatiNumber', 'exsiccatiNumber', 'string:100'),
-        ('ecatalogue.ColSiteDescription', 'labelLocality', 'string:100'),  # JW asked for this to be renamed from Site Description => Label locality
+        # JW asked for this to be renamed from Site Description => Label
+        # locality
+        ('ecatalogue.ColSiteDescription', 'labelLocality', 'string:100'),
         ('ecatalogue.ColPlantDescription', 'plantDescription', 'string:100'),
         ('ecatalogue.FeaCultivated', 'cultivated', 'string:100'),
 
@@ -210,19 +225,23 @@ class SpecimenDatasetTask(DatasetTask):
         ('ecatalogue.PalStrLithostratLocal', 'lithostratigraphy', 'string:100'),
         # Mineralogy
         ('ecatalogue.MinDateRegistered', 'dateRegistered', 'string:100'),
-        ('ecatalogue.MinIdentificationAsRegistered', 'identificationAsRegistered', 'string:100'),
-        ('ecatalogue.MinIdentificationDescription', 'identificationDescription', 'string:500'),
+        ('ecatalogue.MinIdentificationAsRegistered',
+         'identificationAsRegistered', 'string:100'),
+        ('ecatalogue.MinIdentificationDescription',
+         'identificationDescription', 'string:500'),
         ('ecatalogue.MinPetOccurance', 'occurrence', 'string:100'),
         ('ecatalogue.MinOreCommodity', 'commodity', 'string:200'),
         ('ecatalogue.MinOreDepositType', 'depositType', 'string:100'),
         ('ecatalogue.MinTextureStructure', 'texture', 'string:100'),
-        ('ecatalogue.MinIdentificationVariety', 'identificationVariety', 'string:100'),
+        ('ecatalogue.MinIdentificationVariety',
+         'identificationVariety', 'string:100'),
         ('ecatalogue.MinIdentificationOther', 'identificationOther', 'string:100'),
         ('ecatalogue.MinHostRock', 'hostRock', 'string:100'),
         ('ecatalogue.MinAgeDataAge', 'age', 'string:100'),
         ('ecatalogue.MinAgeDataType', 'ageType', 'string:100'),
         # Mineralogy location
-        ('ecatalogue.MinNhmTectonicProvinceLocal', 'tectonicProvince', 'string:100'),
+        ('ecatalogue.MinNhmTectonicProvinceLocal',
+         'tectonicProvince', 'string:100'),
         ('ecatalogue.MinNhmStandardMineLocal', 'mine', 'string:100'),
         ('ecatalogue.MinNhmMiningDistrictLocal', 'miningDistrict', 'string:100'),
         ('ecatalogue.MinNhmComplexLocal', 'mineralComplex', 'string:100'),
@@ -230,7 +249,8 @@ class SpecimenDatasetTask(DatasetTask):
         # Meteorite
         ('ecatalogue.MinMetType', 'meteoriteType', 'string:100'),
         ('ecatalogue.MinMetGroup', 'meteoriteGroup', 'string:100'),
-        ('ecatalogue.MinMetChondriteAchondrite', 'chondriteAchondrite', 'string:100'),
+        ('ecatalogue.MinMetChondriteAchondrite',
+         'chondriteAchondrite', 'string:100'),
         ('ecatalogue.MinMetClass', 'meteoriteClass', 'string:100'),
         ('ecatalogue.MinMetPetType', 'petrologyType', 'string:100'),
         ('ecatalogue.MinMetPetSubtype', 'petrologySubtype', 'string:100'),
@@ -238,7 +258,8 @@ class SpecimenDatasetTask(DatasetTask):
         ('ecatalogue.MinMetRecoveryDate', 'recoveryDate', 'string:100'),
         ('ecatalogue.MinMetRecoveryWeight', 'recoveryWeight', 'string:100'),
         ('ecatalogue.MinMetWeightAsRegistered', 'registeredWeight', 'string:100'),
-        ('ecatalogue.MinMetWeightAsRegisteredUnit', 'registeredWeightUnit', 'string:100'),
+        ('ecatalogue.MinMetWeightAsRegisteredUnit',
+         'registeredWeightUnit', 'string:100'),
         # Project
         ('ecatalogue.NhmSecProjectName', 'project', 'string:100'),
 
@@ -253,16 +274,19 @@ class SpecimenDatasetTask(DatasetTask):
         ('ecatalogue.sumCollectionEventRef', '_collectionEventRef', 'int32'),
         ('ecatalogue.CardParasiteRef', '_cardParasiteRef', 'int32'),
         # Used if DarCatalogueNumber is empty
-        ('ecatalogue.RegRegistrationNumber', '_regRegistrationNumber', 'string:100'),
+        ('ecatalogue.RegRegistrationNumber',
+         '_regRegistrationNumber', 'string:100'),
 
         # Used if CatPreservative is empty
         ('ecatalogue.EntCatPreservation', '_entCatPreservation', 'string:100'),
 
         # Used to build previous determinations for Botany
         ('ecatalogue.IdeCitationTypeStatus', '_determinationTypes', 'string:100'),
-        ('ecatalogue.EntIdeScientificNameLocal', '_determinationNames', 'string:250'),
+        ('ecatalogue.EntIdeScientificNameLocal',
+         '_determinationNames', 'string:250'),
         ('ecatalogue.EntIdeFiledAs', '_determinationFiledAs', 'string:100'),
-        # If DarTypeStatus is empty, we'll use sumTypeStatus which has previous determinations
+        # If DarTypeStatus is empty, we'll use sumTypeStatus which has previous
+        # determinations
         ('ecatalogue.sumTypeStatus', '_sumTypeStatus', 'string:100'),
 
         # Locality if nearest named place is empty
@@ -270,7 +294,8 @@ class SpecimenDatasetTask(DatasetTask):
         # So better to use the original field with the correct encoding
         ('ecatalogue.sumPreciseLocation', '_preciseLocation', 'string:100'),
         # Locality if precise and nearest named place is empty
-        ('ecatalogue.MinNhmVerbatimLocalityLocal', '_minLocalityLocal', 'string:100'),
+        ('ecatalogue.MinNhmVerbatimLocalityLocal',
+         '_minLocalityLocal', 'string:100'),
 
         # CITES specimens
         ('ecatalogue.cites', '_cites', 'bool'),
@@ -288,7 +313,8 @@ class SpecimenDatasetTask(DatasetTask):
 
     ]
 
-    # Used to merge in data from parasite cards, which do not have taxonomic data
+    # Used to merge in data from parasite cards, which do not have taxonomic
+    # data
     parasite_taxonomy_fields = [
         ('_id', '_irn', 'int32'),
         ('ClaScientificNameBuilt', 'scientificName', 'string:100'),
@@ -371,13 +397,17 @@ class SpecimenDatasetTask(DatasetTask):
         # Entom record collection code = BMNH(E)
         df['collectionCode'][df['collectionCode'] == 'ENT'] = "BMNH(E)"
 
-        # Add the old stable identifier - IRN concatenated with catalogue name etc.,
-        df['otherCatalogNumbers'] = 'NHMUK:ecatalogue:' + df['_id'].astype('str')
+        # Add the old stable identifier - IRN concatenated with catalogue name
+        # etc.,
+        df['otherCatalogNumbers'] = 'NHMUK:ecatalogue:' + \
+            df['_id'].astype('str')
 
-        # Ensure multimedia resources are suitable (jpeg rather than tiff etc.,)
+        # Ensure multimedia resources are suitable (jpeg rather than tiff
+        # etc.,)
         self.ensure_multimedia(df, 'associatedMedia')
 
-        # Assign determination name, type and field as to determinations for determination history
+        # Assign determination name, type and field as to determinations for
+        # determination history
         determination_fields = [
             ('name', '_determinationNames'),
             ('type', '_determinationTypes'),
@@ -393,16 +423,20 @@ class SpecimenDatasetTask(DatasetTask):
             """
             return json.dumps({field_name: row[determination].split(';') for field_name, determination in determination_fields if row[determination]})
 
-        df['determinations'] = df[df['_determinationNames'] != ''].apply(determinations_json, axis=1)
+        df['determinations'] = df[df['_determinationNames']
+                                  != ''].apply(determinations_json, axis=1)
 
         # There doesn't seem to be a good way to identify centroids in KE EMu
         # I was using esites.LatDeriveCentroid, but this always defaults to True
         # And trying to use centroid lat/lon fields, also includes pretty much every record
-        # But matching against *entroid being added to georeferencing notes produces much better results
+        # But matching against *entroid being added to georeferencing notes
+        # produces much better results
         df['centroid'][df['_latLongComments'].str.contains("entroid")] = True
 
-        # Convert all blank strings to NaN so we can use fillna & combine_first() to replace NaNs with value from parent df
-        df = df.applymap(lambda x: np.nan if isinstance(x, basestring) and x == '' else x)
+        # Convert all blank strings to NaN so we can use fillna &
+        # combine_first() to replace NaNs with value from parent df
+        df = df.applymap(lambda x: np.nan if isinstance(
+            x, basestring) and x == '' else x)
 
         df['catalogNumber'].fillna(df['_regRegistrationNumber'], inplace=True)
 
@@ -417,7 +451,8 @@ class SpecimenDatasetTask(DatasetTask):
         # Replace missing CatPreservative
         df['preservative'].fillna(df['_entCatPreservation'], inplace=True)
 
-        # Cultivated should only be set on Botany records - but is actually on everything
+        # Cultivated should only be set on Botany records - but is actually on
+        # everything
         df['cultivated'][df['collectionCode'] != 'BOT'] = np.nan
 
         # Process part parents
@@ -432,32 +467,43 @@ class SpecimenDatasetTask(DatasetTask):
             if '_id' in q:
                 del q['_id']
 
-            # Get all records with the same parent, so we can add them as related records
+            # Get all records with the same parent, so we can add them as
+            # related records
             q['RegRegistrationParentRef'] = {'$in': parent_irns}
-            monary_query = m.query(config.get('mongo', 'database'), 'ecatalogue', q, ['RegRegistrationParentRef', 'AdmGUIDPreferredValue'], ['int32', 'string:36'])
-            part_df = pd.DataFrame(np.matrix(monary_query).transpose(), columns=['RegRegistrationParentRef', 'AdmGUIDPreferredValue'])
-            part_df['RegRegistrationParentRef'] = part_df['RegRegistrationParentRef'].astype('int32')
+            monary_query = m.query(config.get('mongo', 'database'), 'ecatalogue', q, [
+                                   'RegRegistrationParentRef', 'AdmGUIDPreferredValue'], ['int32', 'string:36'])
+            part_df = pd.DataFrame(np.matrix(monary_query).transpose(), columns=[
+                                   'RegRegistrationParentRef', 'AdmGUIDPreferredValue'])
+            part_df['RegRegistrationParentRef'] = part_df[
+                'RegRegistrationParentRef'].astype('int32')
 
             # Group by parent ref and concatenate all the GUIDs together
             # So we now have:
             # parent_irn   guid; guid
-            parts = part_df.groupby('RegRegistrationParentRef')['AdmGUIDPreferredValue'].apply(lambda x: "%s" % ';'.join(x))
+            parts = part_df.groupby('RegRegistrationParentRef')[
+                'AdmGUIDPreferredValue'].apply(lambda x: "%s" % ';'.join(x))
 
-            # And update the main date frame with the group parts, merged on _parentRef
-            df['relatedResourceID'] = df.apply(lambda row: parts[row['_parentRef']] if row['_parentRef'] in parts else np.NaN, axis=1)
-            df['relationshipOfResource'][df['relatedResourceID'].notnull()] = 'Parts'
+            # And update the main date frame with the group parts, merged on
+            # _parentRef
+            df['relatedResourceID'] = df.apply(lambda row: parts[row['_parentRef']] if row[
+                                               '_parentRef'] in parts else np.NaN, axis=1)
+            df['relationshipOfResource'][
+                df['relatedResourceID'].notnull()] = 'Parts'
 
-            parent_df = self.get_dataframe(m, 'ecatalogue', self.get_collection_source_columns('ecatalogue'), parent_irns, '_id')
+            parent_df = self.get_dataframe(m, 'ecatalogue', self.get_collection_source_columns(
+                'ecatalogue'), parent_irns, '_id')
 
             # Ensure the parent multimedia images are usable
             self.ensure_multimedia(parent_df, 'associatedMedia')
 
-            # Assign parentRef as the index to allow us to combine with parent_df
+            # Assign parentRef as the index to allow us to combine with
+            # parent_df
             df.index = df['_parentRef']
 
             # There is a annoying bug that coerces string columns to integers in combine_first
             # Hack: ensure there's always a string value that cannot be coerced in every column
-            # So will create a dummy row, that gets deleted after combine_first is called
+            # So will create a dummy row, that gets deleted after combine_first
+            # is called
             dummy_index = len(df) + 1
             parent_df.loc[dummy_index] = ['-' for _ in parent_df]
             df = df.combine_first(parent_df)
@@ -473,14 +519,19 @@ class SpecimenDatasetTask(DatasetTask):
         # Load extra sites info (if there's an error radius + unit)
         site_irns = self._get_unique_irns(df, '_siteRef')
 
-        sites_df = self.get_dataframe(m, 'esites', collection_columns['esites'], site_irns, '_esitesIrn')
+        sites_df = self.get_dataframe(m, 'esites', collection_columns[
+                                      'esites'], site_irns, '_esitesIrn')
         # Append the error unit to the max error value
-        # Error unit can be populated even when Max error is not, so need to check max error first
-        sites_df['maxError'][sites_df['maxError'] != ''] = sites_df['maxError'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
+        # Error unit can be populated even when Max error is not, so need to
+        # check max error first
+        sites_df['maxError'][sites_df['maxError'] != ''] = sites_df[
+            'maxError'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
 
-        df = pd.merge(df, sites_df, how='outer', left_on=['_siteRef'], right_on=['_esitesIrn'])
+        df = pd.merge(df, sites_df, how='outer', left_on=[
+                      '_siteRef'], right_on=['_esitesIrn'])
 
-        # For CITES species, we need to hide Lat/Lon and Locality data - and label images
+        # For CITES species, we need to hide Lat/Lon and Locality data - and
+        # label images
         for i in ['locality', 'labelLocality', 'decimalLongitude', 'decimalLatitude', 'verbatimLongitude', 'verbatimLatitude', 'centroid', 'maxError', 'higherGeography', 'associatedMedia']:
             df[i][df['_cites'] == 'True'] = np.NaN
 
@@ -489,12 +540,15 @@ class SpecimenDatasetTask(DatasetTask):
         df['centroid'][df['decimalLatitude'].isnull()] = False
 
         # Load collection event data
-        collection_event_irns = self._get_unique_irns(df, '_collectionEventRef')
+        collection_event_irns = self._get_unique_irns(
+            df, '_collectionEventRef')
 
         # if collection_event_irns:
-        collection_event_df = self.get_dataframe(m, 'ecollectionevents', collection_columns['ecollectionevents'], collection_event_irns, '_ecollectioneventsIrn')
+        collection_event_df = self.get_dataframe(m, 'ecollectionevents', collection_columns[
+                                                 'ecollectionevents'], collection_event_irns, '_ecollectioneventsIrn')
         # print collection_event_df
-        df = pd.merge(df, collection_event_df, how='outer', left_on=['_collectionEventRef'], right_on=['_ecollectioneventsIrn'])
+        df = pd.merge(df, collection_event_df, how='outer', left_on=[
+                      '_collectionEventRef'], right_on=['_ecollectioneventsIrn'])
 
         # Add parasite life stage
         # Parasite cards use a different field for life stage
@@ -504,11 +558,13 @@ class SpecimenDatasetTask(DatasetTask):
         parasite_taxonomy_irns = self._get_unique_irns(df, '_cardParasiteRef')
 
         if parasite_taxonomy_irns:
-            parasite_df = self.get_dataframe(m, 'etaxonomy', self.parasite_taxonomy_fields, parasite_taxonomy_irns, '_irn')
+            parasite_df = self.get_dataframe(
+                m, 'etaxonomy', self.parasite_taxonomy_fields, parasite_taxonomy_irns, '_irn')
             df.index = df['_cardParasiteRef']
             df = df.combine_first(parasite_df)
 
         return df
+
 
 class SpecimenDatasetCSVTask(SpecimenDatasetTask, DatasetCSVTask):
     pass
