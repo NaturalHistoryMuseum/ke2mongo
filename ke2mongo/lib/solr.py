@@ -55,19 +55,19 @@ def solr_reindex():
     for index in indexes:
         solr_index = SolrIndex(index)
         print("Starting full import of index: %s" % index)
-        solr_index.full_import()
+        # solr_index.full_import()
 
-        # Enter loop to keep checking status every SLEEP_INTERVAL
-        while True:
-            r = solr_index.status()
-            if r['status'] == 'busy':
-                print('Total Rows Fetched: %s' % r['statusMessages'].get('Total Rows Fetched'))
-                print('Time elapsed: %s' % r['statusMessages'].get('Time Elapsed'))
-                time.sleep(SLEEP_INTERVAL)
-            else:
-                print(r['statusMessages'].get(''))
-                print('Time taken: %s' % r['statusMessages'].get('Time taken'))
-                break;
+        # # Enter loop to keep checking status every SLEEP_INTERVAL
+        # while True:
+        #     r = solr_index.status()
+        #     if r['status'] == 'busy':
+        #         print('Total Rows Fetched: %s' % r['statusMessages'].get('Total Rows Fetched'))
+        #         print('Time elapsed: %s' % r['statusMessages'].get('Time Elapsed'))
+        #         time.sleep(SLEEP_INTERVAL)
+        #     else:
+        #         print(r['statusMessages'].get(''))
+        #         print('Time taken: %s' % r['statusMessages'].get('Time taken'))
+        #         break;
 
 
 if __name__ == "__main__":
