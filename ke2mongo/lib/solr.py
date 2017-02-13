@@ -55,6 +55,8 @@ def solr_reindex():
     for index in indexes:
         solr_index = SolrIndex(index)
         print("Starting full import of index: %s" % index)
+        r = solr_index.status()
+        print(r)
         # solr_index.full_import()
 
         # # Enter loop to keep checking status every SLEEP_INTERVAL
