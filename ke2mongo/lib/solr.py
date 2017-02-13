@@ -37,7 +37,7 @@ class SolrIndex:
         url = os.path.join(self.index, 'dataimport')
         r = requests.get(url, params=params)
         print(r)
-        print(r.raw)
+        print(r.text)
         r.raise_for_status()
         return r.json()
 
