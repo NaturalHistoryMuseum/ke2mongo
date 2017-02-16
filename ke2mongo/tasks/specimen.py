@@ -26,7 +26,6 @@ from ke2mongo.tasks.indexlot import IndexLotDatasetTask
 
 
 class SpecimenDatasetTask(DatasetTask):
-
     # CKAN Dataset params
     package = {
         'name': 'collection-specimens',
@@ -262,6 +261,8 @@ class SpecimenDatasetTask(DatasetTask):
          'registeredWeightUnit', 'string:100'),
         # Project
         ('ecatalogue.NhmSecProjectName', 'project', 'string:100'),
+        # Project
+        ('ecatalogue.EntCatBarcode', 'barcode', 'string:100'),
 
         # Record level
         ('ecatalogue.AdmDateModified', 'modified', 'string:100'),
@@ -288,6 +289,10 @@ class SpecimenDatasetTask(DatasetTask):
         # If DarTypeStatus is empty, we'll use sumTypeStatus which has previous
         # determinations
         ('ecatalogue.sumTypeStatus', '_sumTypeStatus', 'string:100'),
+
+        # Id DarMinimumDepthInMeters is empty, use CollEventFromMetres - used for abyssline project
+        ('ecatalogue.CollEventFromMetres', '_collEventFromMetres', 'string:100'),
+        ('ecatalogue.CollEventToMetres', '_collEventToMetres', 'string:100'),
 
         # Locality if nearest named place is empty
         # The encoding of DarLocality is buggered - see ecatalogue.1804973
@@ -400,7 +405,7 @@ class SpecimenDatasetTask(DatasetTask):
         # Add the old stable identifier - IRN concatenated with catalogue name
         # etc.,
         df['otherCatalogNumbers'] = 'NHMUK:ecatalogue:' + \
-            df['_id'].astype('str')
+                                    df['_id'].astype('str')
 
         # Ensure multimedia resources are suitable (jpeg rather than tiff
         # etc.,)
@@ -448,6 +453,10 @@ class SpecimenDatasetTask(DatasetTask):
         # Replace missing DarTypeStatus
         df['typeStatus'].fillna(df['_sumTypeStatus'], inplace=True)
 
+        # Replace missing depth fields
+        df['minimumDepthInMeters'].fillna(df['_collEventFromMetres'], inplace=True)
+        df['maximumDepthInMeters'].fillna(df['_collEventToMetres'], inplace=True)
+
         # Replace missing CatPreservative
         df['preservative'].fillna(df['_entCatPreservation'], inplace=True)
 
@@ -471,9 +480,9 @@ class SpecimenDatasetTask(DatasetTask):
             # related records
             q['RegRegistrationParentRef'] = {'$in': parent_irns}
             monary_query = m.query(config.get('mongo', 'database'), 'ecatalogue', q, [
-                                   'RegRegistrationParentRef', 'AdmGUIDPreferredValue'], ['int32', 'string:36'])
+                'RegRegistrationParentRef', 'AdmGUIDPreferredValue'], ['int32', 'string:36'])
             part_df = pd.DataFrame(np.matrix(monary_query).transpose(), columns=[
-                                   'RegRegistrationParentRef', 'AdmGUIDPreferredValue'])
+                'RegRegistrationParentRef', 'AdmGUIDPreferredValue'])
             part_df['RegRegistrationParentRef'] = part_df[
                 'RegRegistrationParentRef'].astype('int32')
 
@@ -486,7 +495,7 @@ class SpecimenDatasetTask(DatasetTask):
             # And update the main date frame with the group parts, merged on
             # _parentRef
             df['relatedResourceID'] = df.apply(lambda row: parts[row['_parentRef']] if row[
-                                               '_parentRef'] in parts else np.NaN, axis=1)
+                                                                                           '_parentRef'] in parts else np.NaN, axis=1)
             df['relationshipOfResource'][
                 df['relatedResourceID'].notnull()] = 'Parts'
 
@@ -520,15 +529,15 @@ class SpecimenDatasetTask(DatasetTask):
         site_irns = self._get_unique_irns(df, '_siteRef')
 
         sites_df = self.get_dataframe(m, 'esites', collection_columns[
-                                      'esites'], site_irns, '_esitesIrn')
+            'esites'], site_irns, '_esitesIrn')
         # Append the error unit to the max error value
         # Error unit can be populated even when Max error is not, so need to
         # check max error first
         sites_df['maxError'][sites_df['maxError'] != ''] = sites_df[
-            'maxError'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
+                                                               'maxError'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
 
         df = pd.merge(df, sites_df, how='outer', left_on=[
-                      '_siteRef'], right_on=['_esitesIrn'])
+            '_siteRef'], right_on=['_esitesIrn'])
 
         # For CITES species, we need to hide Lat/Lon and Locality data - and
         # label images
@@ -545,10 +554,10 @@ class SpecimenDatasetTask(DatasetTask):
 
         # if collection_event_irns:
         collection_event_df = self.get_dataframe(m, 'ecollectionevents', collection_columns[
-                                                 'ecollectionevents'], collection_event_irns, '_ecollectioneventsIrn')
+            'ecollectionevents'], collection_event_irns, '_ecollectioneventsIrn')
         # print collection_event_df
         df = pd.merge(df, collection_event_df, how='outer', left_on=[
-                      '_collectionEventRef'], right_on=['_ecollectioneventsIrn'])
+            '_collectionEventRef'], right_on=['_ecollectioneventsIrn'])
 
         # Add parasite life stage
         # Parasite cards use a different field for life stage
