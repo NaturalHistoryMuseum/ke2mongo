@@ -106,11 +106,6 @@ class SpecimenDatasetTask(DatasetTask):
         ('ecatalogue.DarDecimalLatitude', 'decimalLatitude', 'float64'),
         ('ecatalogue.DarGeodeticDatum', 'geodeticDatum', 'string:100'),
         ('ecatalogue.DarGeorefMethod', 'georeferenceProtocol', 'string:100'),
-
-        # LatDeriveCentroid is always True - so removing, and we'll base centroids on it being label such in DarLatLongComments
-        # ('esites.LatDeriveCentroid', 'centroid', 'bool'),
-        ('esites.GeorefMaxErrorDist', 'maxError', 'string:100'),
-        ('esites.GeorefMaxErrorDistUnits', '_errorUnit', 'string:100'),
         ('esites.LatLongitude', 'verbatimLongitude', 'string:100'),
         ('esites.LatLatitude', 'verbatimLatitude', 'string:100'),
 
@@ -530,11 +525,6 @@ class SpecimenDatasetTask(DatasetTask):
 
         sites_df = self.get_dataframe(m, 'esites', collection_columns[
             'esites'], site_irns, '_esitesIrn')
-        # Append the error unit to the max error value
-        # Error unit can be populated even when Max error is not, so need to
-        # check max error first
-        sites_df['maxError'][sites_df['maxError'] != ''] = sites_df[
-                                                               'maxError'].astype(str) + ' ' + sites_df['_errorUnit'].astype(str)
 
         df = pd.merge(df, sites_df, how='outer', left_on=[
             '_siteRef'], right_on=['_esitesIrn'])
