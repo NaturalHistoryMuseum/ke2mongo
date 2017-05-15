@@ -52,7 +52,6 @@ class MongoTask(luigi.Task):
     flatten_mode = FlattenModeParameter(default=FLATTEN_ALL, significant=False)
 
     database = config.get('mongo', 'database')
-    keemu_schema_file = config.get('keemu', 'schema')
 
     batch_size = 1000
     bulk_op_size = 100000
@@ -80,7 +79,7 @@ class MongoTask(luigi.Task):
     @timeit
     def run(self):
 
-        ke_data = KEParser(self.input().open('r'), file_path=self.input().path, schema_file=self.keemu_schema_file, flatten_mode=self.flatten_mode)
+        ke_data = KEParser(self.input().open('r'), file_path=self.input().path, flatten_mode=self.flatten_mode)
         self.collection = self.get_collection()
 
         # If we have any records in the collection, use bulk_update with mongo bulk upsert

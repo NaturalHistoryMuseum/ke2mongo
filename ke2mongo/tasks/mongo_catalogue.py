@@ -12,7 +12,6 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 import time
 import luigi
 from uuid import UUID
-from ke2mongo.lib.cites import get_cites_species
 from ke2mongo.tasks.mongo import MongoTask, InvalidRecordException
 from ke2mongo.tasks import DATE_FORMAT
 from ke2mongo.log import log
@@ -48,8 +47,6 @@ class MongoCatalogueTask(MongoTask):
         'Tissue',  # Only 2 records. Watch.
         'Transient Lot'
     ]
-
-    cites_species = get_cites_species()
 
     def process_record(self, data):
 
@@ -92,12 +89,6 @@ class MongoCatalogueTask(MongoTask):
         for i in ['DnaTotalVolume', 'FeaCultivated', 'MinMetRecoveryWeight', 'MinMetWeightAsRegistered']:
             if i in data:
                 data[i] = str(data[i])
-
-        # If record is a CITES species, mark cites = True
-        scientific_name = data.get('DarScientificName', None)
-
-        if scientific_name and scientific_name in self.cites_species:
-            data['cites'] = True
 
         # For the embargo date, we're going to use the latest of NhmSecEmbargoDate and NhmSecEmbargoExtensionDate
         # So loop through, convert to timestamp.

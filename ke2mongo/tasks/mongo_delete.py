@@ -50,7 +50,7 @@ class MongoDeleteTask(MongoTask):
         # Exclude the MongoDeleteTask though
         collections = {cls.module: cls(None).get_collection() for cls in MongoTask.__subclasses__()}
 
-        ke_data = KEParser(self.input().open('r'), file_path=self.input().path, schema_file=self.keemu_schema_file)
+        ke_data = KEParser(self.input().open('r'), file_path=self.input().path)
 
         for record in self.iterate_data(ke_data):
 
